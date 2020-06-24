@@ -1,0 +1,384 @@
+<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ~ Copyright © 2013-2016 The Nxt Core Developers.                            ~
+  ~ Copyright © 2016-2020 Jelurida IP B.V.                                    ~
+  ~                                                                           ~
+  ~ See the LICENSE.txt file at the top-level directory of this distribution  ~
+  ~ for licensing information.                                                ~
+  ~                                                                           ~
+  ~ Unless otherwise agreed in a custom licensing agreement with Jelurida B.V.,
+  ~ no part of this software, including this file, may be copied, modified,   ~
+  ~ propagated, or distributed except according to the terms contained in the ~
+  ~ LICENSE.txt file.                                                         ~
+  ~                                                                           ~
+  ~ Removal or modification of this copyright notice is prohibited.           ~
+  ~                                                                           ~
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+
+<!--suppress HtmlFormInputWithoutLabel -->
+<div id="lockscreen" class="loading spinner_container">
+    <div id="login_panel" class="panel panel-default col-md-6 col-md-offset-3" style="display:none;">
+        <div class="panel-heading">
+            <div style="display:flex; justify-content: space-between;">
+                <div class="btn-group chainSelector" id="login_chain_selector">
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
+                            aria-haspopup="true" aria-expanded="false">
+                        <span class="currentChain"></span> <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu"></ul>
+                </div>
+                <div style="display:flex;">
+                    <img alt="Ardor Logo" src="img/nxt-icon-32x32.png" style="height: fit-content"/>
+                    <h4 style="overflow:hidden;" class="regular-view">
+                        <span>Ardor</span>
+                    </h4>
+                </div>
+                <div class="top-right-button-section">
+                    <div class="btn-group languageSelector" id="login_language_selector">
+                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
+                                aria-haspopup="true" aria-expanded="false">
+                            <span class="currentLanguage"></span> <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu"></ul>
+                    </div>
+                    <a href="#" id="login_tour"><i class="far fa-question fa-lg"></i></a>
+                    <a href="#" data-toggle="modal" data-target="#device_settings_modal"><i class="far fa-cog fa-lg"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="panel-body">
+
+            <!-- Login type selector -->
+            <ul id="login_buttons" class="nav nav-pills nav-justified" style="margin-bottom:10px">
+                <li data-tab="seed" class="active">
+                    <a href="#"><i class="far fa-seedling"></i>&nbsp<span data-i18n="seed">Seed</span></a>
+                </li>
+                <li data-tab="hardware">
+                    <a href="#"><i class="far fa-wallet"></i>&nbsp<span data-i18n="hardware">Hardware</span></a>
+                </li>
+                <li data-tab="passphrase">
+                    <a href="#" data-login-type="passphrase"><i class="far fa-key"></i>&nbsp<span data-i18n="passphrase">Passphrase</span></a>
+                </li>
+                <li data-tab="account">
+                    <a href="#" data-login-type="account"><i class="far fa-female"></i>&nbsp<span data-i18n="account">Account</span></a>
+                </li>
+            </ul>
+
+            <!-- Account Login -->
+            <div class="login_page_content" style="display:none" id="login_account_container">
+                <div class="form-group" id="login_account_container_selector">
+                    <label for="dropdownMenu1" data-i18n="bookmarked_accounts">Bookmarked Accounts</label>
+                    <div class="dropdown">
+                        <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown">
+                            <span data-i18n="select_account_to_login">Select an Account to Login with</span>
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1" id="login_account">
+
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="login_account_other" data-i18n="account">Account</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="login_account_other" placeholder="Your Account" data-i18n="[placeholder]your_account"/>
+                        <span class="input-group-addon">
+                            <a class="scan-qr-code" href="#" data-reader="login_account_reader" data-id="login_account_other" tabindex="-1">
+                                <i class="far fa-qrcode"></i>
+                            </a>
+                        </span>
+                    </div>
+                </div>
+                <div class="form-group bookmark-account-form-group">
+                    <label class="checkbox-inline">
+                        <input type="checkbox" id="bookmark_account"/><span data-i18n="bookmark_account">Bookmark Account</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <div id="login_account_reader" class="input-group" style="display:none"></div>
+                </div>
+            </div>
+
+            <!-- Passphrase Login -->
+            <div class="login_page_content" style="display:none" id="login_password_container">
+                <div class="form-group">
+                    <label for="login_password" data-i18n="passphrase_or_private_key">Passphrase or Private Key</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="login_password" placeholder="Your Passphrase" data-i18n="[placeholder]your_passphrase"/>
+                        <span class="input-group-addon">
+                            <a class="scan-qr-code" href="#" data-reader="login_password_reader" data-id="login_password" tabindex="-1">
+                                <i class="far fa-qrcode"></i>
+                            </a>
+                        </span>
+                        <span class="input-group-addon">
+                            <a href="#" class="creation_link" data-entity-type="passphrase"><i class="fas fa-plus"></i> <span data-i18n="create">Create</span></a>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="login_password_account" data-i18n="account">Account</label>
+                    <input type="text" class="form-control" id="login_password_account" readonly tabindex="-1"/>
+                </div>
+
+                <div class="form-group remember-me-form-group">
+                    <label class="checkbox-inline">
+                        <input type="checkbox" id="remember_me"/><span data-i18n="remember_me">Remember Me</span>
+                    </label>
+                </div>
+
+                <div id="login_password_reader" class="input-group" style="display:none"></div>
+                <input type="hidden" name="check_password_length" id="login_check_password_length" value="1" />
+            </div>
+
+            <!-- Hardware Login -->
+            <div class="login_page_content" style="display:none" id="hardware_wallet_container">
+                <div id="hardware_wallet_info" class="callout callout-info" data-i18n="hardware_wallet_intro"></div>
+                <div class="well hidden advanced_load">
+                    <div class="form-group">
+                        <div class="input-group">
+                            <span class="input-group-addon" data-i18n="index">Index</span>
+                            <input type="number" class="form-control from_child" id="hardware_from_child" value="0" min="0" max="999">
+                            <span class="input-group-addon" data-i18n="to">To</span>
+                            <input type="number" class="form-control to_child" id="hardware_to_child" value="5" min="0" max="999">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px">
+                        <label class="checkbox-inline">
+                            <input type="checkbox" class="stop_at_new_account" id="hardware_stop_at_new_account" checked/><span data-i18n="stop_at_new_account">Stop at new account</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group text-right">
+                    <button id="login_hardware_advanced" class="btn btn-default show_advanced_load">
+                        <i class="far fa-sliders-v"></i> <span data-i18n="advanced">Advanced</span>
+                    </button>
+                    <button id="login_hardware_load_accounts" class="btn btn-primary" data-i18n="load">Load</button>
+                </div>
+                <div class="form-group">
+                    <div class="input-group">
+                        <span class="input-group-addon" data-i18n="account">Account</span>
+                        <select class="form-control" id="login_hardware_account">
+                            <option data-i18n="load_accounts"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <input type="hidden" id="login_hardware_bip32" value=""/>
+
+            </div>
+
+            <!-- Seed Login -->
+            <div class="login_page_content" id="seed_wallet_container">
+                <div id="seed_wallet_info" class="callout callout-info" data-i18n="enter_seed_then_load_accounts"></div>
+                <div class="form-group">
+                    <div class="input-group">
+                        <span class="input-group-addon" data-i18n="seed">Seed</span>
+                        <input type="password" class="form-control" id="login_seed" placeholder="Your Seed" data-i18n="[placeholder]your_seed" autofocus />
+                        <span class="input-group-btn">
+                            <a class="scan-qr-code btn btn-default" href="#" data-reader="login_seed_reader" data-id="login_seed" tabindex="-1">
+                                <i class="far fa-qrcode"></i>
+                            </a>
+                            <a href="#" class="creation_link btn btn-default" data-entity-type="seed">
+                                <i class="fas fa-plus"></i> <span data-i18n="create">Create</span>
+                            </a>
+                        </span>
+                    </div>
+                </div>
+                <div class="well hidden advanced_load">
+                    <div class="form-group">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon" data-i18n="master_public_key">Master Public Key</span>
+                                <textarea class="form-control" id="login_master_public_key" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-addon" data-i18n="index">Index</span>
+                            <input type="number" class="form-control from_child" id="seed_from_child" value="0" min="0" max="999">
+                            <span class="input-group-addon" data-i18n="to">To</span>
+                            <input type="number" class="form-control to_child" id="seed_to_child" value="5" min="0" max="999">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px">
+                        <label class="checkbox-inline">
+                            <input type="checkbox" class="stop_at_new_account" id="seed_stop_at_new_account" checked/><span data-i18n="stop_at_new_account">Stop at new account</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group text-right">
+                    <button id="login_seed_advanced" class="btn btn-default show_advanced_load">
+                        <i class="far fa-sliders-v"></i> <span data-i18n="advanced">Advanced</span>
+                    </button>
+                    <button id="login_seed_load_accounts" class="btn btn-primary" data-i18n="load">Load</button>
+                </div>
+                <div class="form-group">
+                    <div class="input-group">
+                        <span class="input-group-addon" data-i18n="account">Account</span>
+                        <select class="form-control" id="login_seed_account">
+                            <option data-i18n="enter_seed_then_load_accounts"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <input type="hidden" id="login_seed_bip32" value=""/>
+
+                <div id="login_seed_reader" class="input-group" style="display:none"></div>
+            </div>
+
+            <!-- various warnings -->
+            <div class="callout callout-warning custom_login_warning" style="display:none"></div>
+            <div class="callout callout-danger" id="proxy_connection_error" style="margin-bottom: 15px">
+                <div data-i18n="proxy_connection_failed">Failed to connect to remote nodes</div>
+                <button class="btn btn-flat"><i class="fa fa-repeat"></i>&nbsp;Retry</button>
+            </div>
+            <div id="testnet_login" class="callout callout-warning" data-i18n="testnet_login_warning" style="margin-bottom: 1em"></div>
+            <div id="login_error" class="callout callout-danger" style="display:none;"></div>
+
+            <div id="lockscreen_active_plugins_warning" style="display:none;">
+                <div style="display:inline-block;max-width: 400px; min-width: 400px;">
+                    <div style="margin-top:10px;margin-bottom:12px;">
+                        <a href="#" id="lockscreen_active_plugins_overview" class="label label-default" data-content="" data-toggle="popover" data-placement="top" data-i18n="active_plugins">
+                            Active Plugins
+                        </a>&nbsp;
+                        <a href="#" id="lockscreen_active_plugins_security" class="label label-warning" data-content="" data-toggle="popover" data-placement="top" data-i18n="security_notice">
+                            Security Notice
+                        </a>
+                    </div>
+                    <div>
+                        <span>
+                            <input type="checkbox" name="disable_all_plugins" id="disable_all_plugins"/> <label for="disable_all_plugins" style="font-weight:normal;" data-i18n="disable_plugins">Disable Plugins during Session</label>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" id="entity_creation_type" value=""/>
+        </div>
+        <div class="panel-footer text-right">
+            <button id="login_btn" class="btn btn-primary" data-i18n="login">Login</button>
+        </div>
+    </div>
+
+    <div class="panel panel-default col-md-6 col-md-offset-3" id="account_phrase_custom_panel" style="display:none;">
+        <div class="panel-heading">
+            <span class="glyphicon glyphicon-lock"></span>
+            &nbsp
+            <span class="entity_creation_header"></span>
+        </div>
+
+        <div class="panel-body">
+            <div class="callout callout-info" style="max-width:500px;" data-i18n="passphrase_length_warning">Your passphrase must be at least 35 characters long.</div>
+
+            <div class="callout callout-warning" style="word-break:inherit;">
+                <span data-i18n="attention">Attention</span>:<br><br>
+                <span data-i18n="passphrase_warning_advanced_users">
+                    This option is for advanced users only!
+                </span><br><br>
+                <span data-i18n="passphrase_warning_unique">
+                    The passphrase is everything that stands between your account and the rest of the world. Do not use any meaningful sentence, especially any that appears in song or literature.
+                </span><br><br>
+                <span class="entity_warning_disclose"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="registration_password" data-i18n="passphrase">Passphrase</label>
+                <input type="password" name="registration_password" class="form-control" id="registration_password" placeholder="" />
+            </div>
+            <div class="form-group">
+                <label for="registration_password_repeat" data-i18n="repeat">Repeat</label>
+                <input type="password" name="registration_password_repeat" class="form-control" id="registration_password_repeat" placeholder="" />
+            </div>
+
+            <div style="text-align:right">&nbsp;&nbsp;
+                <button class="btn btn-sm btn-default create-mnemonic-cancel" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-sm btn-primary create-custom-passphrase-next" data-i18n="next">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default col-md-6 col-md-offset-3" id="account_phrase_generator_panel" style="display:none;">
+        <div class="panel-heading">
+            <span class="glyphicon glyphicon-lock"></span>
+            &nbsp
+            <span class="entity_creation_header"></span>
+        </div>
+
+        <div class="panel-body">
+            <div class="step_2 account_phrase_generator_steps">
+                <div class="form-group">
+                    <label for="step_2_generated_secret" class="entity_generated_secret"></label>
+                    <textarea class="form-control" style="color: blue; font-family: monospace" id="step_2_generated_secret" rows="2" tabindex="-1"></textarea>
+                    <div class="callout callout-warning memorize_passphrase_help"></div>
+                    <div class="form-group">
+                        <label for="secret_generator_wordlist_length">Secret length</label>
+                        <select class="form-control" id="secret_generator_wordlist_length">
+                            <option value="12">12 words</option>
+                            <option value="15">15 words</option>
+                            <option value="18">18 words</option>
+                            <option value="21">21 words</option>
+                            <option value="24">24 words</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="passphrase_specific_widgets">
+                        <div class="form-group">
+                            <a id="custom_passphrase_link" href="#" data-i18n="choose_own_passphrase">Want to choose your own passphrase? Click here.</a>
+                        </div>
+                        <div class="form-group">
+                            <label for="step_2_account" data-i18n="account">Account</label>
+                            <input class="form-control" id="step_2_account" readonly tabindex="-1"/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <a href="#" data-toggle="modal" data-dismiss="modal" data-target="#create_paper_wallet_modal" data-i18n="create_paper_wallet">Create Paper Wallet</a>
+                    </div>
+                </div>
+
+                <div class="callout callout-warning">
+                    <strong><span data-i18n="attention">Attention</span></strong>:
+                    <span class="entity_warning_disclose"></span>
+                </div>
+
+                <div class="form-group" id="confirm_passphrase_warning_container">
+                    <div class="input-group">
+                        <label class="checkbox-inline" for="confirm_passphrase_warning">
+                            <input type="checkbox" id="confirm_passphrase_warning" value="0"/><span class="confirm_entity_warning"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="text-align:right">
+                    <button class="btn btn-sm btn-default create-mnemonic-cancel" data-i18n="cancel">Cancel</button>
+                    <button class="btn btn-sm btn-primary create-passphrase-next" data-i18n="next">Next</button>
+                </div>
+            </div>
+
+            <div class="step_3 account_phrase_generator_steps">
+                <div class="form-group">
+                    <span id="step_3_secret_write_below"></span>
+                </div>
+
+                <div class="callout callout-warning" style="display:none" id="step_3_incorrectly_typed_secret"></div>
+
+                <div class="form-group">
+                    <label for="step_3_confirm_secret" id="step_3_confirm_secret_header"></label>
+                    <textarea class="form-control" id="step_3_confirm_secret" rows="2"></textarea>
+                </div>
+
+                <div style="text-align:right">&nbsp;&nbsp;
+                    <button class="btn btn-sm btn-default create-mnemonic-cancel" data-i18n="cancel">Cancel</button>
+                    <button class="btn btn-sm btn-primary verify-generated-mnemonic" data-i18n="next">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- this dummy checkbox corrects rendering problem of checkboxes when using desktop application on Linux -->
+    <div id="dummyCheckbox" style="display: none">
+        <input type="checkbox" disabled>
+    </div>
+    <div id="loading_wheel" style="display:none;position:absolute;left:50%;top:50%;width:100px;">
+        <div class="loading-img" style="position:absolute;left:-50%;width:100px;height:280px;"></div>
+    </div>
+</div>

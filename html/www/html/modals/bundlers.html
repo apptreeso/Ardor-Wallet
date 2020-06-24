@@ -1,0 +1,226 @@
+<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ~ Copyright © 2013-2016 The Nxt Core Developers.                            ~
+  ~ Copyright © 2016-2020 Jelurida IP B.V.                                    ~
+  ~                                                                           ~
+  ~ See the LICENSE.txt file at the top-level directory of this distribution  ~
+  ~ for licensing information.                                                ~
+  ~                                                                           ~
+  ~ Unless otherwise agreed in a custom licensing agreement with Jelurida B.V.,
+  ~ no part of this software, including this file, may be copied, modified,   ~
+  ~ propagated, or distributed except according to the terms contained in the ~
+  ~ LICENSE.txt file.                                                         ~
+  ~                                                                           ~
+  ~ Removal or modification of this copyright notice is prohibited.           ~
+  ~                                                                           ~
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+
+
+<div class="modal fade" id="start_bundler_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" data-i18n="start_bundler">Start Bundler</h4>
+            </div>
+            <div class="modal-body">
+                <div class="callout callout-info never_hide start_bundler" data-i18n="start_bundler_rule_info">
+                    Start a bundler with single bundling rule. More rules can be added from the bundler actions. The child
+                    chain transaction is bundled according to the first rule whose filters are min rate are satisfied
+                    by the transaction.
+                </div>
+                <form role="form" autocomplete="off">
+                    <div class="callout callout-danger passphrase_warning" style="display:none">
+                        <strong><span data-i18n="warning">Warning</span>:</strong>
+                        <span class="passphrase_warning_text"></span>
+                    </div>
+                    <div class="callout callout-danger error_message" style="display:none"></div>
+                    <div class="row start_bundler">
+                        <div class="col-xs-12 col-sm-6 col-md-6">
+                            <div class="form-group">
+                                <label data-i18n="fee_limit">Fee Limit</label>
+                                <i class="far fa-question-circle modal-context-help" data-content="" data-toggle="popover" data-trigger="hover"
+                                   data-container="#start_bundler_modal" data-i18n="[data-content]bundler_fee_limit_help"></i>
+                                <div class="input-group">
+                                    <input type="text" name="totalFeesLimitFXT" min="0" class="form-control" placeholder="Fee Limit" data-i18n="[placeholder]fee_limit" tabindex="1">
+                                    <span class="input-group-addon"><span class="parent-coin-symbol"></span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row start_bundler" style="border-bottom: 1px solid #ddd; margin-bottom: 15px;">
+                        <div class="col-xs-12 col-sm-6 col-md-6" >
+                            <label data-i18n="bundling_rule">Bundling Rule</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6">
+                            <div class="form-group">
+                                <label data-i18n="min_rate">Minimum Rate</label>
+                                <i class="far fa-question-circle modal-context-help" data-content="" data-toggle="popover" data-trigger="hover"
+                                   data-container="#start_bundler_modal" data-i18n="[data-content]bundler_min_rate_help"></i>
+                                <div class="input-group">
+                                    <input type="text" name="minRateNXTPerFXT" min="0" class="form-control" placeholder="rate" data-i18n="[placeholder]rate" tabindex="2">
+                                    <span class="input-group-addon"><span class="coin-symbol"></span><span class="coin-symbol-separator"></span><span class="parent-coin-symbol"></span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-6">
+                            <div class="form-group">
+                                <label data-i18n="fee_calculator">Fee Calculator</label>
+                                <i class="far fa-question-circle modal-context-help" data-content="" data-toggle="popover" data-trigger="hover"
+                                   data-container="#start_bundler_modal" data-i18n="[data-content]bundler_fee_calculator_help"></i>
+                                <div class="input-group">
+                                    <select name="feeCalculatorName" id="fee_calculator_id" class="form-control" tabindex="3">
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <div class="form-group">
+                                <div id="fee_calculator_description" class="callout callout-info never_hide">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6">
+                            <div class="form-group">
+                                <label data-i18n="overpay">Overpay</label>
+                                <i class="far fa-question-circle modal-context-help" data-content="" data-toggle="popover" data-trigger="hover"
+                                   data-container="#start_bundler_modal" data-i18n="[data-content]bundler_overpay_help"></i>
+                                <div class="input-group">
+                                    <input type="text" name="overpayFXTPerFXT" min="0" class="form-control" placeholder="overpay" data-i18n="[placeholder]overpay" tabindex="4">
+                                    <span class="input-group-addon"><span class="parent-coin-symbol"></span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 multi_filters_list_container">
+                            <label data-i18n="bundling_filters">Filters</label>
+                            <i class="far fa-question-circle modal-context-help" data-content="" data-toggle="popover" data-trigger="hover"
+                               data-container="#start_bundler_modal" data-i18n="[data-content]bundler_filters_help"></i>
+                            <div class="form-group form_group_multi_filters" style="display:none">
+                                <div class="input-group">
+                                    <span class="input-group-btn">
+                                        <select name="filterName" id="filter_name_id" class="form-control" style="min-width: 180px">
+                                        </select>
+                                    </span>
+                                    <input type="text" name="filterParameter" class="form-control" placeholder="parameter"
+                                           data-i18n="[placeholder]bundler_filter_parameter"/>
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-default bundling_filter_details" type="button" data-trigger="hover"
+                                                data-container="#start_bundler_modal" data-content="">
+                                            <i class="far fa-question" ></i>
+                                        </button>
+                                    </span>
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-default remove_bundling_filter_btn" type="button"><i class="far fa-minus"></i></button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row form-group" style="border-bottom: 1px solid #ddd; margin-bottom: 15px;">
+                        <div class="col-xs-12" style="margin-bottom: 5px;">
+                            <a href="#" class="btn btn-primary" id="add_filter_btn_id"><i class="far fa-plus"></i> <span data-i18n="add_bundling_filter">Add Filter</span></a>
+                        </div>
+                    </div>
+                    <div data-replace-with-modal-template="secret_phrase_modal_template"></div>
+                    <input type="hidden" name="chain">
+                    <input type="hidden" name="request_type" value="startBundler"/>
+                </form>
+            </div>
+            <div class="modal-footer" style="margin-top:0;">
+                <button type="button" class="btn btn-default" data-dismiss="modal" data-i18n="cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" data-loading-text="Submitting..." data-i18n="submit;[data-loading-text]submitting">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="stop_bundler_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" data-i18n="stop_bundler">Stop Bundler</h4>
+            </div>
+            <div class="modal-body">
+                <form role="form" autocomplete="off">
+                    <div class="callout callout-danger error_message" style="display:none"></div>
+                    <div class="form-group">
+                        <label for="stop_bundler_account" data-i18n="account">Account</label>
+                        <input type="text" name="account" id="stop_bundler_account" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="stop_bundler_chain" data-i18n="chain">Chain</label>
+                        <input type="text" name="chain" id="stop_bundler_chain" class="form-control" readonly>
+                    </div>
+                    <input type="hidden" name="adminPassword" id="stop_bundler_admin_password"/>
+                    <input type="hidden" name="request_type" value="stopBundler"/>
+                </form>
+            </div>
+            <div class="modal-footer" style="margin-top:0;">
+                <button type="button" class="btn btn-default" data-dismiss="modal" data-i18n="cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" data-loading-text="Submitting..." data-i18n="stop;[placeholder]submitting">Stop</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="blacklist_bundler_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" data-i18n="blacklist_bundler">Blacklist Bundler</h4>
+            </div>
+            <div class="modal-body">
+                <div class="callout callout-danger never_hide" data-i18n="blacklist_bundler_confirmation">Are you sure you want to blacklist this bundler?</div>
+                <form role="form" autocomplete="off">
+                    <div class="callout callout-danger error_message" style="display:none"></div>
+                    <p><span id="blacklist_bundler_account_id"></span></p>
+                    <div id="blacklist_bundler_admin_password_wrapper">
+                        <div data-replace-with-modal-template="admin_password_modal_template"></div>
+                    </div>
+                    <input type="hidden" name="account" id="blacklist_bundler_field_id" value="" />
+                    <input type="hidden" name="request_type" value="blacklistBundler" />
+                </form>
+            </div>
+            <div class="modal-footer" style="margin-top:0;">
+                <button type="button" class="btn btn-default" data-dismiss="modal" data-i18n="no">No</button>
+                <button type="button" class="btn btn-primary" data-loading-text="Submitting..." data-i18n="yes;[data-loading-text]submitting">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="view_bundling_rules_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title">
+                    <a href='#' class="far fa-arrow-circle-left back-link"></a>
+                    <span data-i18n="bundling_rules">Bundling Rules</span>
+                </h4>
+            </div>
+            <div class="modal-body">
+                <form role="form" autocomplete="off">
+                    <div class="form-group">
+                        <label for="view_bundling_rules_modal_content" data-i18n="content"></label>
+                        <textarea class="form-control" id="view_bundling_rules_modal_content" rows="12" readonly></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="margin-top:0;">
+                <button type="button" class="btn btn-default" data-dismiss="modal" data-i18n="close">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

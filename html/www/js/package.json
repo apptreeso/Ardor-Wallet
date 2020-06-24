@@ -1,0 +1,29 @@
+{
+  "name": "ardor",
+  "version": "2.3.14",
+  "description": "Client API library for the Ardor Blockchain",
+  "main": "nrs.node.bridge.js",
+  "repository": {
+    "type": "git",
+    "url": "https://bitbucket.org/Jelurida/ardor.git"
+  },
+  "keywords": [
+    "blockchain",
+    "client",
+    "api"
+  ],
+  "author": "Jelurida",
+  "license": "MIT",
+  "homepage": "https://ardordocs.jelurida.com/Node_JS_module",
+  "dependencies": {
+    "async": "2.6.3",
+    "big-integer": "1.6.48",
+    "big.js": "5.2.2",
+    "bip32-path": "0.4.2",
+    "crc-32": "1.2.0",
+    "crypto-js": "3.3.0",
+    "jsbn": "0.1.1",
+    "node-fetch": "2.6.0",
+    "pako": "1.0.11"
+  }
+}
