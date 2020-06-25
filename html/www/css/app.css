@@ -550,7 +550,7 @@ body > .header .logo:hover {
 }
 
 .user-panel {
-  padding: 10px;
+  padding: 10px 12px;
 }
 
 .user-panel:before,
@@ -570,9 +570,26 @@ body > .header .logo:hover {
   color: #555555;
 }
 
-.user-panel > .info > .info > div > #sidebar_account_link > a {
-  font-size: 14px;
+.user-panel > .info > .info > div > div > .label-success {
+  color: #ffffff;
+}
+
+.user-panel > .info > .info > div > h5 > #sidebar_account_id {
   display: block;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: 3px;
+  color: #555555;
+  font-weight: 500;
+}
+
+.user-panel > .info > .info > div > #sidebar_account_link > a {
+  display: block;
+  padding: 5px 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: 3px;
 }
 
 /*
