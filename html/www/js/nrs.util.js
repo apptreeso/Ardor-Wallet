@@ -341,7 +341,7 @@
                 accountTitle = NRS.getAccountTitle(object, accountKey);
             }
 
-            let shortVersion = accountTitle.length > 5 ? "..." + String(accountTitle.substr(accountTitle.length - 5)) : accountTitle;
+            let shortVersion = accountTitle;
 
             if (!clazz) {
                 clazz = "";
