@@ -599,23 +599,23 @@ body > .header .logo:hover {
 }
 
 .user-panel #account_id_dropdown {
-  padding-top: 5px;
+  padding-top: 10px;
 }
 
 .user-panel .input-group {
-  padding: 10px;
-  float: left;
+  padding: 15px 10px 10px 10px;
+  text-align: center;
 }
 
 .user-panel #chain_dropdown {
-  padding-top: 5px;
+  padding-top: 10px;
 }
 
 .user-panel .network_status {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  margin: 10px 0;
+  margin: 15px 0 10px 0;
 }
 
 /*
