@@ -550,7 +550,7 @@ body > .header .logo:hover {
 }
 
 .user-panel {
-  padding: 10px 12px;
+  padding: 10px 0;
 }
 
 .user-panel:before,
@@ -564,32 +564,58 @@ body > .header .logo:hover {
 }
 
 .user-panel > .info {
-  padding: 5px 0;
   font-size: 14px;
   line-height: 1;
   color: #555555;
 }
 
-.user-panel > .info > .info > div > div > .label-success {
+.user-panel > .info > .info > .row {
+  margin: 0;
+}
+
+.user-panel .account_id,
+.user-panel .account_info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.user-panel .account_balance > .label-success {
   color: #ffffff;
 }
 
-.user-panel > .info > .info > div > h5 > #sidebar_account_id {
+.user-panel #sidebar_account_id {
   display: block;
   padding: 0;
-  font-size: 14px;
   line-height: 1.5;
-  border-radius: 3px;
   color: #555555;
   font-weight: 500;
 }
 
-.user-panel > .info > .info > div > #sidebar_account_link > a {
+.user-panel #sidebar_account_link > a {
   display: block;
   padding: 5px 10px;
   font-size: 14px;
-  line-height: 1.5;
-  border-radius: 3px;
+}
+
+.user-panel #account_id_dropdown {
+  padding-top: 5px;
+}
+
+.user-panel .input-group {
+  padding: 10px;
+  float: left;
+}
+
+.user-panel #chain_dropdown {
+  padding-top: 5px;
+}
+
+.user-panel .network_status {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin: 10px 0;
 }
 
 /*
@@ -2186,7 +2212,6 @@ input.masked {
 
 #sideBalance {
   display: block;
-  margin-bottom: 5px;
 }
 
 #alias_count_heading {
