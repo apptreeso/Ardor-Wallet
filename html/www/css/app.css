@@ -602,6 +602,10 @@ body > .header .logo:hover {
   padding-top: 10px;
 }
 
+.user-panel #account_id_dropdown > ul {
+  margin: 0 10px;
+}
+
 .user-panel .input-group {
   padding: 15px 10px 10px 10px;
   text-align: center;
@@ -609,6 +613,10 @@ body > .header .logo:hover {
 
 .user-panel #chain_dropdown {
   padding-top: 10px;
+}
+
+.user-panel #chain_dropdown > ul {
+  margin: 0 10px;
 }
 
 .user-panel .network_status {
