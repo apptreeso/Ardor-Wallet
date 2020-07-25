@@ -193,7 +193,7 @@
             3: {
                 'title': "Marketplace",
                 'i18nKeyTitle': 'marketplace',
-                'iconHTML': '<i class="fa pull-right fa-angle-right fa-shopping-cart"></i>',
+                'iconHTML': '<i class="fa fa-angle-right fa-shopping-cart"></i>',
                 'chainType': "child",
                 'subTypes': {
                     0: {

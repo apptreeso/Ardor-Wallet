@@ -392,6 +392,10 @@ body > .header .logo:hover {
   font-size: 24px;
 }
 
+#blocks_page_type > .btn.active {
+  background-color: lightgray;
+}
+
 #currencies_search,
 #alias_search {
   margin: 0;
@@ -2916,12 +2920,7 @@ div.fee-calculation-container {
     clear: both;
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
-    text-align: center;
-  }
-
-  #transactions_type_navi li:nth-child(9) {
-    flex-basis: 100%;
+    justify-content: center !important;
     text-align: center;
   }
 
