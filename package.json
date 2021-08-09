@@ -1,15 +1,9 @@
 {
-  "name": "@paulrberg/solidity-template",
+  "name": "@illuviumgame/staking-contracts-v2",
   "description": "Setup for writing Solidity smart contracts",
   "version": "1.0.0",
-  "author": {
-    "name": "Paul Razvan Berg",
-    "url": "https://paulrberg.com"
-  },
   "devDependencies": {
     "@codechecks/client": "^0.1.11",
-    "@commitlint/cli": "^13.1.0",
-    "@commitlint/config-conventional": "^13.1.0",
     "@ethersproject/abi": "^5.4.0",
     "@ethersproject/abstract-signer": "^5.4.1",
     "@ethersproject/bignumber": "^5.4.1",
@@ -79,5 +73,8 @@
     "prettier:check": "prettier --check --config ./.prettierrc \"**/*.{js,json,md,sol,ts}\"",
     "test": "hardhat test",
     "typechain": "hardhat typechain"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.2.0"
   }
 }
