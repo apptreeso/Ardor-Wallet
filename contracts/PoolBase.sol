@@ -7,7 +7,10 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./VaultRecipient.sol";
 import "hardhat/console.sol";
 
-contract CorePoolV2 is ERC721, ReentrancyGuard, VaultRecipient {}
+abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
+    constructor() {}
+}
