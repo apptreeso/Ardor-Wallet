@@ -313,17 +313,6 @@ contract PoolFactory is Ownable {
 
     /**
      * @dev Testing time-dependent functionality is difficult and the best way of
-     *      doing it is to override block number in helper test smart contracts
-     *
-     * @return `block.number` in mainnet, custom values in testnets (if overridden)
-     */
-    function blockNumber() public view virtual returns (uint256) {
-        // return current block number
-        return block.number;
-    }
-
-    /**
-     * @dev Testing time-dependent functionality is difficult and the best way of
      *      doing it is to override time in helper test smart contracts
      *
      * @return `block.timestamp` in mainnet, custom values in testnets (if overridden)
