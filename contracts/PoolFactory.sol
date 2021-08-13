@@ -282,12 +282,19 @@ contract PoolFactory is Ownable {
      * @param _to an address to mint tokens to
      * @param _amount amount of ILV tokens to mint
      */
-    function mintYieldTo(address _to, uint256 _amount) external {
+    function mintYieldTo(
+        address _to,
+        uint256 _amount,
+        bool _useSILV
+    ) external {
         // verify that sender is a pool registered withing the factory
         require(poolExists[msg.sender], "access denied");
 
-        // mint ILV tokens as required
-        mintIlv(_to, _amount);
+        if (!_useSILV) {
+            ilv.mint(_to, _amount);
+        } else {
+            silv.mint(_to, _amount);
+        }
     }
 
     /**
