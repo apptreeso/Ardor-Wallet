@@ -2,7 +2,9 @@
 pragma solidity 0.8.0;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { CorePool } from "./CorePool.sol";
 import { IlluviumAware } from "./libraries/IlluviumAware.sol";
+import { IPoolBase } from "./interfaces/IPoolBase.sol";
 
 import "hardhat/console.sol";
 
@@ -81,7 +83,7 @@ contract PoolFactory is Ownable {
     address public immutable silv;
 
     /// @dev Maps pool token address (like ILV) -> pool address (like core pool instance)
-    mapping(address => address) public pools;
+    mapping(address => IPoolBase) public pools;
 
     /// @dev Keeps track of registered pool addresses, maps pool address -> exists flag
     mapping(address => bool) public poolExists;
@@ -137,7 +139,7 @@ contract PoolFactory is Ownable {
         uint32 _secondsPerUpdate,
         uint32 _initTime,
         uint32 _endTime
-    ) IlluviumAware(_ilv) {
+    ) {
         // verify the inputs are set
         require(_silv != address(0), "sILV address not set");
         require(_ilvPerSecond > 0, "ILV/second not set");
@@ -168,7 +170,7 @@ contract PoolFactory is Ownable {
      */
     function getPoolAddress(address poolToken) external view returns (address) {
         // read the mapping and return
-        return pools[poolToken];
+        return address(pools[poolToken]);
     }
 
     /**
@@ -180,19 +182,19 @@ contract PoolFactory is Ownable {
      */
     function getPoolData(address _poolToken) public view returns (PoolData memory) {
         // get the pool address from the mapping
-        address poolAddr = pools[_poolToken];
+        IPoolBase pool = pools[_poolToken];
 
         // throw if there is no pool registered for the token specified
-        require(poolAddr != address(0), "pool not found");
+        require(pool != address(0), "pool not found");
 
         // read pool information from the pool smart contract
-        // via the pool interface (IPool)
-        address poolToken = IPool(poolAddr).poolToken();
-        bool isFlashPool = IPool(poolAddr).isFlashPool();
-        uint32 weight = IPool(poolAddr).weight();
+        // via the pool interface (IPoolBase)
+        address poolToken = pool.poolToken();
+        bool isFlashPool = pool.isFlashPool();
+        uint32 weight = pool.weight();
 
         // create the in-memory structure and return it
-        return PoolData({ poolToken: poolToken, poolAddress: poolAddr, weight: weight, isFlashPool: isFlashPool });
+        return PoolData({ poolToken: poolToken, poolAddress: address(pool), weight: weight, isFlashPool: isFlashPool });
     }
 
     /**
@@ -213,7 +215,7 @@ contract PoolFactory is Ownable {
     }
 
     /**
-     * @dev Creates a core pool (IlluviumCorePool) and registers it within the factory
+     * @dev Creates a core pool (CorePool) and registers it within the factory
      *
      * @dev Can be executed by the pool factory owner only
      *
@@ -227,7 +229,7 @@ contract PoolFactory is Ownable {
         uint32 weight
     ) external virtual onlyOwner {
         // create/deploy new core pool instance
-        IPool pool = new IlluviumCorePool(ilv, silv, this, poolToken, initTime, weight);
+        IPoolBase pool = new CorePool(ilv, silv, this, poolToken, initTime, weight);
 
         // register it within a factory
         registerPool(address(pool));
@@ -238,23 +240,23 @@ contract PoolFactory is Ownable {
      *
      * @dev Can be executed by the pool factory owner only
      *
-     * @param poolAddr address of the already deployed pool instance
+     * @param pool address of the already deployed pool instance
      */
-    function registerPool(address poolAddr) public onlyOwner {
+    function registerPool(IPoolBase pool) public onlyOwner {
         // read pool information from the pool smart contract
         // via the pool interface (IPool)
-        address poolToken = IPool(poolAddr).poolToken();
-        bool isFlashPool = IPool(poolAddr).isFlashPool();
-        uint32 weight = IPool(poolAddr).weight();
+        address poolToken = pool.poolToken();
+        bool isFlashPool = pool.isFlashPool();
+        uint32 weight = pool.weight();
 
         // create pool structure, register it within the factory
-        pools[poolToken] = poolAddr;
-        poolExists[poolAddr] = true;
+        pools[poolToken] = pool;
+        poolExists[pool] = true;
         // update total pool weight of the factory
         totalWeight += weight;
 
         // emit an event
-        emit PoolRegistered(msg.sender, poolToken, poolAddr, weight, isFlashPool);
+        emit PoolRegistered(msg.sender, poolToken, address(pool), weight, isFlashPool);
     }
 
     /**
@@ -303,21 +305,21 @@ contract PoolFactory is Ownable {
      * @dev Changes the weight of the pool;
      *      executed by the pool itself or by the factory owner
      *
-     * @param poolAddr address of the pool to change weight for
+     * @param pool address of the pool to change weight for
      * @param weight new weight value to set to
      */
-    function changePoolWeight(address poolAddr, uint32 weight) external {
+    function changePoolWeight(IPoolBase pool, uint32 weight) external {
         // verify function is executed either by factory owner or by the pool itself
         require(msg.sender == owner() || poolExists[msg.sender]);
 
         // recalculate total weight
-        totalWeight = totalWeight + weight - IPool(poolAddr).weight();
+        totalWeight = totalWeight + weight - pool.weight();
 
         // set the new pool weight
-        IPool(poolAddr).setWeight(weight);
+        pool.setWeight(weight);
 
         // emit an event
-        emit WeightUpdated(msg.sender, poolAddr, weight);
+        emit WeightUpdated(msg.sender, address(pool), weight);
     }
 
     /**

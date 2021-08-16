@@ -10,7 +10,7 @@ import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { VaultRecipient } from "./VaultRecipient.sol";
-import { IlluviumAware } from "./IlluviumAware.sol";
+import { IlluviumAware } from "../libraries/IlluviumAware.sol";
 
 import { IFactory } from "../interfaces/IFactory.sol";
 
@@ -153,21 +153,17 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
         address _poolToken,
         uint64 _initBlock,
         uint32 _weight
-    ) IlluviumAware(_ilv) {
-        // verify the inputs are set
-        require(_silv != address(0), "sILV address not set");
+    ) {
         require(address(_factory) != address(0), "ILV Pool fct address not set");
         require(_poolToken != address(0), "pool token address not set");
         require(_initBlock > 0, "init block not set");
         require(_weight > 0, "pool weight not set");
 
-        // verify sILV instance supplied
-        require(
-            EscrowedIlluviumERC20(_silv).TOKEN_UID() ==
-                0xac3051b8d4f50966afb632468a4f61483ae6a953b74e387a01ef94316d6b7d62,
-            "unexpected sILV TOKEN_UID"
-        );
-        // verify IlluviumPoolFactory instance supplied
+        // verify ilv and silv instanes
+        IlluviumAware.verifyILV(_ilv);
+        IlluviumAware.verifySILV(_silv);
+
+        // verify PoolFactory instance supplied
         require(
             _factory.FACTORY_UID() == 0xc5cfd88c6e4d7e5c8a03c255f03af23c0918d8e82cac196f57466af3fd4a5ec7,
             "unexpected FACTORY_UID"
