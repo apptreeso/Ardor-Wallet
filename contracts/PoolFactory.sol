@@ -2,6 +2,8 @@
 pragma solidity 0.8.0;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IlluviumAware } from "./libraries/IlluviumAware.sol";
+
 import "hardhat/console.sol";
 
 /**
@@ -27,11 +29,6 @@ contract PoolFactory is Ownable {
      * TODO: change UID
      */
     uint256 public constant FACTORY_UID = 0xc5cfd88c6e4d7e5c8a03c255f03af23c0918d8e82cac196f57466af3fd4a5ec7;
-
-    /**
-     * @dev sILV token unique identifier, verified during deployment
-     */
-    uint256 public constant SILV_UID = 0xac3051b8d4f50966afb632468a4f61483ae6a953b74e387a01ef94316d6b7d62;
 
     /// @dev Auxiliary data structure used only in getPoolData() view function
     struct PoolData {
@@ -77,7 +74,10 @@ contract PoolFactory is Ownable {
      */
     uint32 public lastRatioUpdate;
 
-    /// @dev sILV token address is used to create ILV core pool(s)
+    /// @dev ILV token address
+    address public immutable ilv;
+
+    /// @dev sILV token address
     address public immutable silv;
 
     /// @dev Maps pool token address (like ILV) -> pool address (like core pool instance)
@@ -145,10 +145,12 @@ contract PoolFactory is Ownable {
         require(_initTime > 0, "init seconds not set");
         require(_endTime > _initTime, "invalid end time: must be greater than init time");
 
-        // verify sILV instance supplied
-        require(EscrowedIlluviumERC20(_silv).TOKEN_UID() == SILV_UID, "unexpected sILV TOKEN_UID");
+        // verify ilv and silv instanes
+        IlluviumAware.verifyILV(_ilv);
+        IlluviumAware.verifySILV(_silv);
 
         // save the inputs into internal state variables
+        ilv = _ilv;
         silv = _silv;
         ilvPerSecond = _ilvPerSecond;
         secondsPerUpdate = _secondsPerUpdate;
