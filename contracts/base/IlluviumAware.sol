@@ -2,7 +2,8 @@
 pragma solidity 0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { ILinkedToILV } from "./interfaces/ILinkedToILV.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { ILinkedToILV } from "../interfaces/ILinkedToILV.sol";
 
 /**
  * @title Illuvium Aware
@@ -13,6 +14,8 @@ import { ILinkedToILV } from "./interfaces/ILinkedToILV.sol";
  * @author Basil Gorin
  */
 abstract contract IlluviumAware is ILinkedToILV {
+    using SafeERC20 for IERC20;
+
     /// @dev Link to ILV ERC20 Token instance
     IERC20 public immutable override ilv;
 
@@ -56,7 +59,7 @@ abstract contract IlluviumAware is ILinkedToILV {
         uint256 _value
     ) internal {
         // just delegate call to the target
-        ilv.transferFrom(_from, _to, _value);
+        ilv.safeTransferFrom(_from, _to, _value);
     }
 
     /**

@@ -12,7 +12,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { VaultRecipient } from "./VaultRecipient.sol";
 import { IlluviumAware } from "./IlluviumAware.sol";
 
-import { IFactory } from "./interfaces/IFactory.sol";
+import { IFactory } from "../interfaces/IFactory.sol";
 
 import "hardhat/console.sol";
 
