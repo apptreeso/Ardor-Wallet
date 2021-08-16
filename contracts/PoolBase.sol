@@ -9,9 +9,11 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuar
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-import "../interfaces/IFactory.sol";
+import { VaultRecipient } from "./VaultRecipient.sol";
+import { IlluviumAware } from "./IlluviumAware.sol";
 
-import "./VaultRecipient.sol";
+import { IFactory } from "./interfaces/IFactory.sol";
+
 import "hardhat/console.sol";
 
 // TODO: redefine user struct supporting 721
@@ -35,7 +37,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
     address public immutable override silv;
 
     /// @dev Link to the pool factory IlluviumPoolFactory instance
-    IlluviumPoolFactory public immutable factory;
+    IFactory public immutable factory;
 
     /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair
     address public immutable override poolToken;
