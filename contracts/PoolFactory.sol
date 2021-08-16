@@ -5,6 +5,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { CorePool } from "./CorePool.sol";
 import { IlluviumAware } from "./libraries/IlluviumAware.sol";
 import { IPoolBase } from "./interfaces/IPoolBase.sol";
+import { IFactory } from "./interfaces/IFactory.sol";
 
 import "hardhat/console.sol";
 
@@ -22,7 +23,7 @@ import "hardhat/console.sol";
  *      (see `mintYieldTo` function)
  *
  */
-contract PoolFactory is Ownable {
+contract PoolFactory is Ownable, IFactory {
     /**
      * @dev Smart contract unique identifier, a random number
      * @dev Should be regenerated each time smart contact source code is changed
@@ -30,43 +31,31 @@ contract PoolFactory is Ownable {
      * @dev Generated using https://www.random.org/bytes/
      * TODO: change UID
      */
-    uint256 public constant FACTORY_UID = 0xc5cfd88c6e4d7e5c8a03c255f03af23c0918d8e82cac196f57466af3fd4a5ec7;
-
-    /// @dev Auxiliary data structure used only in getPoolData() view function
-    struct PoolData {
-        // @dev pool token address (like ILV)
-        address poolToken;
-        // @dev pool address (like deployed core pool instance)
-        address poolAddress;
-        // @dev pool weight (200 for ILV pools, 800 for ILV/ETH pools - set during deployment)
-        uint32 weight;
-        // @dev flash pool flag
-        bool isFlashPool;
-    }
+    uint256 public constant override FACTORY_UID = 0xc5cfd88c6e4d7e5c8a03c255f03af23c0918d8e82cac196f57466af3fd4a5ec7;
 
     /**
      * @dev ILV/second determines yield farming reward base
      *      used by the yield pools controlled by the factory
      */
-    uint192 public ilvPerSecond;
+    uint192 public override ilvPerSecond;
 
     /**
      * @dev The yield is distributed proportionally to pool weights;
      *      total weight is here to help in determining the proportion
      */
-    uint32 public totalWeight;
+    uint32 public override totalWeight;
 
     /**
      * @dev ILV/second decreases by 3% every seconds/update
      *      an update is triggered by executing `updateILVPerSecond` public function
      */
-    uint32 public immutable secondsPerUpdate;
+    uint32 public immutable override secondsPerUpdate;
 
     /**
      * @dev End time is the last timestamp when ILV/second can be decreased;
      *      it is implied that yield farming stops after that timestamp
      */
-    uint32 public endTime;
+    uint32 public override endTime;
 
     /**
      * @dev Each time the ILV/second ratio gets updated, the timestamp
@@ -74,53 +63,19 @@ contract PoolFactory is Ownable {
      * @dev This timestamp is then used to check if seconds/update `secondsPerUpdate`
      *      has passed when decreasing yield reward by 3%
      */
-    uint32 public lastRatioUpdate;
+    uint32 public override lastRatioUpdate;
 
     /// @dev ILV token address
-    address public immutable ilv;
+    address public immutable override ilv;
 
     /// @dev sILV token address
-    address public immutable silv;
+    address public immutable override silv;
 
     /// @dev Maps pool token address (like ILV) -> pool address (like core pool instance)
-    mapping(address => IPoolBase) public pools;
+    mapping(address => IPoolBase) public override pools;
 
     /// @dev Keeps track of registered pool addresses, maps pool address -> exists flag
-    mapping(address => bool) public poolExists;
-
-    /**
-     * @dev Fired in createPool() and registerPool()
-     *
-     * @param _by an address which executed an action
-     * @param poolToken pool token address (like ILV)
-     * @param poolAddress deployed pool instance address
-     * @param weight pool weight
-     * @param isFlashPool flag indicating if pool is a flash pool
-     */
-    event PoolRegistered(
-        address indexed _by,
-        address indexed poolToken,
-        address indexed poolAddress,
-        uint64 weight,
-        bool isFlashPool
-    );
-
-    /**
-     * @dev Fired in changePoolWeight()
-     *
-     * @param _by an address which executed an action
-     * @param poolAddress deployed pool instance address
-     * @param weight new pool weight
-     */
-    event WeightUpdated(address indexed _by, address indexed poolAddress, uint32 weight);
-
-    /**
-     * @dev Fired in updateILVPerSecond()
-     *
-     * @param _by an address which executed an action
-     * @param newIlvPerSecond new ILV/second value
-     */
-    event IlvRatioUpdated(address indexed _by, uint256 newIlvPerSecond);
+    mapping(address => bool) public override poolExists;
 
     /**
      * @dev Creates/deploys a factory instance
@@ -168,7 +123,7 @@ contract PoolFactory is Ownable {
      * @param poolToken pool token address (like ILV) to query pool address for
      * @return pool address for the token specified
      */
-    function getPoolAddress(address poolToken) external view returns (address) {
+    function getPoolAddress(address poolToken) external view override returns (address) {
         // read the mapping and return
         return address(pools[poolToken]);
     }
@@ -180,12 +135,12 @@ contract PoolFactory is Ownable {
      * @param _poolToken pool token address to query pool information for
      * @return pool information packed in a PoolData struct
      */
-    function getPoolData(address _poolToken) public view returns (PoolData memory) {
+    function getPoolData(address _poolToken) public view override returns (PoolData memory) {
         // get the pool address from the mapping
         IPoolBase pool = pools[_poolToken];
 
         // throw if there is no pool registered for the token specified
-        require(pool != address(0), "pool not found");
+        require(address(pool) != address(0), "pool not found");
 
         // read pool information from the pool smart contract
         // via the pool interface (IPoolBase)
@@ -203,15 +158,15 @@ contract PoolFactory is Ownable {
      *
      * @return true if enough time has passed and `updateILVPerSecond` can be executed
      */
-    function shouldUpdateRatio() public view returns (bool) {
+    function shouldUpdateRatio() public view override returns (bool) {
         // if yield farming period has ended
-        if (now256() > endTime) {
+        if (_now256() > endTime) {
             // ILV/second reward cannot be updated anymore
             return false;
         }
 
         // check if seconds/update have passed since last update
-        return now256() >= lastRatioUpdate + secondsPerUpdate;
+        return _now256() >= lastRatioUpdate + secondsPerUpdate;
     }
 
     /**
@@ -227,7 +182,7 @@ contract PoolFactory is Ownable {
         address poolToken,
         uint64 initTime,
         uint32 weight
-    ) external virtual onlyOwner {
+    ) external virtual override onlyOwner {
         // create/deploy new core pool instance
         IPoolBase pool = new CorePool(ilv, silv, this, poolToken, initTime, weight);
 
@@ -242,7 +197,7 @@ contract PoolFactory is Ownable {
      *
      * @param pool address of the already deployed pool instance
      */
-    function registerPool(IPoolBase pool) public onlyOwner {
+    function registerPool(IPoolBase pool) public override onlyOwner {
         // read pool information from the pool smart contract
         // via the pool interface (IPool)
         address poolToken = pool.poolToken();
@@ -263,7 +218,7 @@ contract PoolFactory is Ownable {
      * @notice Decreases ILV/second reward by 3%, can be executed
      *      no more than once per `secondsPerUpdate` seconds
      */
-    function updateILVPerSecond() external {
+    function updateILVPerSecond() external override {
         // checks if ratio can be updated i.e. if seconds/update have passed
         require(shouldUpdateRatio(), "too frequent");
 
@@ -271,7 +226,7 @@ contract PoolFactory is Ownable {
         ilvPerSecond = (ilvPerSecond * 97) / 100;
 
         // set current timestamp as the last ratio update timestamp
-        lastRatioUpdate = uint32(now256());
+        lastRatioUpdate = uint32(_now256());
 
         // emit an event
         emit IlvRatioUpdated(msg.sender, ilvPerSecond);
@@ -290,7 +245,7 @@ contract PoolFactory is Ownable {
         address _to,
         uint256 _amount,
         bool _useSILV
-    ) external {
+    ) external override {
         // verify that sender is a pool registered withing the factory
         require(poolExists[msg.sender], "access denied");
 
@@ -308,7 +263,7 @@ contract PoolFactory is Ownable {
      * @param pool address of the pool to change weight for
      * @param weight new weight value to set to
      */
-    function changePoolWeight(IPoolBase pool, uint32 weight) external {
+    function changePoolWeight(IPoolBase pool, uint32 weight) external override {
         // verify function is executed either by factory owner or by the pool itself
         require(msg.sender == owner() || poolExists[msg.sender]);
 
@@ -328,7 +283,7 @@ contract PoolFactory is Ownable {
      *
      * @return `block.timestamp` in mainnet, custom values in testnets (if overridden)
      */
-    function now256() public view virtual returns (uint256) {
+    function _now256() private view virtual returns (uint256) {
         // return current block timestamp
         return block.timestamp;
     }

@@ -10,7 +10,7 @@ pragma solidity 0.8.0;
  */
 library IlluviumAware {
     address public constant ILV = 0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E;
-    address public constant SILV = 0x398aea1c9ceb7de800284bb399a15e0efe5a9ec2;
+    address public constant SILV = 0x398AeA1c9ceb7dE800284bb399A15e0Efe5A9EC2;
 
     /**
      * @dev Verifies if correct ILV token address is being supplied.
