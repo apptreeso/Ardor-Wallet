@@ -6,6 +6,7 @@ import { Timestamp } from "./base/Timestamp.sol";
 import { CorePool } from "./CorePool.sol";
 import { IlluviumAware } from "./libraries/IlluviumAware.sol";
 import { IPoolBase } from "./interfaces/IPoolBase.sol";
+import { ICorePool } from "./interfaces/ICorePool.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 
 import "hardhat/console.sol";
@@ -51,7 +52,7 @@ contract PoolFactory is Ownable, IFactory, Timestamp {
     address public immutable override silv;
 
     /// @inheritdoc IFactory
-    mapping(address => IPoolBase) public override pools;
+    mapping(address => address) public override pools;
 
     /// @inheritdoc IFactory
     mapping(address => bool) public override poolExists;
@@ -103,7 +104,7 @@ contract PoolFactory is Ownable, IFactory, Timestamp {
     /// @inheritdoc IFactory
     function getPoolData(address _poolToken) public view override returns (PoolData memory) {
         // get the pool address from the mapping
-        IPoolBase pool = pools[_poolToken];
+        IPoolBase pool = IPoolBase(pools[_poolToken]);
 
         // throw if there is no pool registered for the token specified
         require(address(pool) != address(0), "pool not found");
@@ -137,19 +138,19 @@ contract PoolFactory is Ownable, IFactory, Timestamp {
         uint32 weight
     ) external virtual override onlyOwner {
         // create/deploy new core pool instance
-        IPoolBase pool = new CorePool(ilv, silv, this, poolToken, initTime, weight);
+        ICorePool pool = new CorePool(ilv, silv, this, poolToken, initTime, weight);
 
         // register it within a factory
         registerPool(address(pool));
     }
 
     /// @inheritdoc IFactory
-    function registerPool(IPoolBase pool) public override onlyOwner {
+    function registerPool(address pool) public override onlyOwner {
         // read pool information from the pool smart contract
-        // via the pool interface (IPool)
-        address poolToken = pool.poolToken();
-        bool isFlashPool = pool.isFlashPool();
-        uint32 weight = pool.weight();
+        // via the pool interface (IPoolBase)
+        address poolToken = IPoolBase(pool).poolToken();
+        bool isFlashPool = IPoolBase(pool).isFlashPool();
+        uint32 weight = IPoolBase(pool).weight();
 
         // create pool structure, register it within the factory
         pools[poolToken] = pool;
@@ -193,7 +194,7 @@ contract PoolFactory is Ownable, IFactory, Timestamp {
     }
 
     /// @inheritdoc IFactory
-    function changePoolWeight(IPoolBase pool, uint32 weight) external override {
+    function changePoolWeight(address pool, uint32 weight) external override {
         // verify function is executed either by factory owner or by the pool itself
         require(msg.sender == owner() || poolExists[msg.sender]);
 
@@ -201,7 +202,7 @@ contract PoolFactory is Ownable, IFactory, Timestamp {
         totalWeight = totalWeight + weight - pool.weight();
 
         // set the new pool weight
-        pool.setWeight(weight);
+        IPoolBase(pool).setWeight(weight);
 
         // emit an event
         emit WeightUpdated(msg.sender, address(pool), weight);
