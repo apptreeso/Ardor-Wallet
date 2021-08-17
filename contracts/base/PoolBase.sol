@@ -9,7 +9,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuar
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-import { VaultRecipient } from "./VaultRecipient.sol";
+import { V2Migrator } from "./V2Migrator.sol";
 import { IlluviumAware } from "../libraries/IlluviumAware.sol";
 
 import { IFactory } from "../interfaces/IFactory.sol";
