@@ -2,6 +2,7 @@
 pragma solidity 0.8.0;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Timestamp } from "./base/Timestamp.sol";
 import { CorePool } from "./CorePool.sol";
 import { IlluviumAware } from "./libraries/IlluviumAware.sol";
 import { IPoolBase } from "./interfaces/IPoolBase.sol";
@@ -23,7 +24,7 @@ import "hardhat/console.sol";
  *      (see `mintYieldTo` function)
  *
  */
-contract PoolFactory is Ownable, IFactory {
+contract PoolFactory is Ownable, IFactory, Timestamp {
     /// @inheritdoc IFactory
     /// @dev TODO: set correct UID
     uint256 public constant override FACTORY_UID = 0xc5cfd88c6e4d7e5c8a03c255f03af23c0918d8e82cac196f57466af3fd4a5ec7;
@@ -204,16 +205,5 @@ contract PoolFactory is Ownable, IFactory {
 
         // emit an event
         emit WeightUpdated(msg.sender, address(pool), weight);
-    }
-
-    /**
-     * @dev Testing time-dependent functionality is difficult and the best way of
-     *      doing it is to override time in helper test smart contracts
-     *
-     * @return `block.timestamp` in mainnet, custom values in testnets (if overridden)
-     */
-    function _now256() private view virtual returns (uint256) {
-        // return current block timestamp
-        return block.timestamp;
     }
 }
