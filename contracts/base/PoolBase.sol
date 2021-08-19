@@ -45,7 +45,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
     /// @dev Pool weight, 100 for ILV pool or 900 for ILV/ETH
     uint32 public override weight;
 
-    /// @dev Block number of the last yield distribution event
+    /// @dev Timestamp of the last yield distribution event
     uint64 public override lastYieldDistribution;
 
     /// @dev Used to calculate yield rewards
@@ -111,7 +111,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
      *
      * @param _by an address which performed an operation
      * @param yieldRewardsPerWeight updated yield rewards per weight value
-     * @param lastYieldDistribution usually, current block number
+     * @param lastYieldDistribution usually, current timestamp
      */
     event Synchronized(address indexed _by, uint256 yieldRewardsPerWeight, uint64 lastYieldDistribution);
 
@@ -141,8 +141,8 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
      * @param _silv sILV ERC20 Token EscrowedIlluviumERC20 address
      * @param _factory Pool factory IlluviumPoolFactory instance/address
      * @param _poolToken token the pool operates on, for example ILV or ILV/ETH pair
-     * @param _initBlock initial block used to calculate the rewards
-     *      note: _initBlock can be set to the future effectively meaning _sync() calls will do nothing
+     * @param _initTime initial timestamp used to calculate the rewards
+     *      note: _initTime can be set to the future effectively meaning _sync() calls will do nothing
      * @param _weight number representing a weight of the pool, actual weight fraction
      *      is calculated as that number divided by the total pools weight and doesn't exceed one
      */
@@ -151,12 +151,12 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
         address _silv,
         IFactory _factory,
         address _poolToken,
-        uint64 _initBlock,
+        uint64 _initTime,
         uint32 _weight
     ) {
         require(address(_factory) != address(0), "ILV Pool fct address not set");
         require(_poolToken != address(0), "pool token address not set");
-        require(_initBlock > 0, "init block not set");
+        require(_initTime > 0, "init time not set");
         require(_weight > 0, "pool weight not set");
 
         // verify ilv and silv instanes
@@ -176,7 +176,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
         weight = _weight;
 
         // init the dependent internal state variables
-        lastYieldDistribution = _initBlock;
+        lastYieldDistribution = _initTime;
     }
 
     /**
@@ -191,12 +191,12 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
 
         // if smart contract state was not updated recently, `yieldRewardsPerWeight` value
         // is outdated and we need to recalculate it in order to calculate pending rewards correctly
-        if (blockNumber() > lastYieldDistribution && usersLockingWeight != 0) {
-            uint256 endBlock = factory.endBlock();
-            uint256 multiplier = blockNumber() > endBlock
-                ? endBlock - lastYieldDistribution
-                : blockNumber() - lastYieldDistribution;
-            uint256 ilvRewards = (multiplier * weight * factory.ilvPerBlock()) / factory.totalWeight();
+        if (_now256() > lastYieldDistribution && usersLockingWeight != 0) {
+            uint256 endTime = factory.endTime();
+            uint256 multiplier = _now256() > endTime
+                ? endTime - lastYieldDistribution
+                : _now256() - lastYieldDistribution;
+            uint256 ilvRewards = (multiplier * weight * factory.ilvPerSecond()) / factory.totalWeight();
 
             // recalculated value for `yieldRewardsPerWeight`
             newYieldRewardsPerWeight = rewardToWeight(ilvRewards, usersLockingWeight) + yieldRewardsPerWeight;
@@ -315,11 +315,11 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
      * @notice Service function to synchronize pool state with current time
      *
      * @dev Can be executed by anyone at any time, but has an effect only when
-     *      at least one block passes between synchronizations
+     *      at least one second passes between synchronizations
      * @dev Executed internally when staking, unstaking, processing rewards in order
      *      for calculations to be correct and to reflect state progress of the contract
      * @dev When timing conditions are not met (executed too frequently, or after factory
-     *      end block), function doesn't throw and exits silently
+     *      end time), function doesn't throw and exits silently
      */
     function sync() external override {
         // delegate call to an internal function
@@ -330,12 +330,12 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
      * @notice Service function to calculate and pay pending yield rewards to the sender
      *
      * @dev Can be executed by anyone at any time, but has an effect only when
-     *      executed by deposit holder and when at least one block passes from the
+     *      executed by deposit holder and when at least one second passes from the
      *      previous reward processing
      * @dev Executed internally when staking and unstaking, executes sync() under the hood
      *      before making further calculations and payouts
      * @dev When timing conditions are not met (executed too frequently, or after factory
-     *      end block), function doesn't throw and exits silently
+     *      end time), function doesn't throw and exits silently
      *
      * @param _useSILV flag indicating whether to mint sILV token as a reward or not;
      *      when set to true - sILV reward is minted immediately and sent to sender,
@@ -370,7 +370,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
     /**
      * @dev Similar to public pendingYieldRewards, but performs calculations based on
      *      current smart contract state only, not taking into account any additional
-     *      time/blocks which might have passed
+     *      time which might have passed
      *
      * @param _staker an address to calculate yield rewards value for
      * @return pending calculated yield reward value for the given address
@@ -537,40 +537,40 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
      * @dev Used internally, mostly by children implementations, see sync()
      *
      * @dev Updates smart contract state (`yieldRewardsPerWeight`, `lastYieldDistribution`),
-     *      updates factory state via `updateILVPerBlock`
+     *      updates factory state via `updateILVPerSecond`
      */
     function _sync() internal virtual {
-        // update ILV per block value in factory if required
+        // update ILV per second value in factory if required
         if (factory.shouldUpdateRatio()) {
-            factory.updateILVPerBlock();
+            factory.updateILVPerSecond();
         }
 
         // check bound conditions and if these are not met -
         // exit silently, without emitting an event
-        uint256 endBlock = factory.endBlock();
-        if (lastYieldDistribution >= endBlock) {
+        uint256 endTime = factory.endTime();
+        if (lastYieldDistribution >= endTime) {
             return;
         }
-        if (blockNumber() <= lastYieldDistribution) {
+        if (_now256() <= lastYieldDistribution) {
             return;
         }
         // if locking weight is zero - update only `lastYieldDistribution` and exit
         if (usersLockingWeight == 0) {
-            lastYieldDistribution = uint64(blockNumber());
+            lastYieldDistribution = uint64(_now256());
             return;
         }
 
-        // to calculate the reward we need to know how many blocks passed, and reward per block
-        uint256 currentBlock = blockNumber() > endBlock ? endBlock : blockNumber();
-        uint256 blocksPassed = currentBlock - lastYieldDistribution;
-        uint256 ilvPerBlock = factory.ilvPerBlock();
+        // to calculate the reward we need to know how many seconds passed, and reward per second
+        uint256 currentTimestamp = _now256() > endTime ? endTime : _now256();
+        uint256 secondsPassed = currentTimestamp - lastYieldDistribution;
+        uint256 ilvPerSecond = factory.ilvPerSecond();
 
         // calculate the reward
-        uint256 ilvReward = (blocksPassed * ilvPerBlock * weight) / factory.totalWeight();
+        uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory.totalWeight();
 
         // update rewards per weight and `lastYieldDistribution`
         yieldRewardsPerWeight += rewardToWeight(ilvReward, usersLockingWeight);
-        lastYieldDistribution = uint64(currentBlock);
+        lastYieldDistribution = uint64(currentTimestamp);
 
         // emit an event
         emit Synchronized(msg.sender, yieldRewardsPerWeight, lastYieldDistribution);
@@ -721,28 +721,6 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
     function rewardToWeight(uint256 reward, uint256 rewardPerWeight) public pure returns (uint256) {
         // apply the reverse formula and return
         return (reward * REWARD_PER_WEIGHT_MULTIPLIER) / rewardPerWeight;
-    }
-
-    /**
-     * @dev Testing time-dependent functionality is difficult and the best way of
-     *      doing it is to override block number in helper test smart contracts
-     *
-     * @return `block.number` in mainnet, custom values in testnets (if overridden)
-     */
-    function blockNumber() public view virtual returns (uint256) {
-        // return current block number
-        return block.number;
-    }
-
-    /**
-     * @dev Testing time-dependent functionality is difficult and the best way of
-     *      doing it is to override time in helper test smart contracts
-     *
-     * @return `block.timestamp` in mainnet, custom values in testnets (if overridden)
-     */
-    function now256() public view virtual returns (uint256) {
-        // return current block timestamp
-        return block.timestamp;
     }
 
     /**
