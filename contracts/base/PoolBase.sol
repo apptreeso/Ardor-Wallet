@@ -10,14 +10,19 @@ import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { V2Migrator } from "./V2Migrator.sol";
+import { Timestamp } from "./Timestamp.sol";
 import { IlluviumAware } from "../libraries/IlluviumAware.sol";
-
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IFactory } from "../interfaces/IFactory.sol";
+import { IPoolBase } from "../interfaces/IPoolBase.sol";
+import { ICorePool } from "../interfaces/ICorePool.sol";
 
 import "hardhat/console.sol";
 
 // TODO: redefine user struct supporting 721
-abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
+abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Ownable, Timestamp {
+    using SafeERC20 for IERC20;
+
     /// @dev Data structure representing token holder using a pool
     struct User {
         // @dev Total staked amount
@@ -33,8 +38,11 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
     /// @dev Token holder storage, maps token holder address to their data record
     mapping(address => User) public users;
 
-    /// @dev Link to sILV ERC20 Token EscrowedIlluviumERC20 instance
+    /// @dev Link to sILV ERC20 Token instance
     address public immutable override silv;
+
+    /// @dev Link to ILV ERC20 Token instance
+    address public immutable override ilv;
 
     /// @dev Link to the pool factory IlluviumPoolFactory instance
     IFactory public immutable factory;
@@ -137,8 +145,8 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
     /**
      * @dev Overridden in sub-contracts to construct the pool
      *
-     * @param _ilv ILV ERC20 Token IlluviumERC20 address
-     * @param _silv sILV ERC20 Token EscrowedIlluviumERC20 address
+     * @param _ilv ILV ERC20 Token address
+     * @param _silv sILV ERC20 Token address
      * @param _factory Pool factory IlluviumPoolFactory instance/address
      * @param _poolToken token the pool operates on, for example ILV or ILV/ETH pair
      * @param _initTime initial timestamp used to calculate the rewards
@@ -170,6 +178,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
         );
 
         // save the inputs into internal state variables
+        ilv = _ilv;
         silv = _silv;
         factory = _factory;
         poolToken = _poolToken;
@@ -403,7 +412,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
         // validate the inputs
         require(_amount > 0, "zero amount");
         require(
-            _lockUntil == 0 || (_lockUntil > now256() && _lockUntil - now256() <= 365 days),
+            _lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 365 days),
             "invalid lock interval"
         );
 
@@ -423,7 +432,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
         // read the current balance
         uint256 previousBalance = IERC20(poolToken).balanceOf(address(this));
         // transfer `_amount`; note: some tokens may get burnt here
-        transferPoolTokenFrom(address(msg.sender), address(this), _amount);
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _amount);
         // read new balance, usually this is just the difference `previousBalance - _amount`
         uint256 newBalance = IERC20(poolToken).balanceOf(address(this));
         // calculate real amount taking into account deflation
@@ -432,7 +441,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
         // set the `lockFrom` and `lockUntil` taking into account that
         // zero value for `_lockUntil` means "no locking" and leads to zero values
         // for both `lockFrom` and `lockUntil`
-        uint64 lockFrom = _lockUntil > 0 ? uint64(now256()) : 0;
+        uint64 lockFrom = _lockUntil > 0 ? uint64(_now256()) : 0;
         uint64 lockUntil = _lockUntil;
 
         // stake weight formula rewards for locking
@@ -526,7 +535,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
             factory.mintYieldTo(msg.sender, _amount, false);
         } else {
             // otherwise just return tokens back to holder
-            transferPoolToken(msg.sender, _amount);
+            IERC20(poolToken).safeTransfer(msg.sender, _amount);
         }
 
         // emit an event
@@ -616,8 +625,8 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
             // and save it - push it into deposits array
             Deposit memory newDeposit = Deposit({
                 tokenAmount: pendingYield,
-                lockedFrom: uint64(now256()),
-                lockedUntil: uint64(now256() + 365 days), // staking yield for 1 year
+                lockedFrom: uint64(_now256()),
+                lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
                 weight: depositWeight,
                 isYield: true
             });
@@ -657,7 +666,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
         uint64 _lockedUntil
     ) internal {
         // validate the input time
-        require(_lockedUntil > now256(), "lock should be in the future");
+        require(_lockedUntil > _now256(), "lock should be in the future");
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
@@ -669,8 +678,8 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
 
         // verify locked from and locked until values
         if (stakeDeposit.lockedFrom == 0) {
-            require(_lockedUntil - now256() <= 365 days, "max lock period is 365 days");
-            stakeDeposit.lockedFrom = uint64(now256());
+            require(_lockedUntil - _now256() <= 365 days, "max lock period is 365 days");
+            stakeDeposit.lockedFrom = uint64(_now256());
         } else {
             require(_lockedUntil - stakeDeposit.lockedFrom <= 365 days, "max lock period is 365 days");
         }
@@ -721,16 +730,5 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
     function rewardToWeight(uint256 reward, uint256 rewardPerWeight) public pure returns (uint256) {
         // apply the reverse formula and return
         return (reward * REWARD_PER_WEIGHT_MULTIPLIER) / rewardPerWeight;
-    }
-
-    /**
-     * @dev Executes EscrowedIlluviumERC20.mint(_to, _values)
-     *      on the bound EscrowedIlluviumERC20 instance
-     *
-     * @dev Reentrancy safe due to the EscrowedIlluviumERC20 design
-     */
-    function mintSIlv(address _to, uint256 _value) private {
-        // just delegate call to the target
-        EscrowedIlluviumERC20(silv).mint(_to, _value);
     }
 }
