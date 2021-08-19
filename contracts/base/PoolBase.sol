@@ -33,6 +33,8 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
         uint256 subYieldRewards;
         // @dev Auxiliary variable for vault rewards calculation
         uint256 subVaultRewards;
+        // @dev An array of holder's stakes
+        Stake[] stakes;
     }
 
     /// @dev Token holder storage, maps token holder address to their data record
