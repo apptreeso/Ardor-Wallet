@@ -7,7 +7,7 @@ import { PoolBase } from "./PoolBase.sol";
 abstract contract V2Migrator is PoolBase {
     address public immutable corePoolV1;
 
-    mapping()
+    mapping(bytes32 => bool) public v1YieldMinted;
 
     event LogV1YieldMinted(address indexed _from, uint256 _depositId, uint256 _value);
 
@@ -19,9 +19,10 @@ abstract contract V2Migrator is PoolBase {
         V1Stake memory v1Stake = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _depositId);
         require(v1Stake.isYield, "not yield");
         require(_now256() > v1Stake.lockedUntil, "yield not unlocked yet");
-        require(v1Mints)
+        bytes32 depositHash = keccak256(abi.encodePacked(msg.sender, _depositId));
+        require(!v1YieldMinted[depositHash], "yield already minted");
 
-        v1Mints[msg.sender].push(_depositId);
+        v1Yieldminted[depositHash] = true;
         factory.mintYieldTo(msg.sender, v1Stake.tokenAmount, false);
 
         emit LogV1YieldMinted(msg.sender, _depositId, v1Stake.tokenAmount);
