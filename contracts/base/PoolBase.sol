@@ -523,7 +523,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
         // if the deposit was created by the pool itself as a yield reward
         if (isYield) {
             // mint the yield via the factory
-            factory.mintYieldTo(msg.sender, _amount);
+            factory.mintYieldTo(msg.sender, _amount, false);
         } else {
             // otherwise just return tokens back to holder
             transferPoolToken(msg.sender, _amount);
@@ -606,7 +606,7 @@ abstract contract PoolBase is ERC721, ReentrancyGuard, Pausable, Ownable {
         // if sILV is requested
         if (_useSILV) {
             // - mint sILV
-            mintSIlv(_staker, pendingYield);
+            factory.mintYieldTo(_staker, pendingYield, true);
         } else if (poolToken == ilv) {
             // calculate pending yield weight,
             // 2e6 is the bonus weight when staking for 1 year
