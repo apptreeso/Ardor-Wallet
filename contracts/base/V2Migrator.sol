@@ -22,7 +22,7 @@ abstract contract V2Migrator is PoolBase {
         bytes32 depositHash = keccak256(abi.encodePacked(msg.sender, _depositId));
         require(!v1YieldMinted[depositHash], "yield already minted");
 
-        v1Yieldminted[depositHash] = true;
+        v1YieldMinted[depositHash] = true;
         factory.mintYieldTo(msg.sender, v1Stake.tokenAmount, false);
 
         emit LogV1YieldMinted(msg.sender, _depositId, v1Stake.tokenAmount);
