@@ -25,8 +25,8 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
 
     /// @dev Data structure representing token holder using a pool
     struct User {
-        // @dev Total staked amount
-        uint256 tokenAmount;
+        // @dev Total staked amount in flexible mode
+        uint256 flexibleTokenAmount;
         // @dev Total weight
         uint256 totalWeight;
         // @dev Auxiliary variable for yield calculation
@@ -47,7 +47,7 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
     address public immutable override ilv;
 
     /// @dev Link to the pool factory IlluviumPoolFactory instance
-    IFactory public immutable factory;
+    IFactory public immutable override factory;
 
     /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair
     address public immutable override poolToken;
@@ -404,7 +404,7 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
      * @param _isYield a flag indicating if that stake is created to store yield reward
      *      from the previously unstaked stake
      */
-    function _stake(
+    function _stakeAndLock(
         address _staker,
         uint256 _amount,
         uint64 _lockUntil,
@@ -476,6 +476,10 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
         emit Staked(msg.sender, _staker, _amount);
     }
 
+    function _flexibleStake(address _staker, uint256 _amount, uint64 _lockUntil) internal virtual {
+
+    }
+
     /**
      * @dev Used internally, mostly by children implementations, see unstake()
      *
@@ -543,6 +547,7 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
         // emit an event
         emit Unstaked(msg.sender, _staker, _amount);
     }
+
 
     /**
      * @dev Used internally, mostly by children implementations, see sync()
