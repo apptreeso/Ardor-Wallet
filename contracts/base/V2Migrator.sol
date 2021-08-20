@@ -16,9 +16,10 @@ abstract contract V2Migrator is PoolBase {
     }
 
     function mintV1Yield(uint256 _depositId) external {
-        (uint256 tokenAmount, uint256 weight, uint64 lockedFrom, uint64 lockedUntil, bool isYield) = ICorePoolV1(
-            corePoolV1
-        ).getDeposit(msg.sender, _depositId);
+        (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
+            msg.sender,
+            _depositId
+        );
         require(isYield, "not yield");
         require(_now256() > lockedUntil, "yield not unlocked yet");
         bytes32 depositHash = keccak256(abi.encodePacked(msg.sender, _depositId));
