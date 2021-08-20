@@ -16,15 +16,17 @@ abstract contract V2Migrator is PoolBase {
     }
 
     function mintV1Yield(uint256 _depositId) external {
-        V1Stake memory v1Stake = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _depositId);
-        require(v1Stake.isYield, "not yield");
-        require(_now256() > v1Stake.lockedUntil, "yield not unlocked yet");
+        (uint256 tokenAmount, uint256 weight, uint64 lockedFrom, uint64 lockedUntil, bool isYield) = ICorePoolV1(
+            corePoolV1
+        ).getDeposit(msg.sender, _depositId);
+        require(isYield, "not yield");
+        require(_now256() > lockedUntil, "yield not unlocked yet");
         bytes32 depositHash = keccak256(abi.encodePacked(msg.sender, _depositId));
         require(!v1YieldMinted[depositHash], "yield already minted");
 
         v1YieldMinted[depositHash] = true;
-        factory.mintYieldTo(msg.sender, v1Stake.tokenAmount, false);
+        factory.mintYieldTo(msg.sender, tokenAmount, false);
 
-        emit LogV1YieldMinted(msg.sender, _depositId, v1Stake.tokenAmount);
+        emit LogV1YieldMinted(msg.sender, _depositId, tokenAmount);
     }
 }

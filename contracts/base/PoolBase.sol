@@ -8,8 +8,6 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-
-import { V2Migrator } from "./V2Migrator.sol";
 import { Timestamp } from "./Timestamp.sol";
 import { IlluviumAware } from "../libraries/IlluviumAware.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -34,7 +32,7 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
         // @dev Auxiliary variable for vault rewards calculation
         uint256 subVaultRewards;
         // @dev An array of holder's stakes
-        Stake[] stakes;
+        Stake[] deposits;
     }
 
     /// @dev Token holder storage, maps token holder address to their data record
@@ -229,10 +227,10 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
      * @param _user an address to query balance for
      * @return total staked token balance
      */
-    function balanceOf(address _user) external view override returns (uint256) {
-        // read specified user token amount and return
-        return users[_user].tokenAmount;
-    }
+    // function balanceOf(address _user) external view override returns (uint256) {
+    //     // read specified user token amount and return
+    //     return users[_user].tokenAmount;
+    // }
 
     /**
      * @notice Returns information on the given deposit for the given address
@@ -243,7 +241,7 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
      * @param _depositId zero-indexed deposit ID for the address specified
      * @return deposit info as Deposit structure
      */
-    function getDeposit(address _user, uint256 _depositId) external view override returns (Deposit memory) {
+    function getDeposit(address _user, uint256 _depositId) external view override returns (Stake memory) {
         // read deposit at specified index and return
         return users[_user].deposits[_depositId];
     }
@@ -277,7 +275,7 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
         bool _useSILV
     ) external override {
         // delegate call to an internal function
-        _stake(msg.sender, _amount, _lockUntil, _useSILV, false);
+        _stakeAndLock(msg.sender, _amount, _lockUntil, _useSILV, false);
     }
 
     /**
@@ -454,7 +452,7 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
         assert(stakeWeight > 0);
 
         // create and save the deposit (append it to deposits array)
-        Deposit memory deposit = Deposit({
+        Stake memory deposit = Stake({
             tokenAmount: addedAmount,
             weight: stakeWeight,
             lockedFrom: lockFrom,
@@ -476,9 +474,11 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
         emit Staked(msg.sender, _staker, _amount);
     }
 
-    function _flexibleStake(address _staker, uint256 _amount, uint64 _lockUntil) internal virtual {
-
-    }
+    function _flexibleStake(
+        address _staker,
+        uint256 _amount,
+        uint64 _lockUntil
+    ) internal virtual {}
 
     /**
      * @dev Used internally, mostly by children implementations, see unstake()
@@ -500,7 +500,7 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
         // get a link to the corresponding deposit, we may write to it later
-        Deposit storage stakeDeposit = user.deposits[_depositId];
+        Stake storage stakeDeposit = user.deposits[_depositId];
         // deposit structure may get deleted, so we save isYield flag to be able to use it
         bool isYield = stakeDeposit.isYield;
 
@@ -547,7 +547,6 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
         // emit an event
         emit Unstaked(msg.sender, _staker, _amount);
     }
-
 
     /**
      * @dev Used internally, mostly by children implementations, see sync()
@@ -630,7 +629,7 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
 
             // if the pool is ILV Pool - create new ILV deposit
             // and save it - push it into deposits array
-            Deposit memory newDeposit = Deposit({
+            Stake memory newDeposit = Stake({
                 tokenAmount: pendingYield,
                 lockedFrom: uint64(_now256()),
                 lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
@@ -678,7 +677,7 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
         // get a link to the corresponding deposit, we may write to it later
-        Deposit storage stakeDeposit = user.deposits[_depositId];
+        Stake storage stakeDeposit = user.deposits[_depositId];
 
         // validate the input against deposit structure
         require(_lockedUntil > stakeDeposit.lockedUntil, "invalid new lock");
