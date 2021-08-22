@@ -11,7 +11,7 @@ abstract contract V2Migrator is PoolBase {
 
     event LogV1YieldMinted(address indexed _from, uint256 _depositId, uint256 _value);
 
-    constructor(address _corePoolV1) {
+    function __V2Migrator_init(address _corePoolV1) internal initializer {
         corePoolV1 = _corePoolV1;
     }
 
