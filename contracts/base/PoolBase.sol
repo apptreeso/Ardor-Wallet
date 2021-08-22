@@ -46,16 +46,16 @@ abstract contract PoolBase is
     mapping(address => User) public users;
 
     /// @dev Link to sILV ERC20 Token instance
-    address public immutable override silv;
+    address public override silv;
 
     /// @dev Link to ILV ERC20 Token instance
-    address public immutable override ilv;
+    address public override ilv;
 
     /// @dev Link to the pool factory IlluviumPoolFactory instance
-    IFactory public immutable override factory;
+    IFactory public override factory;
 
     /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair
-    address public immutable override poolToken;
+    address public override poolToken;
 
     /// @dev Pool weight, 100 for ILV pool or 900 for ILV/ETH
     uint32 public override weight;
