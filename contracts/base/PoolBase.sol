@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.0;
 
-import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Timestamp } from "./Timestamp.sol";
 import { IlluviumAware } from "../libraries/IlluviumAware.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -18,7 +17,14 @@ import { ICorePool } from "../interfaces/ICorePool.sol";
 import "hardhat/console.sol";
 
 // TODO: redefine user struct supporting 721
-abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Ownable, Timestamp {
+abstract contract PoolBase is
+    IPoolBase,
+    ERC721Upgradeable,
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable,
+    OwnableUpgradeable,
+    Timestamp
+{
     using SafeERC20 for IERC20;
 
     /// @dev Data structure representing token holder using a pool
@@ -422,7 +428,7 @@ abstract contract PoolBase is IPoolBase, ERC721, ReentrancyGuard, Pausable, Owna
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
         // process current pending rewards if any
-        if (user.tokenAmount > 0) {
+        if (user.totalWeight > 0) {
             _processRewards(_staker, _useSILV, false);
         }
 

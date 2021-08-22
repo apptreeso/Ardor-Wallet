@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.0;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Timestamp } from "./base/Timestamp.sol";
 import { CorePool } from "./CorePool.sol";
 import { IlluviumAware } from "./libraries/IlluviumAware.sol";
@@ -25,7 +25,7 @@ import "hardhat/console.sol";
  *      (see `mintYieldTo` function)
  *
  */
-contract PoolFactory is Ownable, IFactory, Timestamp {
+contract PoolFactory is OwnableUpgradeable, IFactory, Timestamp {
     /// @inheritdoc IFactory
     /// @dev TODO: set correct UID
     uint256 public constant override FACTORY_UID = 0xc5cfd88c6e4d7e5c8a03c255f03af23c0918d8e82cac196f57466af3fd4a5ec7;
