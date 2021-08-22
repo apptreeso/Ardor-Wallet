@@ -5,7 +5,7 @@ import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 import { PoolBase } from "./PoolBase.sol";
 
 abstract contract V2Migrator is PoolBase {
-    address public immutable corePoolV1;
+    address public corePoolV1;
 
     mapping(bytes32 => bool) public v1YieldMinted;
 

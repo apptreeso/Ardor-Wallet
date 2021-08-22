@@ -38,7 +38,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
     uint32 public override totalWeight;
 
     /// @inheritdoc IFactory
-    uint32 public immutable override secondsPerUpdate;
+    uint32 public override secondsPerUpdate;
 
     /// @inheritdoc IFactory
     uint32 public override endTime;
@@ -47,10 +47,10 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
     uint32 public override lastRatioUpdate;
 
     /// @inheritdoc IFactory
-    address public immutable override ilv;
+    address public override ilv;
 
     /// @inheritdoc IFactory
-    address public immutable override silv;
+    address public override silv;
 
     /// @inheritdoc IFactory
     mapping(address => address) public override pools;
