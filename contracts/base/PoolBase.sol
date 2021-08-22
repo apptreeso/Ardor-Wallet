@@ -150,7 +150,7 @@ abstract contract PoolBase is
     event PoolWeightUpdated(address indexed _by, uint32 _fromVal, uint32 _toVal);
 
     /**
-     * @dev Overridden in sub-contracts to construct the pool
+     * @dev Overridden in sub-contracts to initialize the pool
      *
      * @param _ilv ILV ERC20 Token address
      * @param _silv sILV ERC20 Token address
@@ -161,14 +161,14 @@ abstract contract PoolBase is
      * @param _weight number representing a weight of the pool, actual weight fraction
      *      is calculated as that number divided by the total pools weight and doesn't exceed one
      */
-    function initialize(
+    function __PoolBase_init(
         address _ilv,
         address _silv,
         IFactory _factory,
         address _poolToken,
         uint64 _initTime,
         uint32 _weight
-    ) public payable initializer {
+    ) internal initializer {
         require(address(_factory) != address(0), "ILV Pool fct address not set");
         require(_poolToken != address(0), "pool token address not set");
         require(_initTime > 0, "init time not set");
