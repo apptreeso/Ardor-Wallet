@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.0;
+pragma solidity 0.8.4;
 
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Timestamp } from "./base/Timestamp.sol";
 import { CorePool } from "./CorePool.sol";
@@ -25,7 +26,7 @@ import "hardhat/console.sol";
  *      (see `mintYieldTo` function)
  *
  */
-contract PoolFactory is OwnableUpgradeable, IFactory, Timestamp {
+contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp {
     /// @inheritdoc IFactory
     /// @dev TODO: set correct UID
     uint256 public constant override FACTORY_UID = 0xc5cfd88c6e4d7e5c8a03c255f03af23c0918d8e82cac196f57466af3fd4a5ec7;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.0;
+pragma solidity 0.8.4;
 
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 import { PoolBase } from "./PoolBase.sol";
