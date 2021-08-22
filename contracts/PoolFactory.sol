@@ -59,7 +59,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
     mapping(address => bool) public override poolExists;
 
     /**
-     * @dev Creates/deploys a factory instance
+     * @dev Initializes a factory instance
      *
      * @param _ilv ILV ERC20 token address
      * @param _silv sILV ERC20 token address
@@ -68,14 +68,15 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
      * @param _initTime timestamp to measure _secondsPerUpdate from
      * @param _endTime timestamp number when farming stops and rewards cannot be updated anymore
      */
-    constructor(
+
+    function initialize(
         address _ilv,
         address _silv,
         uint192 _ilvPerSecond,
         uint32 _secondsPerUpdate,
         uint32 _initTime,
         uint32 _endTime
-    ) {
+    ) public payable initializer {
         // verify the inputs are set
         require(_silv != address(0), "sILV address not set");
         require(_ilvPerSecond > 0, "ILV/second not set");
@@ -208,4 +209,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
         // emit an event
         emit WeightUpdated(msg.sender, address(pool), weight);
     }
+
+    /// @inheritdoc UUPSUpgradeable
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 }
