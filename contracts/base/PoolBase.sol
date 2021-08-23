@@ -6,11 +6,10 @@ import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Timestamp } from "./Timestamp.sol";
+import { FactoryControlled } from "./FactoryControlled.sol";
 import { IlluviumAware } from "../libraries/IlluviumAware.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IFactory } from "../interfaces/IFactory.sol";
 import { IPoolBase } from "../interfaces/IPoolBase.sol";
 import { ICorePool } from "../interfaces/ICorePool.sol";
 
@@ -20,10 +19,10 @@ import "hardhat/console.sol";
 abstract contract PoolBase is
     IPoolBase,
     UUPSUpgradeable,
+    FactoryControlled,
     ERC721Upgradeable,
     ReentrancyGuardUpgradeable,
     PausableUpgradeable,
-    OwnableUpgradeable,
     Timestamp
 {
     using SafeERC20 for IERC20;
@@ -36,9 +35,6 @@ abstract contract PoolBase is
 
     /// @dev Link to ILV ERC20 Token instance
     address public override ilv;
-
-    /// @dev Link to the pool factory IlluviumPoolFactory instance
-    IFactory public override factory;
 
     /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair
     address public override poolToken;
@@ -150,7 +146,6 @@ abstract contract PoolBase is
     function __PoolBase_init(
         address _ilv,
         address _silv,
-        IFactory _factory,
         address _poolToken,
         uint64 _initTime,
         uint32 _weight
@@ -173,7 +168,6 @@ abstract contract PoolBase is
         // save the inputs into internal state variables
         ilv = _ilv;
         silv = _silv;
-        factory = _factory;
         poolToken = _poolToken;
         weight = _weight;
 
@@ -730,5 +724,5 @@ abstract contract PoolBase is
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address) internal override onlyOwner {}
+    function _authorizeUpgrade(address) internal override onlyFactoryController {}
 }
