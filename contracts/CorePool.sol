@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.0;
+pragma solidity 0.8.4;
 
-import { PoolBase } from "./base/PoolBase.sol";
+import { V2Migrator } from "./base/V2Migrator.sol";
 import { VaultRecipient } from "./base/VaultRecipient.sol";
 
-contract CorePool is PoolBase, VaultRecipient {}
+contract CorePool is V2Migrator, VaultRecipient {}

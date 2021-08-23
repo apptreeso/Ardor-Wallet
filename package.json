@@ -75,6 +75,7 @@
     "typechain": "hardhat typechain"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.2.0"
+    "@openzeppelin/contracts": "^4.2.0",
+    "@openzeppelin/contracts-upgradeable": "^4.3.0"
   }
 }

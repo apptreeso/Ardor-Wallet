@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.0;
+pragma solidity 0.8.4;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Timestamp } from "./base/Timestamp.sol";
 import { CorePool } from "./CorePool.sol";
 import { IlluviumAware } from "./libraries/IlluviumAware.sol";
@@ -25,7 +26,7 @@ import "hardhat/console.sol";
  *      (see `mintYieldTo` function)
  *
  */
-contract PoolFactory is Ownable, IFactory, Timestamp {
+contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp {
     /// @inheritdoc IFactory
     /// @dev TODO: set correct UID
     uint256 public constant override FACTORY_UID = 0xc5cfd88c6e4d7e5c8a03c255f03af23c0918d8e82cac196f57466af3fd4a5ec7;
@@ -37,7 +38,7 @@ contract PoolFactory is Ownable, IFactory, Timestamp {
     uint32 public override totalWeight;
 
     /// @inheritdoc IFactory
-    uint32 public immutable override secondsPerUpdate;
+    uint32 public override secondsPerUpdate;
 
     /// @inheritdoc IFactory
     uint32 public override endTime;
@@ -46,10 +47,10 @@ contract PoolFactory is Ownable, IFactory, Timestamp {
     uint32 public override lastRatioUpdate;
 
     /// @inheritdoc IFactory
-    address public immutable override ilv;
+    address public override ilv;
 
     /// @inheritdoc IFactory
-    address public immutable override silv;
+    address public override silv;
 
     /// @inheritdoc IFactory
     mapping(address => address) public override pools;
@@ -58,7 +59,7 @@ contract PoolFactory is Ownable, IFactory, Timestamp {
     mapping(address => bool) public override poolExists;
 
     /**
-     * @dev Creates/deploys a factory instance
+     * @dev Initializes a factory instance
      *
      * @param _ilv ILV ERC20 token address
      * @param _silv sILV ERC20 token address
@@ -67,14 +68,15 @@ contract PoolFactory is Ownable, IFactory, Timestamp {
      * @param _initTime timestamp to measure _secondsPerUpdate from
      * @param _endTime timestamp number when farming stops and rewards cannot be updated anymore
      */
-    constructor(
+
+    function initialize(
         address _ilv,
         address _silv,
         uint192 _ilvPerSecond,
         uint32 _secondsPerUpdate,
         uint32 _initTime,
         uint32 _endTime
-    ) {
+    ) public payable initializer {
         // verify the inputs are set
         require(_silv != address(0), "sILV address not set");
         require(_ilvPerSecond > 0, "ILV/second not set");
@@ -207,4 +209,7 @@ contract PoolFactory is Ownable, IFactory, Timestamp {
         // emit an event
         emit WeightUpdated(msg.sender, address(pool), weight);
     }
+
+    /// @inheritdoc UUPSUpgradeable
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 }

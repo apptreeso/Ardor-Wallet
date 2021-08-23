@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.0;
+pragma solidity 0.8.4;
 
 /// @title Function for getting block timestamp
 /// @dev Base contract that is overridden for tests
@@ -10,7 +10,7 @@ abstract contract Timestamp {
      *
      * @return `block.timestamp` in mainnet, custom values in testnets (if overridden)
      */
-    function _now256() private view virtual returns (uint256) {
+    function _now256() internal view virtual returns (uint256) {
         // return current block timestamp
         return block.timestamp;
     }
