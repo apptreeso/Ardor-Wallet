@@ -5,6 +5,12 @@ import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 import { PoolBase } from "./PoolBase.sol";
 
 abstract contract V2Migrator is PoolBase {
+    struct MigratedUser {
+        address user;
+        MigratedStake[] v1Stakes;
+        uint256 totalWeight;
+    }
+
     address public corePoolV1;
 
     mapping(bytes32 => bool) public v1YieldMinted;
@@ -31,5 +37,16 @@ abstract contract V2Migrator is PoolBase {
         emit LogV1YieldMinted(msg.sender, _depositId, tokenAmount);
     }
 
-    function migrateLockedStake(address[] memory _users, Stake[] memory _stakes) external onlyFactoryController {}
+    function migrateLockedStakeFull(MigratedUser[] calldata _users) external onlyFactoryController {
+        for (uint256 i = 0; i < _users.length; i++) {
+            users[_users[i].user].totalWeight += _users[i].totalWeight;
+            users[_users[i].user].v1Stakes = _users[i].v1Stakes;
+        }
+    }
+
+    function migrateLockedStakePartial(MigratedUser[] calldata _users) external onlyFactoryController {
+        for (uint256 i = 0; i < _users.length; i++) {
+            users[_users[i].user].v1Stakes = _users[i].v1Stakes;
+        }
+    }
 }
