@@ -30,4 +30,6 @@ abstract contract V2Migrator is PoolBase {
 
         emit LogV1YieldMinted(msg.sender, _depositId, tokenAmount);
     }
+
+    // function migrateLockedStake(address[] memory _users, Stake[] memory _stakes)
 }

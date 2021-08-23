@@ -28,22 +28,8 @@ abstract contract PoolBase is
 {
     using SafeERC20 for IERC20;
 
-    /// @dev Data structure representing token holder using a pool
-    struct User {
-        // @dev Total staked amount in flexible mode
-        uint256 flexibleTokenAmount;
-        // @dev Total weight
-        uint256 totalWeight;
-        // @dev Auxiliary variable for yield calculation
-        uint256 subYieldRewards;
-        // @dev Auxiliary variable for vault rewards calculation
-        uint256 subVaultRewards;
-        // @dev An array of holder's stakes
-        Stake[] deposits;
-    }
-
     /// @dev Token holder storage, maps token holder address to their data record
-    mapping(address => User) public users;
+    mapping(address => User) public override users;
 
     /// @dev Link to sILV ERC20 Token instance
     address public override silv;
@@ -461,7 +447,6 @@ abstract contract PoolBase is
         // create and save the deposit (append it to deposits array)
         Stake memory deposit = Stake({
             tokenAmount: addedAmount,
-            weight: stakeWeight,
             lockedFrom: lockFrom,
             lockedUntil: lockUntil,
             isYield: _isYield
@@ -640,7 +625,6 @@ abstract contract PoolBase is
                 tokenAmount: pendingYield,
                 lockedFrom: uint64(_now256()),
                 lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
-                weight: depositWeight,
                 isYield: true
             });
             user.deposits.push(newDeposit);
