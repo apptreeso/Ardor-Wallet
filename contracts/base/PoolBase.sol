@@ -224,7 +224,7 @@ abstract contract PoolBase is
      */
     function getDeposit(address _user, uint256 _depositId) external view override returns (Stake memory) {
         // read deposit at specified index and return
-        return users[_user].deposits[_depositId];
+        return users[_user].stakes[_depositId];
     }
 
     /**
@@ -237,7 +237,7 @@ abstract contract PoolBase is
      */
     function getDepositsLength(address _user) external view override returns (uint256) {
         // read deposits array length and return
-        return users[_user].deposits.length;
+        return users[_user].stakes.length;
     }
 
     /**
@@ -440,7 +440,7 @@ abstract contract PoolBase is
             isYield: _isYield
         });
         // deposit ID is an index of the deposit in `deposits` array
-        user.deposits.push(deposit);
+        user.stakes.push(deposit);
 
         // update user record
         user.tokenAmount += addedAmount;
@@ -480,7 +480,7 @@ abstract contract PoolBase is
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
         // get a link to the corresponding deposit, we may write to it later
-        Stake storage stakeDeposit = user.deposits[_depositId];
+        Stake storage stakeDeposit = user.stakes[_depositId];
         // deposit structure may get deleted, so we save isYield flag to be able to use it
         bool isYield = stakeDeposit.isYield;
 
@@ -501,7 +501,7 @@ abstract contract PoolBase is
 
         // update the deposit, or delete it if its depleted
         if (stakeDeposit.tokenAmount - _amount == 0) {
-            delete user.deposits[_depositId];
+            delete user.stakes[_depositId];
         } else {
             stakeDeposit.tokenAmount -= _amount;
             stakeDeposit.weight = newWeight;
@@ -615,7 +615,7 @@ abstract contract PoolBase is
                 lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
                 isYield: true
             });
-            user.deposits.push(newDeposit);
+            user.stakes.push(newDeposit);
 
             // update user record
             user.tokenAmount += pendingYield;
@@ -656,7 +656,7 @@ abstract contract PoolBase is
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
         // get a link to the corresponding deposit, we may write to it later
-        Stake storage stakeDeposit = user.deposits[_depositId];
+        Stake storage stakeDeposit = user.stakes[_depositId];
 
         // validate the input against deposit structure
         require(_lockedUntil > stakeDeposit.lockedUntil, "invalid new lock");
