@@ -131,6 +131,12 @@ abstract contract PoolBase is
      */
     event PoolWeightUpdated(address indexed _by, uint32 _fromVal, uint32 _toVal);
 
+    /// @dev used for functions that require syncing contract state before execution
+    modifier updatePool() {
+        _sync();
+        _;
+    }
+
     /**
      * @dev Overridden in sub-contracts to initialize the pool
      *
@@ -255,18 +261,15 @@ abstract contract PoolBase is
         _stakeAndLock(msg.sender, _amount, _lockUntil, false);
     }
 
-    function stakeFlexible(uint256 _amount) external {
+    function stakeFlexible(uint256 _amount) external updatePool {
         // validates input
         require(_amount > 0, "zero amount");
-
-        // update smart contract state
-        _sync();
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
         // process current pending rewards if any
         if (user.totalWeight > 0) {
-            _processRewards(_staker, _useSILV, false);
+            _processRewards(_staker, false);
         }
 
         // in most of the cases added amount `addedAmount` is simply `_amount`
@@ -338,9 +341,7 @@ abstract contract PoolBase is
         uint256 depositId,
         uint64 lockedUntil,
         bool useSILV
-    ) external {
-        // sync and call processRewards
-        _sync();
+    ) external updatePool {
         _processRewards(msg.sender, useSILV, false);
         // delegate call to an internal function
         _updateStakeLock(msg.sender, depositId, lockedUntil);
@@ -433,16 +434,13 @@ abstract contract PoolBase is
         uint256 _amount,
         uint64 _lockUntil,
         bool _isYield
-    ) internal virtual {
+    ) internal virtual updatePool {
         // validate the inputs
         require(_amount > 0, "zero amount");
         require(
             _lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 365 days),
             "invalid lock interval"
         );
-
-        // update smart contract state
-        _sync();
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
@@ -511,7 +509,7 @@ abstract contract PoolBase is
         uint256 _depositId,
         uint256 _amount,
         bool _useSILV
-    ) internal virtual {
+    ) internal virtual updatePool {
         // verify an amount is set
         require(_amount > 0, "zero amount");
 
@@ -526,8 +524,6 @@ abstract contract PoolBase is
         // if staker address ot deposit doesn't exist this check will fail as well
         require(stakeDeposit.tokenAmount >= _amount, "amount exceeds stake");
 
-        // update smart contract state
-        _sync();
         // and process current pending rewards if any
         _processRewards(_staker, _useSILV, false);
 
