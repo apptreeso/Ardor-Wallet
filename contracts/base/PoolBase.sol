@@ -313,6 +313,14 @@ abstract contract PoolBase is
         emit Staked(msg.sender, _staker, _amount);
     }
 
+    /**
+     * @dev migrates msg.sender data to a new address
+     *
+     * @notice data is copied to memory so we can delete previous address data
+     * before we store it in new address
+     *
+     * @param _to new user address
+     */
     function migrateUser(address _to) external {
         User storage newUser = users[_to];
         require(newUser.stakes.length == 0 && newUser.v1Stakes.length == 0, "invalid user, already exists");
@@ -320,6 +328,8 @@ abstract contract PoolBase is
         User memory previousUser = users[msg.sender];
         delete users[msg.sender];
         newUser = previousUser;
+
+        emit LogMigrateUser(msg.sender, _to);
     }
 
     /**
