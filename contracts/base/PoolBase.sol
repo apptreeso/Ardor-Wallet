@@ -2,7 +2,6 @@
 pragma solidity 0.8.4;
 
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -20,7 +19,6 @@ abstract contract PoolBase is
     IPoolBase,
     UUPSUpgradeable,
     FactoryControlled,
-    ERC721Upgradeable,
     ReentrancyGuardUpgradeable,
     PausableUpgradeable,
     Timestamp
@@ -132,6 +130,20 @@ abstract contract PoolBase is
     event PoolWeightUpdated(address indexed _by, uint32 _fromVal, uint32 _toVal);
 
     /**
+     * @dev fired in migrateUser()
+     *
+     * @param _from user asking migration
+     * @param _to new user address
+     */
+    event LogMigrateUser(address indexed _from, address indexed _to);
+
+    /// @dev used for functions that require syncing contract state before execution
+    modifier updatePool() {
+        _sync();
+        _;
+    }
+
+    /**
      * @dev Overridden in sub-contracts to initialize the pool
      *
      * @param _ilv ILV ERC20 Token address
@@ -224,7 +236,7 @@ abstract contract PoolBase is
      */
     function getDeposit(address _user, uint256 _depositId) external view override returns (Stake memory) {
         // read deposit at specified index and return
-        return users[_user].deposits[_depositId];
+        return users[_user].stakes[_depositId];
     }
 
     /**
@@ -237,7 +249,7 @@ abstract contract PoolBase is
      */
     function getDepositsLength(address _user) external view override returns (uint256) {
         // read deposits array length and return
-        return users[_user].deposits.length;
+        return users[_user].stakes.length;
     }
 
     /**
@@ -250,13 +262,81 @@ abstract contract PoolBase is
      * @param _lockUntil stake period as unix timestamp; zero means no locking
      * @param _useSILV a flag indicating if previous reward to be paid as sILV
      */
-    function stake(
-        uint256 _amount,
-        uint64 _lockUntil,
-        bool _useSILV
-    ) external override {
+    function stakeAndLock(uint256 _amount, uint64 _lockUntil) external override {
         // delegate call to an internal function
-        _stakeAndLock(msg.sender, _amount, _lockUntil, _useSILV, false);
+        _stakeAndLock(msg.sender, _amount, _lockUntil, false);
+    }
+
+    /**
+     * @dev stakes poolTokens without lock
+     *
+     * @notice we use standard weight for flexible stakes (since it's never locked)
+     *
+     * @param _value number of tokens to stake
+     */
+    function stakeFlexible(uint256 _value) external updatePool {
+        // validates input
+        require(_value > 0, "zero amount");
+
+        // get a link to user data struct, we will write to it later
+        User storage user = users[_staker];
+        // process current pending rewards if any
+        if (user.totalWeight > 0) {
+            _processRewards(_staker, false);
+        }
+
+        // in most of the cases added amount `addedAmount` is simply `_amount`
+        // however for deflationary tokens this can be different
+
+        // read the current balance
+        uint256 previousBalance = IERC20(poolToken).balanceOf(address(this));
+        // transfer `_amount`; note: some tokens may get burnt here
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
+        // read new balance, usually this is just the difference `previousBalance - _amount`
+        uint256 newBalance = IERC20(poolToken).balanceOf(address(this));
+        // calculate real amount taking into account deflation
+        uint256 addedAmount = newBalance - previousBalance;
+
+        // no need to calculate locking weight, flexible stake never locks
+        uint256 stakeWeight = WEIGHT_MULTIPLIER * addedAmount;
+
+        // makes sure stakeWeight is valid
+        assert(stakeWeight > 0);
+
+        // create and save the deposit (append it to deposits array)
+        Stake memory deposit = Stake({ tokenAmount: addedAmount, lockedFrom: 0, lockedUntil: 0, isYield: _isYield });
+        // deposit ID is an index of the deposit in `deposits` array
+        user.stakes.push(deposit);
+
+        // update user record
+        user.flexibleTokenAmount += addedAmount;
+        user.totalWeight += stakeWeight;
+        user.subYieldRewards = weightToReward(user.totalWeight, yieldRewardsPerWeight);
+
+        // update global variable
+        usersLockingWeight += stakeWeight;
+
+        // emit an event
+        emit Staked(msg.sender, _staker, _amount);
+    }
+
+    /**
+     * @dev migrates msg.sender data to a new address
+     *
+     * @notice data is copied to memory so we can delete previous address data
+     * before we store it in new address
+     *
+     * @param _to new user address
+     */
+    function migrateUser(address _to) external {
+        User storage newUser = users[_to];
+        require(newUser.stakes.length == 0 && newUser.v1Stakes.length == 0, "invalid user, already exists");
+
+        User memory previousUser = users[msg.sender];
+        delete users[msg.sender];
+        newUser = previousUser;
+
+        emit LogMigrateUser(msg.sender, _to);
     }
 
     /**
@@ -293,9 +373,7 @@ abstract contract PoolBase is
         uint256 depositId,
         uint64 lockedUntil,
         bool useSILV
-    ) external {
-        // sync and call processRewards
-        _sync();
+    ) external updatePool {
         _processRewards(msg.sender, useSILV, false);
         // delegate call to an internal function
         _updateStakeLock(msg.sender, depositId, lockedUntil);
@@ -387,18 +465,14 @@ abstract contract PoolBase is
         address _staker,
         uint256 _amount,
         uint64 _lockUntil,
-        bool _useSILV,
         bool _isYield
-    ) internal virtual {
+    ) internal virtual updatePool {
         // validate the inputs
         require(_amount > 0, "zero amount");
         require(
             _lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 365 days),
             "invalid lock interval"
         );
-
-        // update smart contract state
-        _sync();
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
@@ -440,7 +514,7 @@ abstract contract PoolBase is
             isYield: _isYield
         });
         // deposit ID is an index of the deposit in `deposits` array
-        user.deposits.push(deposit);
+        user.stakes.push(deposit);
 
         // update user record
         user.tokenAmount += addedAmount;
@@ -453,12 +527,6 @@ abstract contract PoolBase is
         // emit an event
         emit Staked(msg.sender, _staker, _amount);
     }
-
-    function _flexibleStake(
-        address _staker,
-        uint256 _amount,
-        uint64 _lockUntil
-    ) internal virtual {}
 
     /**
      * @dev Used internally, mostly by children implementations, see unstake()
@@ -473,14 +541,14 @@ abstract contract PoolBase is
         uint256 _depositId,
         uint256 _amount,
         bool _useSILV
-    ) internal virtual {
+    ) internal virtual updatePool {
         // verify an amount is set
         require(_amount > 0, "zero amount");
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
         // get a link to the corresponding deposit, we may write to it later
-        Stake storage stakeDeposit = user.deposits[_depositId];
+        Stake storage stakeDeposit = user.stakes[_depositId];
         // deposit structure may get deleted, so we save isYield flag to be able to use it
         bool isYield = stakeDeposit.isYield;
 
@@ -488,8 +556,6 @@ abstract contract PoolBase is
         // if staker address ot deposit doesn't exist this check will fail as well
         require(stakeDeposit.tokenAmount >= _amount, "amount exceeds stake");
 
-        // update smart contract state
-        _sync();
         // and process current pending rewards if any
         _processRewards(_staker, _useSILV, false);
 
@@ -501,7 +567,7 @@ abstract contract PoolBase is
 
         // update the deposit, or delete it if its depleted
         if (stakeDeposit.tokenAmount - _amount == 0) {
-            delete user.deposits[_depositId];
+            delete user.stakes[_depositId];
         } else {
             stakeDeposit.tokenAmount -= _amount;
             stakeDeposit.weight = newWeight;
@@ -615,7 +681,7 @@ abstract contract PoolBase is
                 lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
                 isYield: true
             });
-            user.deposits.push(newDeposit);
+            user.stakes.push(newDeposit);
 
             // update user record
             user.tokenAmount += pendingYield;
@@ -656,7 +722,7 @@ abstract contract PoolBase is
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
         // get a link to the corresponding deposit, we may write to it later
-        Stake storage stakeDeposit = user.deposits[_depositId];
+        Stake storage stakeDeposit = user.stakes[_depositId];
 
         // validate the input against deposit structure
         require(_lockedUntil > stakeDeposit.lockedUntil, "invalid new lock");

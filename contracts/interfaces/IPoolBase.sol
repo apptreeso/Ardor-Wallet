@@ -37,7 +37,7 @@ interface IPoolBase {
         // @dev Auxiliary variable for vault rewards calculation
         uint256 subVaultRewards;
         // @dev An array of holder's stakes
-        Stake[] deposits;
+        Stake[] stakes;
         // @dev An array of holder's stakes in V1
         MigratedStake[] v1Stakes;
     }
