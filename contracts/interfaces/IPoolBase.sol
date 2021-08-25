@@ -6,16 +6,6 @@ interface IPoolBase {
      * @dev Deposit is a key data structure used in staking,
      *      it represents a unit of stake with its amount, weight and term (time interval)
      */
-    struct Stake {
-        // @dev token amount staked
-        uint120 tokenAmount;
-        // @dev locking period - from
-        uint64 lockedFrom;
-        // @dev locking period - until
-        uint64 lockedUntil;
-        // @dev indicates if the stake was created as a yield reward
-        bool isYield;
-    }
 
     struct MigratedStake {
         // @dev token amount staked in V1
