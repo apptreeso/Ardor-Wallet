@@ -306,7 +306,12 @@ abstract contract PoolBase is
         assert(stakeWeight > 0);
 
         // create and save the deposit (append it to deposits array)
-        Stake memory deposit = Stake({ tokenAmount: addedAmount, lockedFrom: 0, lockedUntil: 0, isYield: _isYield });
+        Stake.Data memory deposit = Stake.Data({
+            value: addedAmount,
+            lockedFrom: 0,
+            lockedUntil: 0,
+            isYield: _isYield
+        });
         // deposit ID is an index of the deposit in `deposits` array
         user.stakes.push(deposit);
 
@@ -465,12 +470,12 @@ abstract contract PoolBase is
      */
     function _stakeAndLock(
         address _staker,
-        uint256 _amount,
+        uint256 _value,
         uint64 _lockUntil,
         bool _isYield
     ) internal virtual updatePool {
         // validate the inputs
-        require(_amount > 0, "zero amount");
+        require(_value > 0, "zero amount");
         require(
             _lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 365 days),
             "invalid lock interval"
@@ -483,14 +488,14 @@ abstract contract PoolBase is
             _processRewards(_staker, _useSILV, false);
         }
 
-        // in most of the cases added amount `addedAmount` is simply `_amount`
+        // in most of the cases added amount `addedAmount` is simply `_value`
         // however for deflationary tokens this can be different
 
         // read the current balance
         uint256 previousBalance = IERC20(poolToken).balanceOf(address(this));
-        // transfer `_amount`; note: some tokens may get burnt here
-        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _amount);
-        // read new balance, usually this is just the difference `previousBalance - _amount`
+        // transfer `_value`; note: some tokens may get burnt here
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
+        // read new balance, usually this is just the difference `previousBalance - _value`
         uint256 newBalance = IERC20(poolToken).balanceOf(address(this));
         // calculate real amount taking into account deflation
         uint256 addedAmount = newBalance - previousBalance;
@@ -509,8 +514,8 @@ abstract contract PoolBase is
         assert(stakeWeight > 0);
 
         // create and save the deposit (append it to deposits array)
-        Stake memory deposit = Stake({
-            tokenAmount: addedAmount,
+        Stake.Data memory deposit = Stake.Data({
+            value: addedAmount,
             lockedFrom: lockFrom,
             lockedUntil: lockUntil,
             isYield: _isYield
@@ -519,7 +524,6 @@ abstract contract PoolBase is
         user.stakes.push(deposit);
 
         // update user record
-        user.tokenAmount += addedAmount;
         user.totalWeight += stakeWeight;
         user.subYieldRewards = weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
@@ -527,7 +531,7 @@ abstract contract PoolBase is
         usersLockingWeight += stakeWeight;
 
         // emit an event
-        emit Staked(msg.sender, _staker, _amount);
+        emit Staked(msg.sender, _staker, _value);
     }
 
     /**
@@ -677,8 +681,8 @@ abstract contract PoolBase is
 
             // if the pool is ILV Pool - create new ILV deposit
             // and save it - push it into deposits array
-            Stake memory newDeposit = Stake({
-                tokenAmount: pendingYield,
+            Stake.Data memory newDeposit = Stake.Data({
+                value: pendingYield,
                 lockedFrom: uint64(_now256()),
                 lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
                 isYield: true

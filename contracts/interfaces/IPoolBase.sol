@@ -4,24 +4,19 @@ pragma solidity 0.8.4;
 import { Stake } from "../libraries/Stake.sol";
 
 interface IPoolBase {
-    /**
-     * @dev Deposit is a key data structure used in staking,
-     *      it represents a unit of stake with its amount, weight and term (time interval)
-     */
-
     /// @dev Data structure representing token holder using a pool
     struct User {
-        // @dev Total staked amount in flexible mode
+        /// @dev Total staked amount in flexible mode
         uint256 flexibleTokenAmount;
-        // @dev Total weight
+        /// @dev Total weight
         uint256 totalWeight;
-        // @dev Auxiliary variable for yield calculation
+        /// @dev Auxiliary variable for yield calculation
         uint256 subYieldRewards;
-        // @dev Auxiliary variable for vault rewards calculation
+        /// @dev Auxiliary variable for vault rewards calculation
         uint256 subVaultRewards;
-        // @dev An array of holder's stakes
+        /// @dev An array of holder's stakes
         Stake.Data[] stakes;
-        // @dev An array of holder's stakes in V1
+        /// @dev An array of holder's stakes in V1
         Stake.Data[] v1Stakes;
     }
 

@@ -3,13 +3,13 @@ pragma solidity 0.8.4;
 
 library Stake {
     struct Data {
-        // @dev token amount staked
-        uint120 tokenAmount;
-        // @dev locking period - from
+        /// @dev token amount staked
+        uint120 value;
+        /// @dev locking period - from
         uint64 lockedFrom;
-        // @dev locking period - until
+        /// @dev locking period - until
         uint64 lockedUntil;
-        // @dev indicates if the stake was created as a yield reward
+        /// @dev indicates if the stake was created as a yield reward
         bool isYield;
     }
 
