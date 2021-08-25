@@ -16,8 +16,8 @@ library Stake {
     function weight(Data storage _self, uint256 weightMultiplier) internal view returns (uint256) {
         return
             uint256(
-                (((_self.lockUntil - _self.lockFrom) * weightMultiplier) / 365 days + weightMultiplier) *
-                    _self.tokenAmount
+                (((_self.lockedUntil - _self.lockedFrom) * weightMultiplier) / 365 days + weightMultiplier) *
+                    _self.value
             );
     }
 }
