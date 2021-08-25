@@ -250,13 +250,74 @@ abstract contract PoolBase is
      * @param _lockUntil stake period as unix timestamp; zero means no locking
      * @param _useSILV a flag indicating if previous reward to be paid as sILV
      */
-    function stake(
-        uint256 _amount,
-        uint64 _lockUntil,
-        bool _useSILV
-    ) external override {
+    function stakeAndLock(uint256 _amount, uint64 _lockUntil) external override {
         // delegate call to an internal function
-        _stakeAndLock(msg.sender, _amount, _lockUntil, _useSILV, false);
+        _stakeAndLock(msg.sender, _amount, _lockUntil, false);
+    }
+
+    function stakeFlexible(uint256 _amount) external {
+        // validate the inputs
+        require(_amount > 0, "zero amount");
+        require(
+            _lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 365 days),
+            "invalid lock interval"
+        );
+
+        // update smart contract state
+        _sync();
+
+        // get a link to user data struct, we will write to it later
+        User storage user = users[_staker];
+        // process current pending rewards if any
+        if (user.totalWeight > 0) {
+            _processRewards(_staker, _useSILV, false);
+        }
+
+        // in most of the cases added amount `addedAmount` is simply `_amount`
+        // however for deflationary tokens this can be different
+
+        // read the current balance
+        uint256 previousBalance = IERC20(poolToken).balanceOf(address(this));
+        // transfer `_amount`; note: some tokens may get burnt here
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _amount);
+        // read new balance, usually this is just the difference `previousBalance - _amount`
+        uint256 newBalance = IERC20(poolToken).balanceOf(address(this));
+        // calculate real amount taking into account deflation
+        uint256 addedAmount = newBalance - previousBalance;
+
+        // set the `lockFrom` and `lockUntil` taking into account that
+        // zero value for `_lockUntil` means "no locking" and leads to zero values
+        // for both `lockFrom` and `lockUntil`
+        uint64 lockFrom = _lockUntil > 0 ? uint64(_now256()) : 0;
+        uint64 lockUntil = _lockUntil;
+
+        // stake weight formula rewards for locking
+        uint256 stakeWeight = (((lockUntil - lockFrom) * WEIGHT_MULTIPLIER) / 365 days + WEIGHT_MULTIPLIER) *
+            addedAmount;
+
+        // makes sure stakeWeight is valid
+        assert(stakeWeight > 0);
+
+        // create and save the deposit (append it to deposits array)
+        Stake memory deposit = Stake({
+            tokenAmount: addedAmount,
+            lockedFrom: lockFrom,
+            lockedUntil: lockUntil,
+            isYield: _isYield
+        });
+        // deposit ID is an index of the deposit in `deposits` array
+        user.stakes.push(deposit);
+
+        // update user record
+        user.tokenAmount += addedAmount;
+        user.totalWeight += stakeWeight;
+        user.subYieldRewards = weightToReward(user.totalWeight, yieldRewardsPerWeight);
+
+        // update global variable
+        usersLockingWeight += stakeWeight;
+
+        // emit an event
+        emit Staked(msg.sender, _staker, _amount);
     }
 
     /**
@@ -387,7 +448,6 @@ abstract contract PoolBase is
         address _staker,
         uint256 _amount,
         uint64 _lockUntil,
-        bool _useSILV,
         bool _isYield
     ) internal virtual {
         // validate the inputs
@@ -453,12 +513,6 @@ abstract contract PoolBase is
         // emit an event
         emit Staked(msg.sender, _staker, _amount);
     }
-
-    function _flexibleStake(
-        address _staker,
-        uint256 _amount,
-        uint64 _lockUntil
-    ) internal virtual {}
 
     /**
      * @dev Used internally, mostly by children implementations, see unstake()
