@@ -256,12 +256,8 @@ abstract contract PoolBase is
     }
 
     function stakeFlexible(uint256 _amount) external {
-        // validate the inputs
+        // validates input
         require(_amount > 0, "zero amount");
-        require(
-            _lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 365 days),
-            "invalid lock interval"
-        );
 
         // update smart contract state
         _sync();
@@ -285,31 +281,19 @@ abstract contract PoolBase is
         // calculate real amount taking into account deflation
         uint256 addedAmount = newBalance - previousBalance;
 
-        // set the `lockFrom` and `lockUntil` taking into account that
-        // zero value for `_lockUntil` means "no locking" and leads to zero values
-        // for both `lockFrom` and `lockUntil`
-        uint64 lockFrom = _lockUntil > 0 ? uint64(_now256()) : 0;
-        uint64 lockUntil = _lockUntil;
-
-        // stake weight formula rewards for locking
-        uint256 stakeWeight = (((lockUntil - lockFrom) * WEIGHT_MULTIPLIER) / 365 days + WEIGHT_MULTIPLIER) *
-            addedAmount;
+        // no need to calculate locking weight, flexible stake never locks
+        uint256 stakeWeight = WEIGHT_MULTIPLIER * addedAmount;
 
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
 
         // create and save the deposit (append it to deposits array)
-        Stake memory deposit = Stake({
-            tokenAmount: addedAmount,
-            lockedFrom: lockFrom,
-            lockedUntil: lockUntil,
-            isYield: _isYield
-        });
+        Stake memory deposit = Stake({ tokenAmount: addedAmount, lockedFrom: 0, lockedUntil: 0, isYield: _isYield });
         // deposit ID is an index of the deposit in `deposits` array
         user.stakes.push(deposit);
 
         // update user record
-        user.tokenAmount += addedAmount;
+        user.flexibleTokenAmount += addedAmount;
         user.totalWeight += stakeWeight;
         user.subYieldRewards = weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
