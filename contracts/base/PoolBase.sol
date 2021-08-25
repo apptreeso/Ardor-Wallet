@@ -267,9 +267,16 @@ abstract contract PoolBase is
         _stakeAndLock(msg.sender, _amount, _lockUntil, false);
     }
 
-    function stakeFlexible(uint256 _amount) external updatePool {
+    /**
+     * @dev stakes poolTokens without lock
+     *
+     * @notice we use standard weight for flexible stakes (since it's never locked)
+     *
+     * @param _value number of tokens to stake
+     */
+    function stakeFlexible(uint256 _value) external updatePool {
         // validates input
-        require(_amount > 0, "zero amount");
+        require(_value > 0, "zero amount");
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
@@ -284,7 +291,7 @@ abstract contract PoolBase is
         // read the current balance
         uint256 previousBalance = IERC20(poolToken).balanceOf(address(this));
         // transfer `_amount`; note: some tokens may get burnt here
-        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _amount);
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
         // read new balance, usually this is just the difference `previousBalance - _amount`
         uint256 newBalance = IERC20(poolToken).balanceOf(address(this));
         // calculate real amount taking into account deflation
