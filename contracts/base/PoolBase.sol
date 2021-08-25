@@ -203,7 +203,7 @@ abstract contract PoolBase is
             uint256 ilvRewards = (multiplier * weight * factory.ilvPerSecond()) / factory.totalWeight();
 
             // recalculated value for `yieldRewardsPerWeight`
-            newYieldRewardsPerWeight = rewardToWeight(ilvRewards, usersLockingWeight) + yieldRewardsPerWeight;
+            newYieldRewardsPerWeight = _rewardPerWeight(ilvRewards, usersLockingWeight) + yieldRewardsPerWeight;
         } else {
             // if smart contract state is up to date, we don't recalculate
             newYieldRewardsPerWeight = yieldRewardsPerWeight;
@@ -211,7 +211,7 @@ abstract contract PoolBase is
 
         // based on the rewards per weight value, calculate pending rewards;
         User memory user = users[_staker];
-        uint256 pending = weightToReward(user.totalWeight, newYieldRewardsPerWeight) - user.subYieldRewards;
+        uint256 pending = _weightToReward(user.totalWeight, newYieldRewardsPerWeight) - user.subYieldRewards;
 
         return pending;
     }
@@ -318,7 +318,7 @@ abstract contract PoolBase is
         // update user record
         user.flexibleTokenAmount += addedAmount;
         user.totalWeight += stakeWeight;
-        user.subYieldRewards = weightToReward(user.totalWeight, yieldRewardsPerWeight);
+        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // update global variable
         usersLockingWeight += stakeWeight;
@@ -452,10 +452,10 @@ abstract contract PoolBase is
      */
     function _pendingYieldRewards(address _staker) internal view returns (uint256 pending) {
         // read user data structure into memory
-        User memory user = users[_staker];
+        User storage user = users[_staker];
 
         // and perform the calculation using the values read
-        return weightToReward(user.totalWeight, yieldRewardsPerWeight) - user.subYieldRewards;
+        return _weightToReward(user.totalWeight, yieldRewardsPerWeight) - user.subYieldRewards;
     }
 
     /**
@@ -525,7 +525,7 @@ abstract contract PoolBase is
 
         // update user record
         user.totalWeight += stakeWeight;
-        user.subYieldRewards = weightToReward(user.totalWeight, yieldRewardsPerWeight);
+        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // update global variable
         usersLockingWeight += stakeWeight;
@@ -582,7 +582,7 @@ abstract contract PoolBase is
         // update user record
         user.tokenAmount -= _amount;
         user.totalWeight = user.totalWeight - previousWeight + newWeight;
-        user.subYieldRewards = weightToReward(user.totalWeight, yieldRewardsPerWeight);
+        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // update global variable
         usersLockingWeight = usersLockingWeight - previousWeight + newWeight;
@@ -636,7 +636,7 @@ abstract contract PoolBase is
         uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory.totalWeight();
 
         // update rewards per weight and `lastYieldDistribution`
-        yieldRewardsPerWeight += rewardToWeight(ilvReward, usersLockingWeight);
+        yieldRewardsPerWeight += _rewardPerWeight(ilvReward, usersLockingWeight);
         lastYieldDistribution = uint64(currentTimestamp);
 
         // emit an event
@@ -703,7 +703,7 @@ abstract contract PoolBase is
 
         // update users's record for `subYieldRewards` if requested
         if (_withUpdate) {
-            user.subYieldRewards = weightToReward(user.totalWeight, yieldRewardsPerWeight);
+            user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
         }
 
         // emit an event
@@ -765,10 +765,10 @@ abstract contract PoolBase is
      *      ILV reward value, applying the 10^12 division on weight
      *
      * @param _weight stake weight
-     * @param rewardPerWeight ILV reward per weight
+     * @param _rewardPerWeight ILV reward per weight
      * @return reward value normalized to 10^12
      */
-    function weightToReward(uint256 _weight, uint256 rewardPerWeight) public pure returns (uint256) {
+    function _weightToReward(uint256 _weight, uint256 _rewardPerWeight) private pure returns (uint256) {
         // apply the formula and return
         return (_weight * rewardPerWeight) / REWARD_PER_WEIGHT_MULTIPLIER;
     }
@@ -780,13 +780,13 @@ abstract contract PoolBase is
      * @dev Converts reward ILV value to reward/weight if stake weight is supplied as second
      *      function parameter instead of reward/weight
      *
-     * @param reward yield reward
-     * @param rewardPerWeight reward/weight (or stake weight)
-     * @return stake weight (or reward/weight)
+     * @param _reward yield reward
+     * @param _globalWeight total weight in the pool
+     * @return reward per weight value
      */
-    function rewardToWeight(uint256 reward, uint256 rewardPerWeight) public pure returns (uint256) {
+    function _rewardPerWeight(uint256 _reward, uint256 _globalWeight) private pure returns (uint256) {
         // apply the reverse formula and return
-        return (reward * REWARD_PER_WEIGHT_MULTIPLIER) / rewardPerWeight;
+        return (_reward * REWARD_PER_WEIGHT_MULTIPLIER) / _globalWeight;
     }
 
     /// @inheritdoc UUPSUpgradeable
