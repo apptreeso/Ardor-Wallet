@@ -2,12 +2,13 @@
 pragma solidity 0.8.4;
 
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { Timestamp } from "./Timestamp.sol";
 import { FactoryControlled } from "./FactoryControlled.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IlluviumAware } from "../libraries/IlluviumAware.sol";
+import { Stake } from "../libraries/Stake.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IPoolBase } from "../interfaces/IPoolBase.sol";
 import { ICorePool } from "../interfaces/ICorePool.sol";
@@ -24,6 +25,7 @@ abstract contract PoolBase is
     Timestamp
 {
     using SafeERC20 for IERC20;
+    using Stake for Stake.Data;
 
     /// @dev Token holder storage, maps token holder address to their data record
     mapping(address => User) public override users;

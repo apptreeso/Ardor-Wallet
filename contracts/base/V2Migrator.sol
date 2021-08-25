@@ -9,7 +9,7 @@ abstract contract V2Migrator is PoolBase {
         /// @dev v1 user address
         address user;
         /// @dev array of v1 stakes
-        MigratedStake[] v1Stakes;
+        Stake.Data[] v1Stakes;
         /// @dev total locked weight being migrated
         uint256 totalWeight;
     }

@@ -7,15 +7,6 @@ interface IPoolBase {
      *      it represents a unit of stake with its amount, weight and term (time interval)
      */
 
-    struct MigratedStake {
-        // @dev token amount staked in V1
-        uint120 tokenAmount;
-        // @dev locking period - from
-        uint64 lockedFrom;
-        // @dev locking period - until
-        uint64 lockedUntil;
-    }
-
     /// @dev Data structure representing token holder using a pool
     struct User {
         // @dev Total staked amount in flexible mode
@@ -27,9 +18,9 @@ interface IPoolBase {
         // @dev Auxiliary variable for vault rewards calculation
         uint256 subVaultRewards;
         // @dev An array of holder's stakes
-        Stake[] stakes;
+        Stake.Data[] stakes;
         // @dev An array of holder's stakes in V1
-        MigratedStake[] v1Stakes;
+        Stake.Data[] v1Stakes;
     }
 
     function users(address _user) external view returns (User memory);
