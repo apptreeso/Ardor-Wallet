@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { Stake } from "../libraries/Stake.sol";
+
 interface IPoolBase {
     /**
      * @dev Deposit is a key data structure used in staking,
