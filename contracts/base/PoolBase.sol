@@ -2,7 +2,6 @@
 pragma solidity 0.8.4;
 
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -20,7 +19,6 @@ abstract contract PoolBase is
     IPoolBase,
     UUPSUpgradeable,
     FactoryControlled,
-    ERC721Upgradeable,
     ReentrancyGuardUpgradeable,
     PausableUpgradeable,
     Timestamp
@@ -130,6 +128,14 @@ abstract contract PoolBase is
      * @param _toVal new pool weight value
      */
     event PoolWeightUpdated(address indexed _by, uint32 _fromVal, uint32 _toVal);
+
+    /**
+     * @dev fired in migrateUser()
+     *
+     * @param _from user asking migration
+     * @param _to new user address
+     */
+    event LogMigrateUser(address indexed _from, address indexed _to);
 
     /// @dev used for functions that require syncing contract state before execution
     modifier updatePool() {
@@ -305,6 +311,15 @@ abstract contract PoolBase is
 
         // emit an event
         emit Staked(msg.sender, _staker, _amount);
+    }
+
+    function migrateUser(address _to) external {
+        User storage newUser = users[_to];
+        require(newUser.stakes.length == 0 && newUser.v1Stakes.length == 0, "invalid user, already exists");
+
+        User memory previousUser = users[msg.sender];
+        delete users[msg.sender];
+        newUser = previousUser;
     }
 
     /**
