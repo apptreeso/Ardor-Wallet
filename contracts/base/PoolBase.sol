@@ -566,17 +566,13 @@ abstract contract PoolBase is
         _processRewards(_staker, _useSILV, false);
 
         // recalculate deposit weight
-        uint256 previousWeight = stakeDeposit.weight;
-        uint256 newWeight = (((stakeDeposit.lockedUntil - stakeDeposit.lockedFrom) * WEIGHT_MULTIPLIER) /
-            365 days +
-            WEIGHT_MULTIPLIER) * (stakeDeposit.tokenAmount - _amount);
+        uint256 previousWeight = stakeDeposit.weight(WEIGHT_MULTIPLIER);
 
         // update the deposit, or delete it if its depleted
         if (stakeDeposit.tokenAmount - _amount == 0) {
             delete user.stakes[_depositId];
         } else {
             stakeDeposit.tokenAmount -= _amount;
-            stakeDeposit.weight = newWeight;
         }
 
         // update user record
@@ -746,11 +742,6 @@ abstract contract PoolBase is
         uint256 newWeight = (((stakeDeposit.lockedUntil - stakeDeposit.lockedFrom) * WEIGHT_MULTIPLIER) /
             365 days +
             WEIGHT_MULTIPLIER) * stakeDeposit.tokenAmount;
-
-        // save previous weight
-        uint256 previousWeight = stakeDeposit.weight;
-        // update weight
-        stakeDeposit.weight = newWeight;
 
         // update user total weight and global locking weight
         user.totalWeight = user.totalWeight - previousWeight + newWeight;
