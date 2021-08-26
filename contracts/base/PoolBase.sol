@@ -573,6 +573,7 @@ abstract contract PoolBase is
             delete user.stakes[_depositId];
         } else {
             stakeDeposit.tokenAmount -= _amount;
+            stakeDeposit.totalWeight -= previousWeight;
         }
 
         // update user record
