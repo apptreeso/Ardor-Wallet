@@ -34,7 +34,7 @@ interface IPoolBase {
 
     function yieldRewardsPerWeight() external view returns (uint256);
 
-    function usersLockingWeight() external view returns (uint256);
+    function globalWeight() external view returns (uint256);
 
     function pendingYieldRewards(address _user) external view returns (uint256);
 

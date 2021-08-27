@@ -51,7 +51,7 @@ abstract contract PoolBase is
     uint256 public override yieldRewardsPerWeight;
 
     /// @dev Used to calculate yield rewards, keeps track of the tokens weight locked in staking
-    uint256 public override usersLockingWeight;
+    uint256 public override globalWeight;
 
     /**
      * @dev Stake weight is proportional to deposit amount and time locked, precisely
@@ -195,7 +195,7 @@ abstract contract PoolBase is
 
         // if smart contract state was not updated recently, `yieldRewardsPerWeight` value
         // is outdated and we need to recalculate it in order to calculate pending rewards correctly
-        if (_now256() > lastYieldDistribution && usersLockingWeight != 0) {
+        if (_now256() > lastYieldDistribution && globalWeight != 0) {
             uint256 endTime = factory.endTime();
             uint256 multiplier = _now256() > endTime
                 ? endTime - lastYieldDistribution
@@ -203,7 +203,7 @@ abstract contract PoolBase is
             uint256 ilvRewards = (multiplier * weight * factory.ilvPerSecond()) / factory.totalWeight();
 
             // recalculated value for `yieldRewardsPerWeight`
-            newYieldRewardsPerWeight = _rewardPerWeight(ilvRewards, usersLockingWeight) + yieldRewardsPerWeight;
+            newYieldRewardsPerWeight = _rewardPerWeight(ilvRewards, globalWeight) + yieldRewardsPerWeight;
         } else {
             // if smart contract state is up to date, we don't recalculate
             newYieldRewardsPerWeight = yieldRewardsPerWeight;
@@ -321,7 +321,7 @@ abstract contract PoolBase is
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // update global variable
-        usersLockingWeight += stakeWeight;
+        globalWeight += stakeWeight;
 
         // emit an event
         emit Staked(msg.sender, _staker, _amount);
@@ -485,7 +485,7 @@ abstract contract PoolBase is
         User storage user = users[_staker];
         // process current pending rewards if any
         if (user.totalWeight > 0) {
-            _processRewards(_staker, _useSILV, false);
+            _processRewards(_staker, false);
         }
 
         // in most of the cases added amount `addedAmount` is simply `_value`
@@ -528,7 +528,7 @@ abstract contract PoolBase is
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // update global variable
-        usersLockingWeight += stakeWeight;
+        globalWeight += stakeWeight;
 
         // emit an event
         emit Staked(msg.sender, _staker, _value);
@@ -582,7 +582,7 @@ abstract contract PoolBase is
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // update global variable
-        usersLockingWeight = usersLockingWeight - previousWeight + newWeight;
+        globalWeight = globalWeight - previousWeight + newWeight;
 
         // if the deposit was created by the pool itself as a yield reward
         if (isYield) {
@@ -619,7 +619,7 @@ abstract contract PoolBase is
             return;
         }
         // if locking weight is zero - update only `lastYieldDistribution` and exit
-        if (usersLockingWeight == 0) {
+        if (globalWeight == 0) {
             lastYieldDistribution = uint64(_now256());
             return;
         }
@@ -633,7 +633,7 @@ abstract contract PoolBase is
         uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory.totalWeight();
 
         // update rewards per weight and `lastYieldDistribution`
-        yieldRewardsPerWeight += _rewardPerWeight(ilvReward, usersLockingWeight);
+        yieldRewardsPerWeight += _rewardPerWeight(ilvReward, globalWeight);
         lastYieldDistribution = uint64(currentTimestamp);
 
         // emit an event
@@ -691,7 +691,7 @@ abstract contract PoolBase is
             user.totalWeight += depositWeight;
 
             // update global variable
-            usersLockingWeight += depositWeight;
+            globalWeight += depositWeight;
         } else {
             // for other pools - stake as pool
             address ilvPool = factory.getPoolAddress(ilv);
@@ -746,7 +746,7 @@ abstract contract PoolBase is
 
         // update user total weight and global locking weight
         user.totalWeight = user.totalWeight - previousWeight + newWeight;
-        usersLockingWeight = usersLockingWeight - previousWeight + newWeight;
+        globalWeight = globalWeight - previousWeight + newWeight;
 
         // emit an event
         emit StakeLockUpdated(_staker, _depositId, stakeDeposit.lockedFrom, _lockedUntil);
