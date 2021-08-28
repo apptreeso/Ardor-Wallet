@@ -15,7 +15,6 @@ import { ICorePool } from "../interfaces/ICorePool.sol";
 
 import "hardhat/console.sol";
 
-// TODO: redefine user struct supporting 721
 abstract contract PoolBase is
     IPoolBase,
     UUPSUpgradeable,
@@ -210,7 +209,7 @@ abstract contract PoolBase is
         }
 
         // based on the rewards per weight value, calculate pending rewards;
-        User memory user = users[_staker];
+        User storage user = users[_staker];
         uint256 pending = _weightToReward(user.totalWeight, newYieldRewardsPerWeight) - user.subYieldRewards;
 
         return pending;
@@ -381,7 +380,7 @@ abstract contract PoolBase is
         uint64 lockedUntil,
         bool useSILV
     ) external updatePool {
-        _processRewards(msg.sender, useSILV, false);
+        _processRewards(msg.sender, false);
         // delegate call to an internal function
         _updateStakeLock(msg.sender, depositId, lockedUntil);
     }
@@ -435,11 +434,11 @@ abstract contract PoolBase is
         // verify function is executed by the factory
         require(msg.sender == address(factory), "access denied");
 
-        // emit an event logging old and new weight values
-        emit PoolWeightUpdated(msg.sender, weight, _weight);
-
         // set the new weight value
         weight = _weight;
+
+        // emit an event logging old and new weight values
+        emit PoolWeightUpdated(msg.sender, weight, _weight);
     }
 
     /**
@@ -542,7 +541,7 @@ abstract contract PoolBase is
      * @param _amount amount of tokens to unstake
      * @param _useSILV a flag indicating if reward to be paid as sILV
      */
-    function _unstake(
+    function _unstakeLocked(
         address _staker,
         uint256 _depositId,
         uint256 _amount,
@@ -563,7 +562,7 @@ abstract contract PoolBase is
         require(stakeDeposit.tokenAmount >= _amount, "amount exceeds stake");
 
         // and process current pending rewards if any
-        _processRewards(_staker, _useSILV, false);
+        _processRewards(_staker, false);
 
         // recalculate deposit weight
         uint256 previousWeight = stakeDeposit.weight(WEIGHT_MULTIPLIER);
