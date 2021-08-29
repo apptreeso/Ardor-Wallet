@@ -1,45 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { Stake } from "../libraries/Stake.sol";
+
 interface IPoolBase {
-    /**
-     * @dev Deposit is a key data structure used in staking,
-     *      it represents a unit of stake with its amount, weight and term (time interval)
-     */
-    struct Stake {
-        // @dev token amount staked
-        uint120 tokenAmount;
-        // @dev locking period - from
-        uint64 lockedFrom;
-        // @dev locking period - until
-        uint64 lockedUntil;
-        // @dev indicates if the stake was created as a yield reward
-        bool isYield;
-    }
-
-    struct MigratedStake {
-        // @dev token amount staked in V1
-        uint120 tokenAmount;
-        // @dev locking period - from
-        uint64 lockedFrom;
-        // @dev locking period - until
-        uint64 lockedUntil;
-    }
-
     /// @dev Data structure representing token holder using a pool
     struct User {
-        // @dev Total staked amount in flexible mode
-        uint256 flexibleTokenAmount;
-        // @dev Total weight
+        /// @dev Total staked amount in flexible mode
+        uint128 flexibleTokenAmount;
+        /// @dev pending yield rewards to be claimed
+        uint128 pendingYield;
+        /// @dev Total weight
         uint256 totalWeight;
-        // @dev Auxiliary variable for yield calculation
+        /// @dev Auxiliary variable for yield calculation
         uint256 subYieldRewards;
-        // @dev Auxiliary variable for vault rewards calculation
+        /// @dev Auxiliary variable for vault rewards calculation
         uint256 subVaultRewards;
-        // @dev An array of holder's stakes
-        Stake[] stakes;
-        // @dev An array of holder's stakes in V1
-        MigratedStake[] v1Stakes;
+        /// @dev An array of holder's stakes
+        Stake.Data[] stakes;
+        /// @dev An array of holder's stakes in V1
+        Stake.Data[] v1Stakes;
     }
 
     function users(address _user) external view returns (User memory);
@@ -56,7 +36,7 @@ interface IPoolBase {
 
     function yieldRewardsPerWeight() external view returns (uint256);
 
-    function usersLockingWeight() external view returns (uint256);
+    function globalWeight() external view returns (uint256);
 
     function pendingYieldRewards(address _user) external view returns (uint256);
 

@@ -9,7 +9,7 @@ abstract contract V2Migrator is PoolBase {
         /// @dev v1 user address
         address user;
         /// @dev array of v1 stakes
-        MigratedStake[] v1Stakes;
+        Stake.Data[] v1Stakes;
         /// @dev total locked weight being migrated
         uint256 totalWeight;
     }
@@ -17,7 +17,7 @@ abstract contract V2Migrator is PoolBase {
     /// @dev address of v1 core pool with same poolToken
     address public corePoolV1;
 
-    /// @dev maps `keccak256(user,depositId)` to a bool value that tells
+    /// @dev maps `keccak256(userAddress,depositId)` to a bool value that tells
     /// if a v1 yield has already been minted by v2 contract
     mapping(bytes32 => bool) public v1YieldMinted;
 
