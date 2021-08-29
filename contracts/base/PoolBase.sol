@@ -647,11 +647,7 @@ abstract contract PoolBase is
      * @param _withUpdate flag allowing to disable synchronization (see sync()) if set to false
      * @return pendingYield the rewards calculated and optionally re-staked
      */
-    function _processRewards(
-        address _staker,
-        bool _useSILV,
-        bool _withUpdate
-    ) internal virtual returns (uint256 pendingYield) {
+    function _processRewards(address _staker, bool _withUpdate) internal virtual returns (uint256 pendingYield) {
         // update smart contract state if required
         if (_withUpdate) {
             _sync();
@@ -666,36 +662,7 @@ abstract contract PoolBase is
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
 
-        // if sILV is requested
-        if (_useSILV) {
-            // - mint sILV
-            factory.mintYieldTo(_staker, pendingYield, true);
-        } else if (poolToken == ilv) {
-            // calculate pending yield weight,
-            // 2e6 is the bonus weight when staking for 1 year
-            uint256 depositWeight = pendingYield * YEAR_STAKE_WEIGHT_MULTIPLIER;
-
-            // if the pool is ILV Pool - create new ILV deposit
-            // and save it - push it into deposits array
-            Stake.Data memory newDeposit = Stake.Data({
-                value: pendingYield,
-                lockedFrom: uint64(_now256()),
-                lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
-                isYield: true
-            });
-            user.stakes.push(newDeposit);
-
-            // update user record
-            user.tokenAmount += pendingYield;
-            user.totalWeight += depositWeight;
-
-            // update global variable
-            globalWeight += depositWeight;
-        } else {
-            // for other pools - stake as pool
-            address ilvPool = factory.getPoolAddress(ilv);
-            ICorePool(ilvPool).stakeAsPool(_staker, pendingYield);
-        }
+        user.pendingYield += pendingYield;
 
         // update users's record for `subYieldRewards` if requested
         if (_withUpdate) {
