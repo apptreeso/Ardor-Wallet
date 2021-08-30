@@ -561,26 +561,26 @@ abstract contract PoolBase is
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
         // get a link to the corresponding stake, we may write to it later
-        Stake storage stakeStake = user.stakes[_stakeId];
+        Stake storage stake = user.stakes[_stakeId];
         // stake structure may get deleted, so we save isYield flag to be able to use it
-        bool isYield = stakeStake.isYield;
+        bool isYield = stake.isYield;
 
         // verify available balance
         // if staker address ot stake doesn't exist this check will fail as well
-        require(stakeStake.tokenAmount >= _amount, "amount exceeds stake");
+        require(stake.tokenAmount >= _amount, "amount exceeds stake");
 
         // and process current pending rewards if any
         _processRewards(_staker, false);
 
         // recalculate stake weight
-        uint256 previousWeight = stakeStake.weight(WEIGHT_MULTIPLIER);
+        uint256 previousWeight = stake.weight(WEIGHT_MULTIPLIER);
 
         // update the stake, or delete it if its depleted
-        if (stakeStake.tokenAmount - _amount == 0) {
+        if (stake.tokenAmount - _amount == 0) {
             delete user.stakes[_stakeId];
         } else {
-            stakeStake.tokenAmount -= _amount;
-            stakeStake.totalWeight -= previousWeight;
+            stake.tokenAmount -= _amount;
+            stake.totalWeight -= previousWeight;
         }
 
         // update user record
@@ -753,31 +753,31 @@ abstract contract PoolBase is
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
         // get a link to the corresponding stake, we may write to it later
-        Stake storage stakeStake = user.stakes[_stakeId];
+        Stake storage stake = user.stakes[_stakeId];
 
         // validate the input against stake structure
-        require(_lockedUntil > stakeStake.lockedUntil, "invalid new lock");
+        require(_lockedUntil > stake.lockedUntil, "invalid new lock");
 
         // verify locked from and locked until values
-        if (stakeStake.lockedFrom == 0) {
+        if (stake.lockedFrom == 0) {
             require(_lockedUntil - _now256() <= 365 days, "max lock period is 365 days");
-            stakeStake.lockedFrom = uint64(_now256());
+            stake.lockedFrom = uint64(_now256());
         } else {
-            require(_lockedUntil - stakeStake.lockedFrom <= 365 days, "max lock period is 365 days");
+            require(_lockedUntil - stake.lockedFrom <= 365 days, "max lock period is 365 days");
         }
 
         // update locked until value, calculate new weight
-        stakeStake.lockedUntil = _lockedUntil;
-        uint256 newWeight = (((stakeStake.lockedUntil - stakeStake.lockedFrom) * WEIGHT_MULTIPLIER) /
+        stake.lockedUntil = _lockedUntil;
+        uint256 newWeight = (((stake.lockedUntil - stake.lockedFrom) * WEIGHT_MULTIPLIER) /
             365 days +
-            WEIGHT_MULTIPLIER) * stakeStake.tokenAmount;
+            WEIGHT_MULTIPLIER) * stake.tokenAmount;
 
         // update user total weight and global locking weight
         user.totalWeight = user.totalWeight - previousWeight + newWeight;
         globalWeight = globalWeight - previousWeight + newWeight;
 
         // emit an event
-        emit StakeLockUpdated(_staker, _stakeId, stakeStake.lockedFrom, _lockedUntil);
+        emit StakeLockUpdated(_staker, _stakeId, stake.lockedFrom, _lockedUntil);
     }
 
     /**
@@ -790,7 +790,7 @@ abstract contract PoolBase is
      */
     function _weightToReward(uint256 _weight, uint256 _rewardPerWeight) private pure returns (uint256) {
         // apply the formula and return
-        return (_weight * rewardPerWeight) / REWARD_PER_WEIGHT_MULTIPLIER;
+        return (_weight * _rewardPerWeight) / REWARD_PER_WEIGHT_MULTIPLIER;
     }
 
     /**
