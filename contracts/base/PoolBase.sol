@@ -426,9 +426,13 @@ abstract contract PoolBase is
      *      (poolToken is ILV token), or new pool deposit gets created together with sILV minted
      *      when pool is not an ILV pool (poolToken is not an ILV token)
      */
-    function processRewards(bool _useSILV) external virtual override {
+    function processRewards() external virtual override {
         // delegate call to an internal function
-        _processRewards(msg.sender, _useSILV, true);
+        _processRewards(msg.sender, true);
+    }
+
+    function claimRewards(bool _useSILV) external override {
+        _claimRewards(msg.sender, _useSILV);
     }
 
     /**
@@ -680,6 +684,60 @@ abstract contract PoolBase is
 
         // emit an event
         emit YieldProcessed(msg.sender, _staker, _useSILV, pendingYield);
+    }
+
+    function _claimRewards(address _staker, bool _useSILV) internal {
+        // update smart contract state
+        _sync();
+
+        // calculate pending yield rewards, this value will be returned
+        pendingYield = _pendingYieldRewards(_staker);
+
+        // if pending yield is zero - just return silently
+        if (pendingYield == 0) return 0;
+
+        // get link to a user data structure, we will write into it later
+        User storage user = users[_staker];
+
+        // if sILV is requested
+        if (_useSILV) {
+            // - mint sILV
+            mintSIlv(_staker, pendingYield);
+        } else if (poolToken == ilv) {
+            // calculate pending yield weight,
+            // 2e6 is the bonus weight when staking for 1 year
+            uint256 depositWeight = pendingYield * YEAR_STAKE_WEIGHT_MULTIPLIER;
+
+            // if the pool is ILV Pool - create new ILV deposit
+            // and save it - push it into deposits array
+            Deposit memory newDeposit = Deposit({
+                tokenAmount: pendingYield,
+                lockedFrom: uint64(now256()),
+                lockedUntil: uint64(now256() + 365 days), // staking yield for 1 year
+                weight: depositWeight,
+                isYield: true
+            });
+            user.deposits.push(newDeposit);
+
+            // update user record
+            user.tokenAmount += pendingYield;
+            user.totalWeight += depositWeight;
+
+            // update global variable
+            usersLockingWeight += depositWeight;
+        } else {
+            // for other pools - stake as pool
+            address ilvPool = factory.getPoolAddress(ilv);
+            ICorePool(ilvPool).stakeAsPool(_staker, pendingYield);
+        }
+
+        // update users's record for `subYieldRewards` if requested
+        if (_withUpdate) {
+            user.subYieldRewards = weightToReward(user.totalWeight, yieldRewardsPerWeight);
+        }
+
+        // emit an event
+        emit YieldClaimed(msg.sender, _staker, _useSILV, pendingYield);
     }
 
     /**
