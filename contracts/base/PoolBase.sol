@@ -114,12 +114,21 @@ abstract contract PoolBase is
     /**
      * @dev Fired in _processRewards(), processRewards() and dependent functions (stake, unstake, etc.)
      *
-     * @param _by an address which performed an operation
+     * @param _from an address which received the yield
      * @param _to an address which claimed the yield reward
      * @param sIlv flag indicating if reward was paid (minted) in sILV
      * @param amount amount of yield paid
      */
-    event YieldClaimed(address indexed _by, address indexed _to, bool sIlv, uint256 amount);
+    event YieldClaimed(address indexed _from, address indexed _to, bool sIlv, uint256 amount);
+
+    /**
+     * @dev Fired in _claimRewards() and claimRewards()
+     *
+     * @param _from an address which received the yield
+     * @param _to an address which claimed the yield reward
+     * @param amount amount of yield paid
+     */
+    event YieldProcessed(address indexed _from, address indexed _to, uint256 amount);
 
     /**
      * @dev Fired in setWeight()
@@ -670,7 +679,7 @@ abstract contract PoolBase is
         }
 
         // emit an event
-        emit YieldClaimed(msg.sender, _staker, _useSILV, pendingYield);
+        emit YieldProcessed(msg.sender, _staker, _useSILV, pendingYield);
     }
 
     /**
