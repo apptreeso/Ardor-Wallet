@@ -158,7 +158,6 @@ abstract contract PoolBase is
      *
      * @param _ilv ILV ERC20 Token address
      * @param _silv sILV ERC20 Token address
-     * @param _factory Pool factory IlluviumPoolFactory instance/address
      * @param _poolToken token the pool operates on, for example ILV or ILV/ETH pair
      * @param _initTime initial timestamp used to calculate the rewards
      *      note: _initTime can be set to the future effectively meaning _sync() calls will do nothing
@@ -172,7 +171,6 @@ abstract contract PoolBase is
         uint64 _initTime,
         uint32 _weight
     ) internal initializer {
-        require(address(_factory) != address(0), "ILV Pool fct address not set");
         require(_poolToken != address(0), "pool token address not set");
         require(_initTime > 0, "init time not set");
         require(_weight > 0, "pool weight not set");
@@ -270,7 +268,6 @@ abstract contract PoolBase is
      *
      * @param _amount amount of tokens to stake
      * @param _lockUntil stake period as unix timestamp; zero means no locking
-     * @param _useSILV a flag indicating if previous reward to be paid as sILV
      */
     function stakeAndLock(uint256 _amount, uint64 _lockUntil) external override {
         // delegate call to an internal function
@@ -289,10 +286,10 @@ abstract contract PoolBase is
         require(_value > 0, "zero amount");
 
         // get a link to user data struct, we will write to it later
-        User storage user = users[_staker];
+        User storage user = users[msg.sender];
         // process current pending rewards if any
         if (user.totalWeight > 0) {
-            _processRewards(_staker, false);
+            _processRewards(msg.sender, false);
         }
 
         // in most of the cases added amount `addedAmount` is simply `_amount`
@@ -314,7 +311,7 @@ abstract contract PoolBase is
         assert(stakeWeight > 0);
 
         // create and save the stake (append it to stakes array)
-        Stake.Data memory stake = Stake.Data({ value: addedAmount, lockedFrom: 0, lockedUntil: 0, isYield: _isYield });
+        Stake.Data memory stake = Stake.Data({ value: addedAmount, lockedFrom: 0, lockedUntil: 0, isYield: false });
         // stake ID is an index of the stake in `stakes` array
         user.stakes.push(stake);
 
@@ -327,7 +324,7 @@ abstract contract PoolBase is
         globalWeight += stakeWeight;
 
         // emit an event
-        emit Staked(msg.sender, _staker, _amount);
+        emit Staked(msg.sender, msg.sender, _value);
     }
 
     /**
@@ -404,23 +401,6 @@ abstract contract PoolBase is
         _sync();
     }
 
-    /**
-     * @notice Service function to calculate and pay pending yield rewards to the sender
-     *
-     * @dev Can be executed by anyone at any time, but has an effect only when
-     *      executed by stake holder and when at least one second passes from the
-     *      previous reward processing
-     * @dev Executed internally when staking and unstaking, executes sync() under the hood
-     *      before making further calculations and payouts
-     * @dev When timing conditions are not met (executed too frequently, or after factory
-     *      end time), function doesn't throw and exits silently
-     *
-     * @param _useSILV flag indicating whether to mint sILV token as a reward or not;
-     *      when set to true - sILV reward is minted immediately and sent to sender,
-     *      when set to false - new ILV reward stake gets created if pool is an ILV pool
-     *      (poolToken is ILV token), or new pool stake gets created together with sILV minted
-     *      when pool is not an ILV pool (poolToken is not an ILV token)
-     */
     function processRewards() external virtual override {
         // delegate call to an internal function
         _processRewards(msg.sender, true);
@@ -469,9 +449,8 @@ abstract contract PoolBase is
      * @dev Used internally, mostly by children implementations, see stake()
      *
      * @param _staker an address which stakes tokens and which will receive them back
-     * @param _amount amount of tokens to stake
+     * @param _value amount of tokens to stake
      * @param _lockUntil stake period as unix timestamp; zero means no locking
-     * @param _useSILV a flag indicating if previous reward to be paid as sILV
      * @param _isYield a flag indicating if that stake is created to store yield reward
      *      from the previously unstaked stake
      */
@@ -651,7 +630,6 @@ abstract contract PoolBase is
      * @dev Used internally, mostly by children implementations, see processRewards()
      *
      * @param _staker an address which receives the reward (which has staked some tokens earlier)
-     * @param _useSILV flag indicating whether to mint sILV token as a reward or not, see processRewards()
      * @param _withUpdate flag allowing to disable synchronization (see sync()) if set to false
      * @return pendingYield the rewards calculated and optionally re-staked
      */
@@ -678,7 +656,7 @@ abstract contract PoolBase is
         }
 
         // emit an event
-        emit YieldProcessed(msg.sender, _staker, _useSILV, pendingYield);
+        emit YieldProcessed(msg.sender, _staker, pendingYield);
     }
 
     function _claimRewards(address _staker, bool _useSILV) internal {
@@ -689,7 +667,7 @@ abstract contract PoolBase is
         User storage user = users[_staker];
 
         // check pending yield rewards to claim and save to memory
-        uint256 pendingYieldToClam = uint256(user.pendingYield);
+        uint256 pendingYieldToClaim = uint256(user.pendingYield);
 
         // if pending yield is zero - just return silently
         if (pendingYieldToClaim == 0) return 0;
@@ -704,14 +682,14 @@ abstract contract PoolBase is
         } else if (poolToken == ilv) {
             // calculate pending yield weight,
             // 2e6 is the bonus weight when staking for 1 year
-            uint256 stakeWeight = pendingYield * YEAR_STAKE_WEIGHT_MULTIPLIER;
+            uint256 stakeWeight = pendingYieldToClaim * YEAR_STAKE_WEIGHT_MULTIPLIER;
 
             // if the pool is ILV Pool - create new ILV stake
             // and save it - push it into stakes array
             Stake.Data memory newStake = Stake.Data({
                 tokenAmount: pendingYieldToClaim,
-                lockedFrom: uint64(now256()),
-                lockedUntil: uint64(now256() + 365 days), // staking yield for 1 year
+                lockedFrom: uint64(_now256()),
+                lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
                 isYield: true
             });
 
@@ -724,11 +702,6 @@ abstract contract PoolBase is
             // for other pools - stake as pool
             address ilvPool = factory.getPoolAddress(ilv);
             ICorePool(ilvPool).stakeAsPool(_staker, pendingYieldToClaim);
-        }
-
-        // update users's record for `subYieldRewards` if requested
-        if (_withUpdate) {
-            user.subYieldRewards = weightToReward(user.totalWeight, yieldRewardsPerWeight);
         }
 
         // emit an event
@@ -758,6 +731,9 @@ abstract contract PoolBase is
         // validate the input against stake structure
         require(_lockedUntil > stake.lockedUntil, "invalid new lock");
 
+        // saves previous weight into memory
+        uint256 previousWeight = stake.weight(WEIGHT_MULTIPLIER);
+
         // verify locked from and locked until values
         if (stake.lockedFrom == 0) {
             require(_lockedUntil - _now256() <= 365 days, "max lock period is 365 days");
@@ -768,10 +744,8 @@ abstract contract PoolBase is
 
         // update locked until value, calculate new weight
         stake.lockedUntil = _lockedUntil;
-        uint256 newWeight = (((stake.lockedUntil - stake.lockedFrom) * WEIGHT_MULTIPLIER) /
-            365 days +
-            WEIGHT_MULTIPLIER) * stake.tokenAmount;
-
+        // saves new weight into memory
+        uint256 newWeight = stake.weight(WEIGHT_MULTIPLIER);
         // update user total weight and global locking weight
         user.totalWeight = user.totalWeight - previousWeight + newWeight;
         globalWeight = globalWeight - previousWeight + newWeight;
