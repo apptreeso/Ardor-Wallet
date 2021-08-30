@@ -42,9 +42,9 @@ interface IPoolBase {
 
     function balanceOf(address _user) external view returns (uint256);
 
-    function getDeposit(address _user, uint256 _depositId) external view returns (Stake memory);
+    function getStake(address _user, uint256 _stakeId) external view returns (Stake memory);
 
-    function getDepositsLength(address _user) external view returns (uint256);
+    function getStakesLength(address _user) external view returns (uint256);
 
     function stake(
         uint256 _amount,
@@ -53,7 +53,7 @@ interface IPoolBase {
     ) external;
 
     function unstake(
-        uint256 _depositId,
+        uint256 _stakeId,
         uint256 _amount,
         bool useSILV
     ) external;
