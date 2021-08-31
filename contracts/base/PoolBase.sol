@@ -289,7 +289,7 @@ abstract contract PoolBase is
         User storage user = users[msg.sender];
         // process current pending rewards if any
         if (user.totalWeight > 0) {
-            _processRewards(msg.sender, false);
+            _processRewards(msg.sender);
         }
 
         // in most of the cases added amount `addedAmount` is simply `_amount`
@@ -381,7 +381,7 @@ abstract contract PoolBase is
         uint64 lockedUntil,
         bool useSILV
     ) external updatePool {
-        _processRewards(msg.sender, false);
+        _processRewards(msg.sender);
         // delegate call to an internal function
         _updateStakeLock(msg.sender, stakeId, lockedUntil);
     }
@@ -466,7 +466,7 @@ abstract contract PoolBase is
         User storage user = users[_staker];
         // process current pending rewards if any
         if (user.totalWeight > 0) {
-            _processRewards(_staker, false);
+            _processRewards(_staker);
         }
 
         // in most of the cases added amount `addedAmount` is simply `_value`
@@ -544,7 +544,7 @@ abstract contract PoolBase is
         require(stake.tokenAmount >= _amount, "amount exceeds stake");
 
         // and process current pending rewards if any
-        _processRewards(_staker, false);
+        _processRewards(_staker);
 
         // recalculate stake weight
         uint256 previousWeight = stake.weight(WEIGHT_MULTIPLIER);
@@ -642,11 +642,6 @@ abstract contract PoolBase is
 
         user.pendingYield += pendingYield;
 
-        // update users's record for `subYieldRewards` if requested
-        if (_withUpdate) {
-            user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
-        }
-
         // emit an event
         emit YieldProcessed(msg.sender, _staker, pendingYield);
     }
@@ -658,6 +653,9 @@ abstract contract PoolBase is
 
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
+
+        // subYieldRewards needs to be updated on every `_processRewards` call
+        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // check pending yield rewards to claim and save to memory
         uint256 pendingYieldToClaim = uint256(user.pendingYield);
