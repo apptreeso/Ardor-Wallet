@@ -536,9 +536,8 @@ abstract contract PoolBase is
         // checks if stake is unlocked already
         require(_now256() > stake.lockedUntil, "deposit not yet unlocked");
         // stake structure may get deleted, so we save isYield flag to be able to use it
-        bool isYield = stake.isYield;
-        // gas savings
-        uint120 stakeValue = stake.value;
+        // we also save stakeValue for gasSavings
+        (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
         // verify available balance
         require(stakeValue >= _value, "value exceeds stake");
         // and process current pending rewards if any
