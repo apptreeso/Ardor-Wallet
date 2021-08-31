@@ -7,7 +7,7 @@ interface IPoolBase {
     /// @dev Data structure representing token holder using a pool
     struct User {
         /// @dev Total staked amount in flexible mode
-        uint128 flexibleTokenAmount;
+        uint128 flexibleBalance;
         /// @dev pending yield rewards to be claimed
         uint128 pendingYield;
         /// @dev Total weight

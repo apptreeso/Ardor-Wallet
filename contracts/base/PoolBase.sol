@@ -242,7 +242,7 @@ abstract contract PoolBase is
      * @param _stakeId zero-indexed stake ID for the address specified
      * @return stake info as Stake structure
      */
-    function getStake(address _user, uint256 _stakeId) external view override returns (Stake memory) {
+    function getStake(address _user, uint256 _stakeId) external view override returns (Stake.Data memory) {
         // read stake at specified index and return
         return users[_user].stakes[_stakeId];
     }
@@ -316,7 +316,7 @@ abstract contract PoolBase is
         user.stakes.push(stake);
 
         // update user record
-        user.flexibleTokenAmount += addedvalue;
+        user.flexibleBalance += addedvalue;
         user.totalWeight += stakeWeight;
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
@@ -383,7 +383,7 @@ abstract contract PoolBase is
         _sync();
     }
 
-    function claimRewards(bool _useSILV) external override {
+    function claimRewards(bool _useSILV) external override updatePool {
         _claimRewards(msg.sender, _useSILV);
     }
 
@@ -497,6 +497,15 @@ abstract contract PoolBase is
         emit Staked(msg.sender, _staker, _value);
     }
 
+    function unstakeFlexible(uint256 _value) external override updatePool {
+        // verify a value is set
+        require(_value > 0, "zero value");
+        // get a link to user data struct, we will write to it later
+        User storage user = users[msg.sender];
+        // verify available balance
+        require(user.flexibleBalance >= _value, "value exceeds user balance");
+    }
+
     /**
      * @dev Used internally, mostly by children implementations, see unstake()
      *
@@ -504,12 +513,12 @@ abstract contract PoolBase is
      * @param _value value of tokens to unstake
      */
     function unstakeLocked(uint256 _stakeId, uint256 _value) external override updatePool {
-        // verify an value is set
+        // verify a value is set
         require(_value > 0, "zero value");
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
         // get a link to the corresponding stake, we may write to it later
-        Stake storage stake = user.stakes[_stakeId];
+        Stake.Data storage stake = user.stakes[_stakeId];
         // checks if stake is unlocked already
         require(_now256() > stake.lockedUntil, "deposit not yet unlocked");
         // stake structure may get deleted, so we save isYield flag to be able to use it
@@ -626,8 +635,7 @@ abstract contract PoolBase is
     }
 
     function _claimRewards(address _staker, bool _useSILV) internal {
-        // update smart contract and user state
-        _sync();
+        // update user state
         _processRewards(_staker);
 
         // get link to a user data structure, we will write into it later
@@ -696,7 +704,7 @@ abstract contract PoolBase is
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
         // get a link to the corresponding stake, we may write to it later
-        Stake storage stake = user.stakes[_stakeId];
+        Stake.Data storage stake = user.stakes[_stakeId];
 
         // validate the input against stake structure
         require(_lockedUntil > stake.lockedUntil, "invalid new lock");
