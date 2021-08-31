@@ -335,7 +335,7 @@ abstract contract PoolBase is
      *
      * @param _to new user address
      */
-    function migrateUser(address _to) external {
+    function migrateUser(address _to) external updatePool {
         User storage newUser = users[_to];
         require(newUser.stakes.length == 0 && newUser.v1Stakes.length == 0, "invalid user, already exists");
 
