@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
+import { Stake } from "../libraries/Stake.sol";
 import { PoolBase } from "./PoolBase.sol";
 
 abstract contract V2Migrator is PoolBase {

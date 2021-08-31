@@ -182,16 +182,16 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
     /// @inheritdoc IFactory
     function mintYieldTo(
         address _to,
-        uint256 _amount,
+        uint256 _value,
         bool _useSILV
     ) external override {
         // verify that sender is a pool registered withing the factory
         require(poolExists[msg.sender], "access denied");
 
         if (!_useSILV) {
-            ilv.mint(_to, _amount);
+            ilv.mint(_to, _value);
         } else {
-            silv.mint(_to, _amount);
+            silv.mint(_to, _value);
         }
     }
 

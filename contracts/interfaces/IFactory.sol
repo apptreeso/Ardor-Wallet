@@ -166,11 +166,11 @@ interface IFactory {
      *      on the ILV ERC20 token instance
      *
      * @param _to an address to mint tokens to
-     * @param _amount amount of ILV tokens to mint
+     * @param _value amount of ILV tokens to mint
      */
     function mintYieldTo(
         address _to,
-        uint256 _amount,
+        uint256 _value,
         bool _useSILV
     ) external;
 

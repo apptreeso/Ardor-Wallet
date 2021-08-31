@@ -47,14 +47,14 @@ interface IPoolBase {
     function getStakesLength(address _user) external view returns (uint256);
 
     function stake(
-        uint256 _amount,
+        uint256 _value,
         uint64 _lockedUntil,
         bool useSILV
     ) external;
 
     function unstake(
         uint256 _stakeId,
-        uint256 _amount,
+        uint256 _value,
         bool useSILV
     ) external;
 
