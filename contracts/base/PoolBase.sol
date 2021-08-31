@@ -38,7 +38,7 @@ abstract contract PoolBase is
     /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair
     address public override poolToken;
 
-    /// @dev Pool weight, 100 for ILV pool or 900 for ILV/ETH
+    /// @dev Pool weight, 200 for ILV pool or 800 for ILV/ETH
     uint32 public override weight;
 
     /// @dev Timestamp of the last yield distribution event
@@ -53,13 +53,13 @@ abstract contract PoolBase is
     uint256 public override globalWeight;
 
     /**
-     * @dev Stake weight is proportional to deposit amount and time locked, precisely
-     *      "deposit amount wei multiplied by (fraction of the year locked plus one)"
+     * @dev Stake weight is proportional to stake value and time locked, precisely
+     *      "stake value wei multiplied by (fraction of the year locked plus one)"
      * @dev To avoid significant precision loss due to multiplication by "fraction of the year" [0, 1],
      *      weight is stored multiplied by 1e6 constant, as an integer
-     * @dev Corner case 1: if time locked is zero, weight is deposit amount multiplied by 1e6
+     * @dev Corner case 1: if time locked is zero, weight is stake value multiplied by 1e6
      * @dev Corner case 2: if time locked is one year, fraction of the year locked is one, and
-     *      weight is a deposit amount multiplied by 2 * 1e6
+     *      weight is a stake value multiplied by 2 * 1e6
      */
     uint256 internal constant WEIGHT_MULTIPLIER = 1e6;
 
@@ -79,28 +79,30 @@ abstract contract PoolBase is
      *
      * @param _by an address which performed an operation, usually token holder
      * @param _from token holder address, the tokens will be returned to that address
-     * @param amount amount of tokens staked
+     * @param value value of tokens staked
      */
-    event Staked(address indexed _by, address indexed _from, uint256 amount);
+    event Staked(address indexed _by, address indexed _from, uint256 value);
 
     /**
      * @dev Fired in _updateStakeLock() and updateStakeLock()
      *
      * @param _by an address which performed an operation
-     * @param depositId updated deposit ID
-     * @param lockedFrom deposit locked from value
-     * @param lockedUntil updated deposit locked until value
+     * @param stakeId updated stake ID
+     * @param lockedFrom stake locked from value
+     * @param lockedUntil updated stake locked until value
      */
-    event StakeLockUpdated(address indexed _by, uint256 depositId, uint64 lockedFrom, uint64 lockedUntil);
+    event StakeLockUpdated(address indexed _by, uint256 stakeId, uint64 lockedFrom, uint64 lockedUntil);
+
+    event LogUnstakeFlexible(address indexed to, uint256 value);
 
     /**
-     * @dev Fired in _unstake() and unstake()
+     * @dev Fired in unstakeLocked()
      *
-     * @param _by an address which performed an operation, usually token holder
-     * @param _to an address which received the unstaked tokens, usually token holder
-     * @param amount amount of tokens unstaked
+     * @param to address receiving the tokens (user)
+     * @param stakeId id value of the stake
+     * @param value number of tokens unstaked
      */
-    event Unstaked(address indexed _by, address indexed _to, uint256 amount);
+    event LogUnstakeLocked(address indexed to, uint256 stakeId, uint256 value);
 
     /**
      * @dev Fired in _sync(), sync() and dependent functions (stake, unstake, etc.)
@@ -114,12 +116,21 @@ abstract contract PoolBase is
     /**
      * @dev Fired in _processRewards(), processRewards() and dependent functions (stake, unstake, etc.)
      *
-     * @param _by an address which performed an operation
+     * @param _from an address which received the yield
      * @param _to an address which claimed the yield reward
      * @param sIlv flag indicating if reward was paid (minted) in sILV
-     * @param amount amount of yield paid
+     * @param value value of yield paid
      */
-    event YieldClaimed(address indexed _by, address indexed _to, bool sIlv, uint256 amount);
+    event YieldClaimed(address indexed _from, address indexed _to, bool sIlv, uint256 value);
+
+    /**
+     * @dev Fired in _claimRewards() and claimRewards()
+     *
+     * @param _from an address which received the yield
+     * @param _to an address which claimed the yield reward
+     * @param value value of yield paid
+     */
+    event YieldProcessed(address indexed _from, address indexed _to, uint256 value);
 
     /**
      * @dev Fired in setWeight()
@@ -149,7 +160,6 @@ abstract contract PoolBase is
      *
      * @param _ilv ILV ERC20 Token address
      * @param _silv sILV ERC20 Token address
-     * @param _factory Pool factory IlluviumPoolFactory instance/address
      * @param _poolToken token the pool operates on, for example ILV or ILV/ETH pair
      * @param _initTime initial timestamp used to calculate the rewards
      *      note: _initTime can be set to the future effectively meaning _sync() calls will do nothing
@@ -163,7 +173,6 @@ abstract contract PoolBase is
         uint64 _initTime,
         uint32 _weight
     ) internal initializer {
-        require(address(_factory) != address(0), "ILV Pool fct address not set");
         require(_poolToken != address(0), "pool token address not set");
         require(_initTime > 0, "init time not set");
         require(_weight > 0, "pool weight not set");
@@ -222,50 +231,49 @@ abstract contract PoolBase is
      * @return total staked token balance
      */
     // function balanceOf(address _user) external view override returns (uint256) {
-    //     // read specified user token amount and return
+    //     // read specified user token value and return
     //     return users[_user].tokenAmount;
     // }
 
     /**
-     * @notice Returns information on the given deposit for the given address
+     * @notice Returns information on the given stake for the given address
      *
-     * @dev See getDepositsLength
+     * @dev See getStakesLength
      *
-     * @param _user an address to query deposit for
-     * @param _depositId zero-indexed deposit ID for the address specified
-     * @return deposit info as Deposit structure
+     * @param _user an address to query stake for
+     * @param _stakeId zero-indexed stake ID for the address specified
+     * @return stake info as Stake structure
      */
-    function getDeposit(address _user, uint256 _depositId) external view override returns (Stake memory) {
-        // read deposit at specified index and return
-        return users[_user].stakes[_depositId];
+    function getStake(address _user, uint256 _stakeId) external view override returns (Stake.Data memory) {
+        // read stake at specified index and return
+        return users[_user].stakes[_stakeId];
     }
 
     /**
-     * @notice Returns number of deposits for the given address. Allows iteration over deposits.
+     * @notice Returns number of stakes for the given address. Allows iteration over stakes.
      *
-     * @dev See getDeposit
+     * @dev See getStake
      *
-     * @param _user an address to query deposit length for
-     * @return number of deposits for the given address
+     * @param _user an address to query stake length for
+     * @return number of stakes for the given address
      */
-    function getDepositsLength(address _user) external view override returns (uint256) {
-        // read deposits array length and return
+    function getStakesLength(address _user) external view override returns (uint256) {
+        // read stakes array length and return
         return users[_user].stakes.length;
     }
 
     /**
-     * @notice Stakes specified amount of tokens for the specified amount of time,
+     * @notice Stakes specified value of tokens for the specified value of time,
      *      and pays pending yield rewards if any
      *
-     * @dev Requires amount to stake to be greater than zero
+     * @dev Requires value to stake to be greater than zero
      *
-     * @param _amount amount of tokens to stake
+     * @param _value value of tokens to stake
      * @param _lockUntil stake period as unix timestamp; zero means no locking
-     * @param _useSILV a flag indicating if previous reward to be paid as sILV
      */
-    function stakeAndLock(uint256 _amount, uint64 _lockUntil) external override {
+    function stakeAndLock(uint256 _value, uint64 _lockUntil) external override {
         // delegate call to an internal function
-        _stakeAndLock(msg.sender, _amount, _lockUntil, false);
+        _stakeAndLock(msg.sender, _value, _lockUntil, false);
     }
 
     /**
@@ -277,45 +285,40 @@ abstract contract PoolBase is
      */
     function stakeFlexible(uint256 _value) external updatePool {
         // validates input
-        require(_value > 0, "zero amount");
+        require(_value > 0, "zero value");
 
         // get a link to user data struct, we will write to it later
-        User storage user = users[_staker];
+        User storage user = users[msg.sender];
         // process current pending rewards if any
         if (user.totalWeight > 0) {
-            _processRewards(_staker, false);
+            _processRewards(msg.sender);
         }
 
-        // in most of the cases added amount `addedAmount` is simply `_amount`
+        // in most of the cases added value `addedvalue` is simply `_value`
         // however for deflationary tokens this can be different
 
         // read the current balance
         uint256 previousBalance = IERC20(poolToken).balanceOf(address(this));
-        // transfer `_amount`; note: some tokens may get burnt here
+        // transfer `_value`; note: some tokens may get burnt here
         IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
-        // read new balance, usually this is just the difference `previousBalance - _amount`
+        // read new balance, usually this is just the difference `previousBalance - _value`
         uint256 newBalance = IERC20(poolToken).balanceOf(address(this));
-        // calculate real amount taking into account deflation
-        uint256 addedAmount = newBalance - previousBalance;
+        // calculate real value taking into account deflation
+        uint256 addedvalue = newBalance - previousBalance;
 
         // no need to calculate locking weight, flexible stake never locks
-        uint256 stakeWeight = WEIGHT_MULTIPLIER * addedAmount;
+        uint256 stakeWeight = WEIGHT_MULTIPLIER * addedvalue;
 
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
 
-        // create and save the deposit (append it to deposits array)
-        Stake.Data memory deposit = Stake.Data({
-            value: addedAmount,
-            lockedFrom: 0,
-            lockedUntil: 0,
-            isYield: _isYield
-        });
-        // deposit ID is an index of the deposit in `deposits` array
-        user.stakes.push(deposit);
+        // create and save the stake (append it to stakes array)
+        Stake.Data memory stake = Stake.Data({ value: addedvalue, lockedFrom: 0, lockedUntil: 0, isYield: false });
+        // stake ID is an index of the stake in `stakes` array
+        user.stakes.push(stake);
 
         // update user record
-        user.flexibleTokenAmount += addedAmount;
+        user.flexibleBalance += addedvalue;
         user.totalWeight += stakeWeight;
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
@@ -323,7 +326,7 @@ abstract contract PoolBase is
         globalWeight += stakeWeight;
 
         // emit an event
-        emit Staked(msg.sender, _staker, _amount);
+        emit Staked(msg.sender, msg.sender, _value);
     }
 
     /**
@@ -334,7 +337,7 @@ abstract contract PoolBase is
      *
      * @param _to new user address
      */
-    function migrateUser(address _to) external {
+    function migrateUser(address _to) external updatePool {
         User storage newUser = users[_to];
         require(newUser.stakes.length == 0 && newUser.v1Stakes.length == 0, "invalid user, already exists");
 
@@ -346,43 +349,25 @@ abstract contract PoolBase is
     }
 
     /**
-     * @notice Unstakes specified amount of tokens, and pays pending yield rewards if any
-     *
-     * @dev Requires amount to unstake to be greater than zero
-     *
-     * @param _depositId deposit ID to unstake from, zero-indexed
-     * @param _amount amount of tokens to unstake
-     * @param _useSILV a flag indicating if reward to be paid as sILV
-     */
-    function unstake(
-        uint256 _depositId,
-        uint256 _amount,
-        bool _useSILV
-    ) external override {
-        // delegate call to an internal function
-        _unstake(msg.sender, _depositId, _amount, _useSILV);
-    }
-
-    /**
-     * @notice Extends locking period for a given deposit
+     * @notice Extends locking period for a given stake
      *
      * @dev Requires new lockedUntil value to be:
      *      higher than the current one, and
      *      in the future, but
      *      no more than 1 year in the future
      *
-     * @param depositId updated deposit ID
-     * @param lockedUntil updated deposit locked until value
+     * @param stakeId updated stake ID
+     * @param lockedUntil updated stake locked until value
      * @param useSILV used for _processRewards check if it should use ILV or sILV
      */
     function updateStakeLock(
-        uint256 depositId,
+        uint256 stakeId,
         uint64 lockedUntil,
         bool useSILV
     ) external updatePool {
-        _processRewards(msg.sender, false);
+        _processRewards(msg.sender);
         // delegate call to an internal function
-        _updateStakeLock(msg.sender, depositId, lockedUntil);
+        _updateStakeLock(msg.sender, stakeId, lockedUntil);
     }
 
     /**
@@ -400,26 +385,8 @@ abstract contract PoolBase is
         _sync();
     }
 
-    /**
-     * @notice Service function to calculate and pay pending yield rewards to the sender
-     *
-     * @dev Can be executed by anyone at any time, but has an effect only when
-     *      executed by deposit holder and when at least one second passes from the
-     *      previous reward processing
-     * @dev Executed internally when staking and unstaking, executes sync() under the hood
-     *      before making further calculations and payouts
-     * @dev When timing conditions are not met (executed too frequently, or after factory
-     *      end time), function doesn't throw and exits silently
-     *
-     * @param _useSILV flag indicating whether to mint sILV token as a reward or not;
-     *      when set to true - sILV reward is minted immediately and sent to sender,
-     *      when set to false - new ILV reward deposit gets created if pool is an ILV pool
-     *      (poolToken is ILV token), or new pool deposit gets created together with sILV minted
-     *      when pool is not an ILV pool (poolToken is not an ILV token)
-     */
-    function processRewards(bool _useSILV) external virtual override {
-        // delegate call to an internal function
-        _processRewards(msg.sender, _useSILV, true);
+    function claimRewards(bool _useSILV) external override updatePool {
+        _claimRewards(msg.sender, _useSILV);
     }
 
     /**
@@ -461,9 +428,8 @@ abstract contract PoolBase is
      * @dev Used internally, mostly by children implementations, see stake()
      *
      * @param _staker an address which stakes tokens and which will receive them back
-     * @param _amount amount of tokens to stake
+     * @param _value value of tokens to stake
      * @param _lockUntil stake period as unix timestamp; zero means no locking
-     * @param _useSILV a flag indicating if previous reward to be paid as sILV
      * @param _isYield a flag indicating if that stake is created to store yield reward
      *      from the previously unstaked stake
      */
@@ -474,7 +440,7 @@ abstract contract PoolBase is
         bool _isYield
     ) internal virtual updatePool {
         // validate the inputs
-        require(_value > 0, "zero amount");
+        require(_value > 0, "zero value");
         require(
             _lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 365 days),
             "invalid lock interval"
@@ -484,10 +450,10 @@ abstract contract PoolBase is
         User storage user = users[_staker];
         // process current pending rewards if any
         if (user.totalWeight > 0) {
-            _processRewards(_staker, false);
+            _processRewards(_staker);
         }
 
-        // in most of the cases added amount `addedAmount` is simply `_value`
+        // in most of the cases added value `addedvalue` is simply `_value`
         // however for deflationary tokens this can be different
 
         // read the current balance
@@ -496,8 +462,8 @@ abstract contract PoolBase is
         IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
         // read new balance, usually this is just the difference `previousBalance - _value`
         uint256 newBalance = IERC20(poolToken).balanceOf(address(this));
-        // calculate real amount taking into account deflation
-        uint256 addedAmount = newBalance - previousBalance;
+        // calculate real value taking into account deflation
+        uint256 addedvalue = newBalance - previousBalance;
 
         // set the `lockFrom` and `lockUntil` taking into account that
         // zero value for `_lockUntil` means "no locking" and leads to zero values
@@ -507,20 +473,20 @@ abstract contract PoolBase is
 
         // stake weight formula rewards for locking
         uint256 stakeWeight = (((lockUntil - lockFrom) * WEIGHT_MULTIPLIER) / 365 days + WEIGHT_MULTIPLIER) *
-            addedAmount;
+            addedvalue;
 
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
 
-        // create and save the deposit (append it to deposits array)
-        Stake.Data memory deposit = Stake.Data({
-            value: addedAmount,
+        // create and save the stake (append it to stakes array)
+        Stake.Data memory stake = Stake.Data({
+            value: addedvalue,
             lockedFrom: lockFrom,
             lockedUntil: lockUntil,
             isYield: _isYield
         });
-        // deposit ID is an index of the deposit in `deposits` array
-        user.stakes.push(deposit);
+        // stake ID is an index of the stake in `stakes` array
+        user.stakes.push(stake);
 
         // update user record
         user.totalWeight += stakeWeight;
@@ -533,67 +499,83 @@ abstract contract PoolBase is
         emit Staked(msg.sender, _staker, _value);
     }
 
+    function unstakeFlexible(uint256 _value) external override updatePool {
+        // verify a value is set
+        require(_value > 0, "zero value");
+        // get a link to user data struct, we will write to it later
+        User storage user = users[msg.sender];
+        // verify available balance
+        require(user.flexibleBalance >= _value, "value exceeds user balance");
+        // and process current pending rewards if any
+        _processRewards(msg.sender);
+
+        // updates user data in storage
+        user.flexibleBalance -= _value;
+        user.totalWeight -= _value * WEIGHT_MULTIPLIER;
+
+        // finally, transfers `_value` poolTokens
+        IERC20(poolToken).safeTransfer(msg.sender, _value);
+
+        // emit an event
+        emit LogUnstakeFlexible(msg.sender, _value);
+    }
+
     /**
      * @dev Used internally, mostly by children implementations, see unstake()
      *
-     * @param _staker an address which unstakes tokens (which previously staked them)
-     * @param _depositId deposit ID to unstake from, zero-indexed
-     * @param _amount amount of tokens to unstake
-     * @param _useSILV a flag indicating if reward to be paid as sILV
+     * @param _stakeId stake ID to unstake from, zero-indexed
+     * @param _value value of tokens to unstake
      */
-    function _unstakeLocked(
-        address _staker,
-        uint256 _depositId,
-        uint256 _amount,
-        bool _useSILV
-    ) internal virtual updatePool {
-        // verify an amount is set
-        require(_amount > 0, "zero amount");
-
+    function unstakeLocked(uint256 _stakeId, uint256 _value) external override updatePool {
+        // verify a value is set
+        require(_value > 0, "zero value");
         // get a link to user data struct, we will write to it later
-        User storage user = users[_staker];
-        // get a link to the corresponding deposit, we may write to it later
-        Stake storage stakeDeposit = user.stakes[_depositId];
-        // deposit structure may get deleted, so we save isYield flag to be able to use it
-        bool isYield = stakeDeposit.isYield;
-
+        User storage user = users[msg.sender];
+        // get a link to the corresponding stake, we may write to it later
+        Stake.Data storage stake = user.stakes[_stakeId];
+        // checks if stake is unlocked already
+        require(_now256() > stake.lockedUntil, "deposit not yet unlocked");
+        // stake structure may get deleted, so we save isYield flag to be able to use it
+        // we also save stakeValue for gasSavings
+        (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
         // verify available balance
-        // if staker address ot deposit doesn't exist this check will fail as well
-        require(stakeDeposit.tokenAmount >= _amount, "amount exceeds stake");
-
+        require(stakeValue >= _value, "value exceeds stake");
         // and process current pending rewards if any
-        _processRewards(_staker, false);
+        _processRewards(msg.sender);
 
-        // recalculate deposit weight
-        uint256 previousWeight = stakeDeposit.weight(WEIGHT_MULTIPLIER);
+        // store stake weight
+        uint256 previousWeight = stake.weight(WEIGHT_MULTIPLIER);
+        // value used to save new weight after updates in storage
+        uint256 newWeight;
 
-        // update the deposit, or delete it if its depleted
-        if (stakeDeposit.tokenAmount - _amount == 0) {
-            delete user.stakes[_depositId];
+        // update the stake, or delete it if its depleted
+        if (stakeValue - _value == 0) {
+            // deles stake struct, no need to save new weight because it stays 0
+            delete user.stakes[_stakeId];
         } else {
-            stakeDeposit.tokenAmount -= _amount;
-            stakeDeposit.totalWeight -= previousWeight;
+            stake.value -= _value;
+            // saves new weight to memory
+            newWeight = stake.weight(WEIGHT_MULTIPLIER);
         }
 
         // update user record
-        user.tokenAmount -= _amount;
         user.totalWeight = user.totalWeight - previousWeight + newWeight;
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // update global variable
         globalWeight = globalWeight - previousWeight + newWeight;
 
-        // if the deposit was created by the pool itself as a yield reward
+        // if the stake was created by the pool itself as a yield reward
         if (isYield) {
             // mint the yield via the factory
-            factory.mintYieldTo(msg.sender, _amount, false);
+            factory.mintYieldTo(msg.sender, _value, false);
         } else {
             // otherwise just return tokens back to holder
-            IERC20(poolToken).safeTransfer(msg.sender, _amount);
+            IERC20(poolToken).safeTransfer(msg.sender, _value);
         }
 
         // emit an event
-        emit Unstaked(msg.sender, _staker, _amount);
+        emit LogUnstakeLocked(msg.sender, _stakeId, _value);
     }
 
     /**
@@ -640,19 +622,15 @@ abstract contract PoolBase is
     }
 
     /**
-     * @dev Used internally, mostly by children implementations, see processRewards()
+     * @dev Used internally, mostly by children implementations.
+     * @dev Executed before staking, unstaking and claiming the rewards.
+     * @dev When timing conditions are not met (executed too frequently, or after factory
+     *      end block), function doesn't throw and exits silently
      *
      * @param _staker an address which receives the reward (which has staked some tokens earlier)
-     * @param _useSILV flag indicating whether to mint sILV token as a reward or not, see processRewards()
-     * @param _withUpdate flag allowing to disable synchronization (see sync()) if set to false
-     * @return pendingYield the rewards calculated and optionally re-staked
+     * @return pendingYield the rewards calculated and saved to the user struct
      */
-    function _processRewards(address _staker, bool _withUpdate) internal virtual returns (uint256 pendingYield) {
-        // update smart contract state if required
-        if (_withUpdate) {
-            _sync();
-        }
-
+    function _processRewards(address _staker) internal virtual returns (uint256 pendingYield) {
         // calculate pending yield rewards, this value will be returned
         pendingYield = _pendingYieldRewards(_staker);
 
@@ -664,25 +642,72 @@ abstract contract PoolBase is
 
         user.pendingYield += pendingYield;
 
-        // update users's record for `subYieldRewards` if requested
-        if (_withUpdate) {
-            user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
+        // emit an event
+        emit YieldProcessed(msg.sender, _staker, pendingYield);
+    }
+
+    function _claimRewards(address _staker, bool _useSILV) internal {
+        // update user state
+        _processRewards(_staker);
+
+        // get link to a user data structure, we will write into it later
+        User storage user = users[_staker];
+
+        // check pending yield rewards to claim and save to memory
+        uint256 pendingYieldToClaim = uint256(user.pendingYield);
+
+        // if pending yield is zero - just return silently
+        if (pendingYieldToClaim == 0) return 0;
+
+        // clears user pending yield
+        user.pendingYield = 0;
+
+        // if sILV is requested
+        if (_useSILV) {
+            // - mint sILV
+            IERC20(silv).mint(_staker, pendingYieldToClaim);
+        } else if (poolToken == ilv) {
+            // calculate pending yield weight,
+            // 2e6 is the bonus weight when staking for 1 year
+            uint256 stakeWeight = pendingYieldToClaim * YEAR_STAKE_WEIGHT_MULTIPLIER;
+
+            // if the pool is ILV Pool - create new ILV stake
+            // and save it - push it into stakes array
+            Stake.Data memory newStake = Stake.Data({
+                value: pendingYieldToClaim,
+                lockedFrom: uint64(_now256()),
+                lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
+                isYield: true
+            });
+
+            user.stakes.push(newStake);
+            user.totalWeight += stakeWeight;
+
+            // update global variable
+            globalWeight += stakeWeight;
+        } else {
+            // for other pools - stake as pool
+            address ilvPool = factory.getPoolAddress(ilv);
+            ICorePool(ilvPool).stakeAsPool(_staker, pendingYieldToClaim);
         }
 
+        // subYieldRewards needs to be updated on every `_processRewards` call
+        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
+
         // emit an event
-        emit YieldClaimed(msg.sender, _staker, _useSILV, pendingYield);
+        emit YieldClaimed(msg.sender, _staker, _useSILV, pendingYieldToClaim);
     }
 
     /**
      * @dev See updateStakeLock()
      *
      * @param _staker an address to update stake lock
-     * @param _depositId updated deposit ID
-     * @param _lockedUntil updated deposit locked until value
+     * @param _stakeId updated stake ID
+     * @param _lockedUntil updated stake locked until value
      */
     function _updateStakeLock(
         address _staker,
-        uint256 _depositId,
+        uint256 _stakeId,
         uint64 _lockedUntil
     ) internal {
         // validate the input time
@@ -690,32 +715,33 @@ abstract contract PoolBase is
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
-        // get a link to the corresponding deposit, we may write to it later
-        Stake storage stakeDeposit = user.stakes[_depositId];
+        // get a link to the corresponding stake, we may write to it later
+        Stake.Data storage stake = user.stakes[_stakeId];
 
-        // validate the input against deposit structure
-        require(_lockedUntil > stakeDeposit.lockedUntil, "invalid new lock");
+        // validate the input against stake structure
+        require(_lockedUntil > stake.lockedUntil, "invalid new lock");
+
+        // saves previous weight into memory
+        uint256 previousWeight = stake.weight(WEIGHT_MULTIPLIER);
 
         // verify locked from and locked until values
-        if (stakeDeposit.lockedFrom == 0) {
+        if (stake.lockedFrom == 0) {
             require(_lockedUntil - _now256() <= 365 days, "max lock period is 365 days");
-            stakeDeposit.lockedFrom = uint64(_now256());
+            stake.lockedFrom = uint64(_now256());
         } else {
-            require(_lockedUntil - stakeDeposit.lockedFrom <= 365 days, "max lock period is 365 days");
+            require(_lockedUntil - stake.lockedFrom <= 365 days, "max lock period is 365 days");
         }
 
         // update locked until value, calculate new weight
-        stakeDeposit.lockedUntil = _lockedUntil;
-        uint256 newWeight = (((stakeDeposit.lockedUntil - stakeDeposit.lockedFrom) * WEIGHT_MULTIPLIER) /
-            365 days +
-            WEIGHT_MULTIPLIER) * stakeDeposit.tokenAmount;
-
+        stake.lockedUntil = _lockedUntil;
+        // saves new weight into memory
+        uint256 newWeight = stake.weight(WEIGHT_MULTIPLIER);
         // update user total weight and global locking weight
         user.totalWeight = user.totalWeight - previousWeight + newWeight;
         globalWeight = globalWeight - previousWeight + newWeight;
 
         // emit an event
-        emit StakeLockUpdated(_staker, _depositId, stakeDeposit.lockedFrom, _lockedUntil);
+        emit StakeLockUpdated(_staker, _stakeId, stake.lockedFrom, _lockedUntil);
     }
 
     /**
@@ -728,7 +754,7 @@ abstract contract PoolBase is
      */
     function _weightToReward(uint256 _weight, uint256 _rewardPerWeight) private pure returns (uint256) {
         // apply the formula and return
-        return (_weight * rewardPerWeight) / REWARD_PER_WEIGHT_MULTIPLIER;
+        return (_weight * _rewardPerWeight) / REWARD_PER_WEIGHT_MULTIPLIER;
     }
 
     /**

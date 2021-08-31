@@ -7,7 +7,7 @@ interface IPoolBase {
     /// @dev Data structure representing token holder using a pool
     struct User {
         /// @dev Total staked amount in flexible mode
-        uint128 flexibleTokenAmount;
+        uint128 flexibleBalance;
         /// @dev pending yield rewards to be claimed
         uint128 pendingYield;
         /// @dev Total weight
@@ -42,19 +42,19 @@ interface IPoolBase {
 
     function balanceOf(address _user) external view returns (uint256);
 
-    function getDeposit(address _user, uint256 _depositId) external view returns (Stake memory);
+    function getStake(address _user, uint256 _stakeId) external view returns (Stake memory);
 
-    function getDepositsLength(address _user) external view returns (uint256);
+    function getStakesLength(address _user) external view returns (uint256);
 
     function stake(
-        uint256 _amount,
+        uint256 _value,
         uint64 _lockedUntil,
         bool useSILV
     ) external;
 
     function unstake(
-        uint256 _depositId,
-        uint256 _amount,
+        uint256 _stakeId,
+        uint256 _value,
         bool useSILV
     ) external;
 

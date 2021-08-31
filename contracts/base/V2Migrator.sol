@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
+import { Stake } from "../libraries/Stake.sol";
 import { PoolBase } from "./PoolBase.sol";
 
 abstract contract V2Migrator is PoolBase {
@@ -17,7 +18,7 @@ abstract contract V2Migrator is PoolBase {
     /// @dev address of v1 core pool with same poolToken
     address public corePoolV1;
 
-    /// @dev maps `keccak256(userAddress,depositId)` to a bool value that tells
+    /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     /// if a v1 yield has already been minted by v2 contract
     mapping(bytes32 => bool) public v1YieldMinted;
 
@@ -25,11 +26,11 @@ abstract contract V2Migrator is PoolBase {
      * @dev logs `mintV1Yield`
      *
      * @param _from user address
-     * @param _depositId v1 yield id
+     * @param _stakeId v1 yield id
      * @param _value number of ILV tokens minted
      *
      */
-    event LogV1YieldMinted(address indexed _from, uint256 _depositId, uint256 _value);
+    event LogV1YieldMinted(address indexed _from, uint256 _stakeId, uint256 _value);
 
     /**
      * @dev V2Migrator initializer function
@@ -42,25 +43,25 @@ abstract contract V2Migrator is PoolBase {
     }
 
     /**
-     * @dev reads v1 core pool yield data (using `_depositId` and `msg.sender`),
+     * @dev reads v1 core pool yield data (using `_stakeId` and `msg.sender`),
      * validates, mints ILV according to v1 data and stores a receipt hash
      *
-     * @param _depositId v1 yield id
+     * @param _stakeId v1 yield id
      */
-    function mintV1Yield(uint256 _depositId) external {
-        (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
+    function mintV1Yield(uint256 _stakeId) external {
+        (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getStake(
             msg.sender,
-            _depositId
+            _stakeId
         );
         require(isYield, "not yield");
         require(_now256() > lockedUntil, "yield not unlocked yet");
-        bytes32 depositHash = keccak256(abi.encodePacked(msg.sender, _depositId));
-        require(!v1YieldMinted[depositHash], "yield already minted");
+        bytes32 stakeHash = keccak256(abi.encodePacked(msg.sender, _stakeId));
+        require(!v1YieldMinted[stakeHash], "yield already minted");
 
-        v1YieldMinted[depositHash] = true;
+        v1YieldMinted[stakeHash] = true;
         factory.mintYieldTo(msg.sender, tokenAmount, false);
 
-        emit LogV1YieldMinted(msg.sender, _depositId, tokenAmount);
+        emit LogV1YieldMinted(msg.sender, _stakeId, tokenAmount);
     }
 
     /// TODO: check migration strategy to be used
