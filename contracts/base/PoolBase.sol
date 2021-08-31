@@ -401,11 +401,6 @@ abstract contract PoolBase is
         _sync();
     }
 
-    function processRewards() external virtual override {
-        // delegate call to an internal function
-        _processRewards(msg.sender, true);
-    }
-
     function claimRewards(bool _useSILV) external override {
         _claimRewards(msg.sender, _useSILV);
     }
@@ -627,18 +622,15 @@ abstract contract PoolBase is
     }
 
     /**
-     * @dev Used internally, mostly by children implementations, see processRewards()
+     * @dev Used internally, mostly by children implementations.
+     * @dev Executed before staking, unstaking and claiming the rewards.
+     * @dev When timing conditions are not met (executed too frequently, or after factory
+     *      end block), function doesn't throw and exits silently
      *
      * @param _staker an address which receives the reward (which has staked some tokens earlier)
-     * @param _withUpdate flag allowing to disable synchronization (see sync()) if set to false
-     * @return pendingYield the rewards calculated and optionally re-staked
+     * @return pendingYield the rewards calculated and saved to the user struct
      */
-    function _processRewards(address _staker, bool _withUpdate) internal virtual returns (uint256 pendingYield) {
-        // update smart contract state if required
-        if (_withUpdate) {
-            _sync();
-        }
-
+    function _processRewards(address _staker) internal virtual returns (uint256 pendingYield) {
         // calculate pending yield rewards, this value will be returned
         pendingYield = _pendingYieldRewards(_staker);
 
@@ -661,7 +653,8 @@ abstract contract PoolBase is
 
     function _claimRewards(address _staker, bool _useSILV) internal {
         // update smart contract and user state
-        _processRewards(_staker, true);
+        _sync();
+        _processRewards(_staker);
 
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
