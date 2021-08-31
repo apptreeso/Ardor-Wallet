@@ -93,6 +93,8 @@ abstract contract PoolBase is
      */
     event StakeLockUpdated(address indexed _by, uint256 stakeId, uint64 lockedFrom, uint64 lockedUntil);
 
+    event LogUnstakeFlexible(address indexed to, uint256 value);
+
     /**
      * @dev Fired in unstakeLocked()
      *
@@ -504,6 +506,18 @@ abstract contract PoolBase is
         User storage user = users[msg.sender];
         // verify available balance
         require(user.flexibleBalance >= _value, "value exceeds user balance");
+        // and process current pending rewards if any
+        _processRewards(msg.sender);
+
+        // updates user data in storage
+        user.flexibleBalance -= _value;
+        user.totalWeight -= _value * WEIGHT_MULTIPLIER;
+
+        // finally, transfers `_value` poolTokens
+        IERC20(poolToken).safeTransfer(msg.sender, _value);
+
+        // emit an event
+        emit LogUnstakeFlexible(msg.sender, _value);
     }
 
     /**
@@ -527,7 +541,6 @@ abstract contract PoolBase is
         uint120 stakeValue = stake.value;
         // verify available balance
         require(stakeValue >= _value, "value exceeds stake");
-
         // and process current pending rewards if any
         _processRewards(msg.sender);
 
