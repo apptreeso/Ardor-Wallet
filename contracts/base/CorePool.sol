@@ -207,7 +207,7 @@ abstract contract CorePool is
      * @param _staker an address to calculate yield rewards value for
      * @return calculated yield reward value for the given address
      */
-    function pendingYieldRewards(address _staker) external view override returns (uint256) {
+    function pendingYieldRewards(address _staker) external view override returns (uint256 pending) {
         // `newYieldRewardsPerWeight` will store stored or recalculated value for `yieldRewardsPerWeight`
         uint256 newYieldRewardsPerWeight;
 
@@ -229,9 +229,24 @@ abstract contract CorePool is
 
         // based on the rewards per weight value, calculate pending rewards;
         User storage user = users[_staker];
-        uint256 pending = _weightToReward(user.totalWeight, newYieldRewardsPerWeight) - user.subYieldRewards;
 
-        return pending;
+        // gas savings
+        uint256 v1StakesLength = user.v1StakesIds.length;
+        // value will be used to add to final weight calculations before
+        // calculating rewards
+        uint256 weightToAdd;
+
+        // checks if user has any migrated stake from v1
+        if (v1StakesLength > 0) {
+            // loops through v1StakesIds and adds v1 weight with V1_WEIGHT_BONUS
+            for (uint256 i = 0; i < v1StakesLength; i++) {
+                (, uint256 _weight) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
+
+                weightToAdd += weight * V1_WEIGHT_BONUS;
+            }
+        }
+
+        pending = _weightToReward(user.totalWeight, newYieldRewardsPerWeight) - user.subYieldRewards;
     }
 
     /**
