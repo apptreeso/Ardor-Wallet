@@ -10,7 +10,7 @@ abstract contract V2Migrator is PoolBase {
     address public corePoolV1;
 
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
-    /// if a v1 yield has already been minted by v2 contract
+    ///      if a v1 yield has already been minted by v2 contract
     mapping(bytes32 => bool) public v1YieldMinted;
     mapping(bytes32 => bool) public v1StakesMigrated;
 
@@ -45,7 +45,7 @@ abstract contract V2Migrator is PoolBase {
 
     /**
      * @dev reads v1 core pool yield data (using `_stakeId` and `msg.sender`),
-     * validates, mints ILV according to v1 data and stores a receipt hash
+     *      validates, mints ILV according to v1 data and stores a receipt hash
      *
      * @param _stakeId v1 yield id
      */
@@ -65,6 +65,14 @@ abstract contract V2Migrator is PoolBase {
         emit LogV1YieldMinted(msg.sender, _stakeId, tokenAmount);
     }
 
+    /**
+     * @dev reads v1 core pool locked stakes data (by looping through the `_stakeIds` array),
+     *      checks if it's a valid v1 stake to migrate and save the id to v2 user struct
+     *
+     * @notice only `msg.sender` can migrate v1 stakes to v2
+     *
+     * @param _stakeIds array of v1 stake ids
+     */
     function migrateLockedStake(uint256[] calldata _stakeIds) external {
         User storage user = users[msg.sender];
 
