@@ -271,7 +271,7 @@ abstract contract PoolBase is
      * @param _value value of tokens to stake
      * @param _lockUntil stake period as unix timestamp; zero means no locking
      */
-    function stakeAndLock(uint256 _value, uint64 _lockUntil) external override {
+    function stakeAndLock(uint256 _value, uint64 _lockUntil) external override nonReentrant {
         // delegate call to an internal function
         _stakeAndLock(msg.sender, _value, _lockUntil, false);
     }
@@ -283,7 +283,7 @@ abstract contract PoolBase is
      *
      * @param _value number of tokens to stake
      */
-    function stakeFlexible(uint256 _value) external updatePool {
+    function stakeFlexible(uint256 _value) external updatePool nonReentrant {
         // validates input
         require(_value > 0, "zero value");
 
@@ -297,8 +297,8 @@ abstract contract PoolBase is
         // in most of the cases added value `addedvalue` is simply `_value`
         // however for deflationary tokens this can be different
 
+        // gas savings
         address _poolToken = poolToken;
-
         // read the current balance
         uint256 previousBalance = IERC20(_poolToken).balanceOf(address(this));
         // transfer `_value`; note: some tokens may get burnt here
@@ -306,21 +306,21 @@ abstract contract PoolBase is
         // read new balance, usually this is just the difference `previousBalance - _value`
         uint256 newBalance = IERC20(_poolToken).balanceOf(address(this));
         // calculate real value taking into account deflation
-        uint256 addedvalue = newBalance - previousBalance;
+        uint256 addedValue = newBalance - previousBalance;
 
         // no need to calculate locking weight, flexible stake never locks
-        uint256 stakeWeight = WEIGHT_MULTIPLIER * addedvalue;
+        uint256 stakeWeight = WEIGHT_MULTIPLIER * addedValue;
 
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
 
         // create and save the stake (append it to stakes array)
-        Stake.Data memory stake = Stake.Data({ value: addedvalue, lockedFrom: 0, lockedUntil: 0, isYield: false });
+        Stake.Data memory stake = Stake.Data({ value: addedValue, lockedFrom: 0, lockedUntil: 0, isYield: false });
         // stake ID is an index of the stake in `stakes` array
         user.stakes.push(stake);
 
         // update user record
-        user.flexibleBalance += addedvalue;
+        user.flexibleBalance += addedValue;
         user.totalWeight += stakeWeight;
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
