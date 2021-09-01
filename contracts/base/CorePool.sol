@@ -276,10 +276,27 @@ abstract contract CorePool is
         return users[_user].stakes[_stakeId];
     }
 
+    /**
+     * @notice Returns a v1 stake id in the `user.v1StakesIds` array
+     *
+     *
+     * @param _user an address to query stake for
+     * @param _position position index in the array
+     * @return stakeId value
+     */
     function getV1StakeId(address _user, uint256 _position) external view returns (uint256) {
         return users[_user].v1StakesIds[_position];
     }
 
+    /**
+     * @notice Returns a v1 stake position in the `user.v1StakesIds` array
+     *
+     * @dev helper function to call getV1StakeId()
+     *
+     * @param _user an address to query stake for
+     * @param _desired desired stakeId position in the array to find
+     * @return stake info as Stake structure
+     */
     function getV1StakePosition(address _user, uint256 _desiredId) external view returns (uint256 position) {
         User storage user = users[_user];
 
