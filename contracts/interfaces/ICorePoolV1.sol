@@ -15,5 +15,5 @@ interface ICorePoolV1 {
         bool isYield;
     }
 
-    function getStake(address _from, uint256 _stakeId) external view returns (V1Stake memory);
+    function getDeposit(address _from, uint256 _stakeId) external view returns (V1Stake memory);
 }

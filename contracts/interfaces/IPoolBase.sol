@@ -18,8 +18,8 @@ interface IPoolBase {
         uint256 subVaultRewards;
         /// @dev An array of holder's stakes
         Stake.Data[] stakes;
-        /// @dev An array of holder's stakes in V1
-        Stake.Data[] v1Stakes;
+        /// @dev An array of holder's stakes ids in V1
+        uint256[] v1StakesIds;
     }
 
     function users(address _user) external view returns (User memory);

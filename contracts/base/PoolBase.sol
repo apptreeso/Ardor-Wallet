@@ -345,7 +345,7 @@ abstract contract PoolBase is
      */
     function migrateUser(address _to) external updatePool {
         User storage newUser = users[_to];
-        require(newUser.stakes.length == 0 && newUser.v1Stakes.length == 0, "invalid user, already exists");
+        require(newUser.stakes.length == 0 && newUser.v1StakesIds.length == 0, "invalid user, already exists");
 
         User storage previousUser = users[msg.sender];
         delete users[msg.sender];
@@ -452,10 +452,8 @@ abstract contract PoolBase is
      * @return pending calculated yield reward value for the given address
      */
     function _pendingYieldRewards(address _staker) internal view returns (uint256 pending) {
-        // read user data structure into memory
         User storage user = users[_staker];
-
-        // and perform the calculation using the values read
+        // perform the calculation using values from storage
         return _weightToReward(user.totalWeight, yieldRewardsPerWeight) - user.subYieldRewards;
     }
 
