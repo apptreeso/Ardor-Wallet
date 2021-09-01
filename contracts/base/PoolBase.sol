@@ -120,23 +120,21 @@ abstract contract PoolBase is
     event Synchronized(address indexed _by, uint256 yieldRewardsPerWeight, uint64 lastYieldDistribution);
 
     /**
-     * @dev Fired in _processRewards(), processRewards() and dependent functions (stake, unstake, etc.)
+     * @dev Fired in _claimRewards()
      *
-     * @param _from an address which received the yield
-     * @param _to an address which claimed the yield reward
-     * @param sIlv flag indicating if reward was paid (minted) in sILV
+     * @param from an address which received the yield
+     * @param sILV flag indicating if reward was paid (minted) in sILV
      * @param value value of yield paid
      */
-    event YieldClaimed(address indexed _from, address indexed _to, bool sIlv, uint256 value);
+    event LogClaimRewards(address indexed from, bool sILV, uint256 value);
 
     /**
-     * @dev Fired in _claimRewards() and claimRewards()
+     * @dev Fired in _processRewards()
      *
-     * @param _from an address which received the yield
-     * @param _to an address which claimed the yield reward
+     * @param from an address which received the yield
      * @param value value of yield paid
      */
-    event YieldProcessed(address indexed _from, address indexed _to, uint256 value);
+    event LogProcessRewards(address indexed from, uint256 value);
 
     /**
      * @dev Fired in setWeight()
@@ -685,7 +683,7 @@ abstract contract PoolBase is
         user.pendingYield += uint128(pendingYield);
 
         // emit an event
-        emit YieldProcessed(msg.sender, _staker, pendingYield);
+        emit LogProcessRewards(_staker, pendingYield);
     }
 
     function _claimRewards(address _staker, bool _useSILV) internal {
@@ -737,7 +735,7 @@ abstract contract PoolBase is
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // emit an event
-        emit YieldClaimed(msg.sender, _staker, _useSILV, pendingYieldToClaim);
+        emit LogClaimRewards(_staker, _useSILV, pendingYieldToClaim);
     }
 
     /**
