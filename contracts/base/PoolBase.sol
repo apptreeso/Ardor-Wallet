@@ -53,21 +53,10 @@ abstract contract PoolBase is
     uint256 public override globalWeight;
 
     /**
-     * @dev Stake weight is proportional to stake value and time locked, precisely
-     *      "stake value wei multiplied by (fraction of the year locked plus one)"
-     * @dev To avoid significant precision loss due to multiplication by "fraction of the year" [0, 1],
-     *      weight is stored multiplied by 1e6 constant, as an integer
-     * @dev Corner case 1: if time locked is zero, weight is stake value multiplied by 1e6
-     * @dev Corner case 2: if time locked is one year, fraction of the year locked is one, and
-     *      weight is a stake value multiplied by 2 * 1e6
-     */
-    uint256 internal constant WEIGHT_MULTIPLIER = 1e6;
-
-    /**
      * @dev When we know beforehand that staking is done for a year, and fraction of the year locked is one,
      *      we use simplified calculation and use the following constant instead previos one
      */
-    uint256 internal constant YEAR_STAKE_WEIGHT_MULTIPLIER = 2 * WEIGHT_MULTIPLIER;
+    uint256 internal constant YEAR_STAKE_WEIGHT_MULTIPLIER = 2 * 1e6;
 
     /**
      * @dev Rewards per weight are stored multiplied by 1e12, as integers.
@@ -99,6 +88,12 @@ abstract contract PoolBase is
      */
     event LogUpdateStakeLock(address indexed from, uint256 stakeId, uint64 lockedFrom, uint64 lockedUntil);
 
+    /**
+     * @dev Fired in unstakeFlexible()
+     *
+     * @param to address receiving the tokens (user)
+     * @param value number of tokens unstaked
+     */
     event LogUnstakeFlexible(address indexed to, uint256 value);
 
     /**
@@ -313,7 +308,7 @@ abstract contract PoolBase is
         uint256 addedValue = newBalance - previousBalance;
 
         // no need to calculate locking weight, flexible stake never locks
-        uint256 stakeWeight = WEIGHT_MULTIPLIER * addedValue;
+        uint256 stakeWeight = Stake.WEIGHT_MULTIPLIER * addedValue;
 
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
@@ -496,12 +491,14 @@ abstract contract PoolBase is
         // in most of the cases added value `addedValue` is simply `_value`
         // however for deflationary tokens this can be different
 
+        // gas savings
+        address _poolToken = poolToken;
         // read the current balance
-        uint256 previousBalance = IERC20(poolToken).balanceOf(address(this));
+        uint256 previousBalance = IERC20(_poolToken).balanceOf(address(this));
         // transfer `_value`; note: some tokens may get burnt here
-        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
+        IERC20(_poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
         // read new balance, usually this is just the difference `previousBalance - _value`
-        uint256 newBalance = IERC20(poolToken).balanceOf(address(this));
+        uint256 newBalance = IERC20(_poolToken).balanceOf(address(this));
         // calculate real value taking into account deflation
         uint256 addedValue = newBalance - previousBalance;
 
@@ -512,8 +509,9 @@ abstract contract PoolBase is
         uint64 lockUntil = _lockUntil;
 
         // stake weight formula rewards for locking
-        uint256 stakeWeight = (((lockUntil - lockFrom) * WEIGHT_MULTIPLIER) / 365 days + WEIGHT_MULTIPLIER) *
-            addedValue;
+        uint256 stakeWeight = (((lockUntil - lockFrom) * Stake.WEIGHT_MULTIPLIER) /
+            365 days +
+            Stake.WEIGHT_MULTIPLIER) * addedValue;
 
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
@@ -551,7 +549,7 @@ abstract contract PoolBase is
 
         // updates user data in storage
         user.flexibleBalance -= uint128(_value);
-        user.totalWeight -= _value * WEIGHT_MULTIPLIER;
+        user.totalWeight -= _value * Stake.WEIGHT_MULTIPLIER;
 
         // finally, transfers `_value` poolTokens
         IERC20(poolToken).safeTransfer(msg.sender, _value);
