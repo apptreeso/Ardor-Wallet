@@ -271,9 +271,24 @@ abstract contract CorePool is
      * @param _stakeId zero-indexed stake ID for the address specified
      * @return stake info as Stake structure
      */
-    function getStake(address _user, uint256 _stakeId) external view virtual returns (Stake.Data memory) {
+    function getStake(address _user, uint256 _stakeId) external view returns (Stake.Data memory) {
         // read stake at specified index and return
         return users[_user].stakes[_stakeId];
+    }
+
+    function getV1StakeId(address _user, uint256 _position) external view returns (uint256) {
+        return users[_user].v1StakesIds[_position];
+    }
+
+    function getV1StakePosition(address _user, uint256 _desiredId) external view returns (uint256 position) {
+        User storage user = users[_user];
+
+        for (uint256 i = 0; i < user.v1StakesIds.length; i++) {
+            if (user.v1StakesIds[i] == _desiredId) {
+                position = i;
+                break;
+            }
+        }
     }
 
     /**
