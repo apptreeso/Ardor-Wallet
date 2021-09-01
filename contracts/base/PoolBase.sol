@@ -244,7 +244,7 @@ abstract contract PoolBase is
      * @param _stakeId zero-indexed stake ID for the address specified
      * @return stake info as Stake structure
      */
-    function getStake(address _user, uint256 _stakeId) external view override returns (Stake.Data memory) {
+    function getStake(address _user, uint256 _stakeId) external view virtual returns (Stake.Data memory) {
         // read stake at specified index and return
         return users[_user].stakes[_stakeId];
     }
@@ -297,12 +297,14 @@ abstract contract PoolBase is
         // in most of the cases added value `addedvalue` is simply `_value`
         // however for deflationary tokens this can be different
 
+        address _poolToken = poolToken;
+
         // read the current balance
-        uint256 previousBalance = IERC20(poolToken).balanceOf(address(this));
+        uint256 previousBalance = IERC20(_poolToken).balanceOf(address(this));
         // transfer `_value`; note: some tokens may get burnt here
-        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
+        IERC20(_poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
         // read new balance, usually this is just the difference `previousBalance - _value`
-        uint256 newBalance = IERC20(poolToken).balanceOf(address(this));
+        uint256 newBalance = IERC20(_poolToken).balanceOf(address(this));
         // calculate real value taking into account deflation
         uint256 addedvalue = newBalance - previousBalance;
 
