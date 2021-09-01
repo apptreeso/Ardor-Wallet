@@ -50,6 +50,8 @@ interface IFactory {
      */
     event IlvRatioUpdated(address indexed _by, uint256 newIlvPerSecond);
 
+    function owner() external view returns (address);
+
     /**
      * @dev Smart contract unique identifier, a random number
      * @dev Should be regenerated each time smart contact source code is changed

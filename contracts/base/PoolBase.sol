@@ -92,12 +92,12 @@ abstract contract PoolBase is
     /**
      * @dev Fired in _updateStakeLock() and updateStakeLock()
      *
-     * @param _by an address which performed an operation
-     * @param stakeId updated stake ID
-     * @param lockedFrom stake locked from value
-     * @param lockedUntil updated stake locked until value
+     * @param from stake holder
+     * @param stakeId stake id to be updated
+     * @param lockedFrom stake locked from timestamp value
+     * @param lockedUntil updated stake locked until timestamp value
      */
-    event StakeLockUpdated(address indexed _by, uint256 stakeId, uint64 lockedFrom, uint64 lockedUntil);
+    event LogUpdateStakeLock(address indexed from, uint256 stakeId, uint64 lockedFrom, uint64 lockedUntil);
 
     event LogUnstakeFlexible(address indexed to, uint256 value);
 
@@ -300,7 +300,7 @@ abstract contract PoolBase is
             _processRewards(msg.sender);
         }
 
-        // in most of the cases added value `addedvalue` is simply `_value`
+        // in most of the cases added value `addedValue` is simply `_value`
         // however for deflationary tokens this can be different
 
         // gas savings
@@ -321,12 +321,17 @@ abstract contract PoolBase is
         assert(stakeWeight > 0);
 
         // create and save the stake (append it to stakes array)
-        Stake.Data memory stake = Stake.Data({ value: addedValue, lockedFrom: 0, lockedUntil: 0, isYield: false });
+        Stake.Data memory stake = Stake.Data({
+            value: uint120(addedValue),
+            lockedFrom: 0,
+            lockedUntil: 0,
+            isYield: false
+        });
         // stake ID is an index of the stake in `stakes` array
         user.stakes.push(stake);
 
         // update user record
-        user.flexibleBalance += addedValue;
+        user.flexibleBalance += uint128(addedValue);
         user.totalWeight += stakeWeight;
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
@@ -334,7 +339,7 @@ abstract contract PoolBase is
         globalWeight += stakeWeight;
 
         // emit an event
-        emit LogStakeFlexible(_value);
+        emit LogStakeFlexible(msg.sender, _value);
     }
 
     /**
@@ -349,7 +354,7 @@ abstract contract PoolBase is
         User storage newUser = users[_to];
         require(newUser.stakes.length == 0 && newUser.v1Stakes.length == 0, "invalid user, already exists");
 
-        User memory previousUser = users[msg.sender];
+        User storage previousUser = users[msg.sender];
         delete users[msg.sender];
         newUser = previousUser;
 
@@ -362,20 +367,49 @@ abstract contract PoolBase is
      * @dev Requires new lockedUntil value to be:
      *      higher than the current one, and
      *      in the future, but
-     *      no more than 1 year in the future
+     *      no more than 2 years in the future
      *
-     * @param stakeId updated stake ID
-     * @param lockedUntil updated stake locked until value
-     * @param useSILV used for _processRewards check if it should use ILV or sILV
+     * @param _stakeId updated stake ID
+     * @param _lockedUntil updated stake locked until value
      */
-    function updateStakeLock(
-        uint256 stakeId,
-        uint64 lockedUntil,
-        bool useSILV
-    ) external updatePool {
+    function updateStakeLock(uint256 _stakeId, uint64 _lockedUntil) external updatePool {
         _processRewards(msg.sender);
-        // delegate call to an internal function
-        _updateStakeLock(msg.sender, stakeId, lockedUntil);
+
+        // validate the input time
+        require(_lockedUntil > _now256(), "lock should be in the future");
+
+        // get a link to user data struct, we will write to it later
+        User storage user = users[msg.sender];
+        // get a link to the corresponding stake, we may write to it later
+        Stake.Data storage stake = user.stakes[_stakeId];
+
+        // validate the input against stake structure
+        require(_lockedUntil > stake.lockedUntil, "invalid new lock");
+
+        // saves previous weight into memory
+        uint256 previousWeight = stake.weight(WEIGHT_MULTIPLIER);
+        // gas savings
+        uint256 stakeLockedFrom = stake.lockedFrom;
+
+        // verify locked from and locked until values
+        if (stakeLockedFrom == 0) {
+            require(_lockedUntil - _now256() <= 365 days, "max lock period is 365 days");
+            stakeLockedFrom = _now256();
+            stake.lockedFrom = uint64(stakeLockedFrom);
+        } else {
+            require(_lockedUntil - stakeLockedFrom <= 365 days, "max lock period is 365 days");
+        }
+
+        // update locked until value, calculate new weight
+        stake.lockedUntil = _lockedUntil;
+        // saves new weight into memory
+        uint256 newWeight = stake.weight(WEIGHT_MULTIPLIER);
+        // update user total weight and global locking weight
+        user.totalWeight = user.totalWeight - previousWeight + newWeight;
+        globalWeight = globalWeight - previousWeight + newWeight;
+
+        // emit an event
+        emit LogUpdateStakeLock(msg.sender, _stakeId, stakeLockedFrom, _lockedUntil);
     }
 
     /**
@@ -461,7 +495,7 @@ abstract contract PoolBase is
             _processRewards(_staker);
         }
 
-        // in most of the cases added value `addedvalue` is simply `_value`
+        // in most of the cases added value `addedValue` is simply `_value`
         // however for deflationary tokens this can be different
 
         // read the current balance
@@ -471,7 +505,7 @@ abstract contract PoolBase is
         // read new balance, usually this is just the difference `previousBalance - _value`
         uint256 newBalance = IERC20(poolToken).balanceOf(address(this));
         // calculate real value taking into account deflation
-        uint256 addedvalue = newBalance - previousBalance;
+        uint256 addedValue = newBalance - previousBalance;
 
         // set the `lockFrom` and `lockUntil` taking into account that
         // zero value for `_lockUntil` means "no locking" and leads to zero values
@@ -481,14 +515,14 @@ abstract contract PoolBase is
 
         // stake weight formula rewards for locking
         uint256 stakeWeight = (((lockUntil - lockFrom) * WEIGHT_MULTIPLIER) / 365 days + WEIGHT_MULTIPLIER) *
-            addedvalue;
+            addedValue;
 
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
 
         // create and save the stake (append it to stakes array)
         Stake.Data memory stake = Stake.Data({
-            value: addedvalue,
+            value: uint120(addedValue),
             lockedFrom: lockFrom,
             lockedUntil: lockUntil,
             isYield: _isYield
@@ -504,7 +538,7 @@ abstract contract PoolBase is
         globalWeight += stakeWeight;
 
         // emit an event
-        emit LogStakeAndLock(_value, _lockUntil);
+        emit LogStakeAndLock(msg.sender, _value, _lockUntil);
     }
 
     function unstakeFlexible(uint256 _value) external override updatePool {
@@ -518,7 +552,7 @@ abstract contract PoolBase is
         _processRewards(msg.sender);
 
         // updates user data in storage
-        user.flexibleBalance -= _value;
+        user.flexibleBalance -= uint128(_value);
         user.totalWeight -= _value * WEIGHT_MULTIPLIER;
 
         // finally, transfers `_value` poolTokens
@@ -561,7 +595,7 @@ abstract contract PoolBase is
             // deles stake struct, no need to save new weight because it stays 0
             delete user.stakes[_stakeId];
         } else {
-            stake.value -= _value;
+            stake.value -= uint120(_value);
             // saves new weight to memory
             newWeight = stake.weight(WEIGHT_MULTIPLIER);
         }
@@ -648,7 +682,7 @@ abstract contract PoolBase is
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
 
-        user.pendingYield += pendingYield;
+        user.pendingYield += uint128(pendingYield);
 
         // emit an event
         emit YieldProcessed(msg.sender, _staker, pendingYield);
@@ -665,7 +699,7 @@ abstract contract PoolBase is
         uint256 pendingYieldToClaim = uint256(user.pendingYield);
 
         // if pending yield is zero - just return silently
-        if (pendingYieldToClaim == 0) return 0;
+        if (pendingYieldToClaim == 0) return;
 
         // clears user pending yield
         user.pendingYield = 0;
@@ -704,52 +738,6 @@ abstract contract PoolBase is
 
         // emit an event
         emit YieldClaimed(msg.sender, _staker, _useSILV, pendingYieldToClaim);
-    }
-
-    /**
-     * @dev See updateStakeLock()
-     *
-     * @param _staker an address to update stake lock
-     * @param _stakeId updated stake ID
-     * @param _lockedUntil updated stake locked until value
-     */
-    function _updateStakeLock(
-        address _staker,
-        uint256 _stakeId,
-        uint64 _lockedUntil
-    ) internal {
-        // validate the input time
-        require(_lockedUntil > _now256(), "lock should be in the future");
-
-        // get a link to user data struct, we will write to it later
-        User storage user = users[_staker];
-        // get a link to the corresponding stake, we may write to it later
-        Stake.Data storage stake = user.stakes[_stakeId];
-
-        // validate the input against stake structure
-        require(_lockedUntil > stake.lockedUntil, "invalid new lock");
-
-        // saves previous weight into memory
-        uint256 previousWeight = stake.weight(WEIGHT_MULTIPLIER);
-
-        // verify locked from and locked until values
-        if (stake.lockedFrom == 0) {
-            require(_lockedUntil - _now256() <= 365 days, "max lock period is 365 days");
-            stake.lockedFrom = uint64(_now256());
-        } else {
-            require(_lockedUntil - stake.lockedFrom <= 365 days, "max lock period is 365 days");
-        }
-
-        // update locked until value, calculate new weight
-        stake.lockedUntil = _lockedUntil;
-        // saves new weight into memory
-        uint256 newWeight = stake.weight(WEIGHT_MULTIPLIER);
-        // update user total weight and global locking weight
-        user.totalWeight = user.totalWeight - previousWeight + newWeight;
-        globalWeight = globalWeight - previousWeight + newWeight;
-
-        // emit an event
-        emit StakeLockUpdated(_staker, _stakeId, stake.lockedFrom, _lockedUntil);
     }
 
     /**
