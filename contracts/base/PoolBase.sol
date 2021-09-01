@@ -387,15 +387,15 @@ abstract contract PoolBase is
         require(_lockedUntil > stake.lockedUntil, "invalid new lock");
 
         // saves previous weight into memory
-        uint256 previousWeight = stake.weight(WEIGHT_MULTIPLIER);
+        uint256 previousWeight = stake.weight();
         // gas savings
-        uint256 stakeLockedFrom = stake.lockedFrom;
+        uint64 stakeLockedFrom = stake.lockedFrom;
 
         // verify locked from and locked until values
         if (stakeLockedFrom == 0) {
             require(_lockedUntil - _now256() <= 365 days, "max lock period is 365 days");
-            stakeLockedFrom = _now256();
-            stake.lockedFrom = uint64(stakeLockedFrom);
+            stakeLockedFrom = uint64(_now256());
+            stake.lockedFrom = stakeLockedFrom;
         } else {
             require(_lockedUntil - stakeLockedFrom <= 365 days, "max lock period is 365 days");
         }
@@ -403,7 +403,7 @@ abstract contract PoolBase is
         // update locked until value, calculate new weight
         stake.lockedUntil = _lockedUntil;
         // saves new weight into memory
-        uint256 newWeight = stake.weight(WEIGHT_MULTIPLIER);
+        uint256 newWeight = stake.weight();
         // update user total weight and global locking weight
         user.totalWeight = user.totalWeight - previousWeight + newWeight;
         globalWeight = globalWeight - previousWeight + newWeight;
@@ -586,7 +586,7 @@ abstract contract PoolBase is
         _processRewards(msg.sender);
 
         // store stake weight
-        uint256 previousWeight = stake.weight(WEIGHT_MULTIPLIER);
+        uint256 previousWeight = stake.weight();
         // value used to save new weight after updates in storage
         uint256 newWeight;
 
@@ -597,7 +597,7 @@ abstract contract PoolBase is
         } else {
             stake.value -= uint120(_value);
             // saves new weight to memory
-            newWeight = stake.weight(WEIGHT_MULTIPLIER);
+            newWeight = stake.weight();
         }
 
         // update user record
