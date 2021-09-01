@@ -113,11 +113,11 @@ abstract contract PoolBase is
     /**
      * @dev Fired in _sync(), sync() and dependent functions (stake, unstake, etc.)
      *
-     * @param _by an address which performed an operation
+     * @param by an address which performed an operation
      * @param yieldRewardsPerWeight updated yield rewards per weight value
      * @param lastYieldDistribution usually, current timestamp
      */
-    event Synchronized(address indexed _by, uint256 yieldRewardsPerWeight, uint64 lastYieldDistribution);
+    event LogSync(address indexed by, uint256 yieldRewardsPerWeight, uint64 lastYieldDistribution);
 
     /**
      * @dev Fired in _claimRewards()
@@ -139,19 +139,19 @@ abstract contract PoolBase is
     /**
      * @dev Fired in setWeight()
      *
-     * @param _by an address which performed an operation, always a factory
-     * @param _fromVal old pool weight value
-     * @param _toVal new pool weight value
+     * @param by an address which performed an operation, always a factory
+     * @param fromVal old pool weight value
+     * @param toVal new pool weight value
      */
-    event PoolWeightUpdated(address indexed _by, uint32 _fromVal, uint32 _toVal);
+    event LogSetWeight(address indexed by, uint32 fromVal, uint32 toVal);
 
     /**
      * @dev fired in migrateUser()
      *
-     * @param _from user asking migration
-     * @param _to new user address
+     * @param from user asking migration
+     * @param to new user address
      */
-    event LogMigrateUser(address indexed _from, address indexed _to);
+    event LogMigrateUser(address indexed from, address indexed to);
 
     /// @dev used for functions that require syncing contract state before execution
     modifier updatePool() {
@@ -445,7 +445,7 @@ abstract contract PoolBase is
         weight = _weight;
 
         // emit an event logging old and new weight values
-        emit PoolWeightUpdated(msg.sender, weight, _weight);
+        emit LogSetWeight(msg.sender, weight, _weight);
     }
 
     /**
@@ -658,7 +658,7 @@ abstract contract PoolBase is
         lastYieldDistribution = uint64(currentTimestamp);
 
         // emit an event
-        emit Synchronized(msg.sender, yieldRewardsPerWeight, lastYieldDistribution);
+        emit LogSync(msg.sender, yieldRewardsPerWeight, lastYieldDistribution);
     }
 
     /**
