@@ -13,6 +13,7 @@ import { Stake } from "../libraries/Stake.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IPoolBase } from "../interfaces/IPoolBase.sol";
 import { ICorePool } from "../interfaces/ICorePool.sol";
+import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 
 import "hardhat/console.sol";
 
@@ -40,6 +41,9 @@ abstract contract CorePool is
     /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair
     address public override poolToken;
 
+    /// @dev address of v1 core pool with same poolToken
+    address public corePoolV1;
+
     /// @dev Pool weight, 200 for ILV pool or 800 for ILV/ETH
     uint32 public override weight;
 
@@ -64,6 +68,11 @@ abstract contract CorePool is
      * @dev Rewards per weight are stored multiplied by 1e12, as integers.
      */
     uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e12;
+
+    /**
+     * @dev Multiplier used as a bonus for v1 stakes
+     */
+    uint256 internal constant V1_WEIGHT_BONUS = 2;
 
     /**
      * @dev Fired in stakeFlexible()
@@ -454,9 +463,26 @@ abstract contract CorePool is
      * @return pending calculated yield reward value for the given address
      */
     function _pendingYieldRewards(address _staker) internal view returns (uint256 pending) {
+        // links to _staker user struct in storage
         User storage user = users[_staker];
-        // perform the calculation using values from storage
-        return _weightToReward(user.totalWeight, yieldRewardsPerWeight) - user.subYieldRewards;
+
+        // gas savings
+        uint256 v1StakesLength = user.v1StakesIds.length;
+        // value will be used to add to final weight calculations before
+        // calculating rewards
+        uint256 weightToAdd;
+
+        // checks if user has any migrated stake from v1
+        if (v1StakesLength > 0) {
+            // loops through v1StakesIds and adds v1 weight with V1_WEIGHT_BONUS
+            for (uint256 i = 0; i < v1StakesLength; i++) {
+                (, uint256 _weight) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
+
+                weightToAdd += weight * V1_WEIGHT_BONUS;
+            }
+        }
+
+        pending = _weightToReward((user.totalWeight + weightToAdd), yieldRewardsPerWeight);
     }
 
     /**

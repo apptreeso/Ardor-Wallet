@@ -6,9 +6,6 @@ import { Stake } from "../libraries/Stake.sol";
 import { CorePool } from "./CorePool.sol";
 
 abstract contract V2Migrator is CorePool {
-    /// @dev address of v1 core pool with same poolToken
-    address public corePoolV1;
-
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     ///      if a v1 yield has already been minted by v2 contract
     mapping(bytes32 => bool) public v1YieldMinted;
