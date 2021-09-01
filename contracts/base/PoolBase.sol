@@ -75,13 +75,19 @@ abstract contract PoolBase is
     uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e12;
 
     /**
-     * @dev Fired in _stake() and stake()
-     *
-     * @param _by an address which performed an operation, usually token holder
-     * @param _from token holder address, the tokens will be returned to that address
+     * @dev Fired in stakeFlexible()
+     * @param from token holder address, the tokens will be returned to that address
      * @param value value of tokens staked
      */
-    event Staked(address indexed _by, address indexed _from, uint256 value);
+    event LogStakeFlexible(address indexed from, uint256 value);
+
+    /**
+     * @dev Fired in _stakeAndLock()
+     * @param from token holder address, the tokens will be returned to that address
+     * @param value value of tokens staked
+     * @param lockUntil timestamp indicating when tokens should unlock (max 2 years)
+     */
+    event LogStakeAndLock(address indexed from, uint256 value, uint64 lockUntil);
 
     /**
      * @dev Fired in _updateStakeLock() and updateStakeLock()
@@ -328,7 +334,7 @@ abstract contract PoolBase is
         globalWeight += stakeWeight;
 
         // emit an event
-        emit Staked(msg.sender, msg.sender, _value);
+        emit LogStakeFlexible(_value);
     }
 
     /**
@@ -498,7 +504,7 @@ abstract contract PoolBase is
         globalWeight += stakeWeight;
 
         // emit an event
-        emit Staked(msg.sender, _staker, _value);
+        emit LogStakeAndLock(_value, _lockUntil);
     }
 
     function unstakeFlexible(uint256 _value) external override updatePool {
