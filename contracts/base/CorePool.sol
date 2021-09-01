@@ -204,6 +204,8 @@ abstract contract CorePool is
     /**
      * @notice Calculates current yield rewards value available for address specified
      *
+     * @dev see _pendingYieldRewards() for further details
+     *
      * @param _staker an address to calculate yield rewards value for
      * @return calculated yield reward value for the given address
      */
@@ -472,7 +474,12 @@ abstract contract CorePool is
     /**
      * @dev Similar to public pendingYieldRewards, but performs calculations based on
      *      current smart contract state only, not taking into account any additional
-     *      time which might have passed
+     *      time which might have passed.
+     * @dev It performs a check on v1StakesIds and calls the corresponding V1 core pool
+     *      in order to add v1 weight into v2 yield calculations.
+     *
+     * @notice v1 weight is multiplied by V1_WEIGHT_BONUS as a reward to staking early
+     *         adopters.
      *
      * @param _staker an address to calculate yield rewards value for
      * @return pending calculated yield reward value for the given address
