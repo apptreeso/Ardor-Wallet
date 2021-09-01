@@ -6,6 +6,7 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { Timestamp } from "./Timestamp.sol";
 import { FactoryControlled } from "./FactoryControlled.sol";
+import { VaultRecipient } from "./VaultRecipient.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IlluviumAware } from "../libraries/IlluviumAware.sol";
 import { Stake } from "../libraries/Stake.sol";
@@ -15,10 +16,11 @@ import { ICorePool } from "../interfaces/ICorePool.sol";
 
 import "hardhat/console.sol";
 
-abstract contract PoolBase is
+abstract contract CorePool is
     IPoolBase,
     UUPSUpgradeable,
     FactoryControlled,
+    VaultRecipient,
     ReentrancyGuardUpgradeable,
     PausableUpgradeable,
     Timestamp
@@ -165,7 +167,7 @@ abstract contract PoolBase is
      * @param _weight number representing a weight of the pool, actual weight fraction
      *      is calculated as that number divided by the total pools weight and doesn't exceed one
      */
-    function __PoolBase_init(
+    function __CorePool_init(
         address _ilv,
         address _silv,
         address _poolToken,

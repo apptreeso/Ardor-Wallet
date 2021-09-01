@@ -3,15 +3,17 @@ pragma solidity 0.8.4;
 
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 import { Stake } from "../libraries/Stake.sol";
-import { PoolBase } from "./PoolBase.sol";
+import { CorePool } from "./CorePool.sol";
 
-abstract contract V2Migrator is PoolBase {
+abstract contract V2Migrator is CorePool {
     /// @dev address of v1 core pool with same poolToken
     address public corePoolV1;
 
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     ///      if a v1 yield has already been minted by v2 contract
     mapping(bytes32 => bool) public v1YieldMinted;
+    /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
+    ///      if a v1 locked stake has already been migrated to v2
     mapping(bytes32 => bool) public v1StakesMigrated;
 
     /**
