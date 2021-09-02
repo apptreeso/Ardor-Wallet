@@ -4,7 +4,7 @@ pragma solidity 0.8.4;
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Timestamp } from "./base/Timestamp.sol";
-import { CorePool } from "./CorePool.sol";
+// import { CorePool } from "./CorePool.sol";
 import { IlluviumAware } from "./libraries/IlluviumAware.sol";
 import { IPoolBase } from "./interfaces/IPoolBase.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
@@ -134,17 +134,17 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
     }
 
     /// @inheritdoc IFactory
-    function createPool(
-        address poolToken,
-        uint64 initTime,
-        uint32 weight
-    ) external virtual override onlyOwner {
-        // create/deploy new core pool instance
-        ICorePool pool = new CorePool(ilv, silv, this, poolToken, initTime, weight);
+    // function createPool(
+    //     address poolToken,
+    //     uint64 initTime,
+    //     uint32 weight
+    // ) external virtual override onlyOwner {
+    //     // create/deploy new core pool instance
+    //     ICorePool pool = new CorePool(ilv, silv, this, poolToken, initTime, weight);
 
-        // register it within a factory
-        registerPool(address(pool));
-    }
+    //     // register it within a factory
+    //     registerPool(address(pool));
+    // }
 
     /// @inheritdoc IFactory
     function registerPool(address pool) public override onlyOwner {
