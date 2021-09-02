@@ -70,9 +70,17 @@ abstract contract CorePool is
     uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e12;
 
     /**
-     * @dev Multiplier used as a bonus for v1 stakes
+     * @dev Multiplier used as a bonus reward for v1 stakes
      */
     uint256 internal constant V1_WEIGHT_BONUS = 2;
+
+    /**
+     * @dev Multiplier used for normalizing V1 weight to V2 weight
+     *
+     * @notice in v2 contracts, in order to achieve same proportions in v1
+     *         we need to multiply v1 weight by 1.5x
+     */
+    uint256 internal constant V1_WEIGHT_MULTIPLIER = 1500;
 
     /**
      * @dev Fired in stakeFlexible()
@@ -244,7 +252,7 @@ abstract contract CorePool is
             for (uint256 i = 0; i < v1StakesLength; i++) {
                 (, uint256 _weight) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
 
-                weightToAdd += _weight * V1_WEIGHT_BONUS;
+                weightToAdd += _toV2Weight(_weight);
             }
         }
 
@@ -532,7 +540,7 @@ abstract contract CorePool is
             for (uint256 i = 0; i < v1StakesLength; i++) {
                 (, uint256 _weight) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
 
-                weightToAdd += _weight * V1_WEIGHT_BONUS;
+                weightToAdd += _toV2Weight(_weight);
             }
         }
 
@@ -843,6 +851,10 @@ abstract contract CorePool is
     function _rewardPerWeight(uint256 _reward, uint256 _globalWeight) private pure returns (uint256) {
         // apply the reverse formula and return
         return (_reward * REWARD_PER_WEIGHT_MULTIPLIER) / _globalWeight;
+    }
+
+    function _toV2Weight(uint256 _v1Weight) private pure returns (uint256) {
+        return (_v1Weight * V1_WEIGHT_BONUS * V1_WEIGHT_MULTIPLIER) / 1000;
     }
 
     /// @inheritdoc UUPSUpgradeable
