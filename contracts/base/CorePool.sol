@@ -233,7 +233,7 @@ abstract contract CorePool is
         User storage user = users[_staker];
 
         // gas savings
-        uint256 v1StakesLength = user.v1StakesIds.length;
+        (uint256 v1StakesLength, uint256 userWeight) = (uint256(user.v1IdsLength), uint256(user.totalWeight));
         // value will be used to add to final weight calculations before
         // calculating rewards
         uint256 weightToAdd;
@@ -244,11 +244,11 @@ abstract contract CorePool is
             for (uint256 i = 0; i < v1StakesLength; i++) {
                 (, uint256 _weight) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
 
-                weightToAdd += weight * V1_WEIGHT_BONUS;
+                weightToAdd += _weight * V1_WEIGHT_BONUS;
             }
         }
 
-        pending = _weightToReward(user.totalWeight, newYieldRewardsPerWeight) - user.subYieldRewards;
+        pending = _weightToReward(userWeight, newYieldRewardsPerWeight) - user.subYieldRewards;
     }
 
     /**
@@ -300,7 +300,7 @@ abstract contract CorePool is
     function getV1StakePosition(address _user, uint256 _desiredId) external view returns (uint256 position) {
         User storage user = users[_user];
 
-        for (uint256 i = 0; i < user.v1StakesIds.length; i++) {
+        for (uint256 i = 0; i < user.v1IdsLength; i++) {
             if (user.v1StakesIds[i] == _desiredId) {
                 position = i;
                 break;
@@ -405,7 +405,7 @@ abstract contract CorePool is
      */
     function migrateUser(address _to) external updatePool {
         User storage newUser = users[_to];
-        require(newUser.stakes.length == 0 && newUser.v1StakesIds.length == 0, "invalid user, already exists");
+        require(newUser.stakes.length == 0 && newUser.v1IdsLength == 0, "invalid user, already exists");
 
         User storage previousUser = users[msg.sender];
         delete users[msg.sender];
@@ -521,7 +521,7 @@ abstract contract CorePool is
         User storage user = users[_staker];
 
         // gas savings
-        uint256 v1StakesLength = user.v1StakesIds.length;
+        (uint256 v1StakesLength, uint256 userWeight) = (uint256(user.v1IdsLength), uint256(user.totalWeight));
         // value will be used to add to final weight calculations before
         // calculating rewards
         uint256 weightToAdd;
@@ -532,11 +532,11 @@ abstract contract CorePool is
             for (uint256 i = 0; i < v1StakesLength; i++) {
                 (, uint256 _weight) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
 
-                weightToAdd += weight * V1_WEIGHT_BONUS;
+                weightToAdd += _weight * V1_WEIGHT_BONUS;
             }
         }
 
-        pending = _weightToReward((user.totalWeight + weightToAdd), yieldRewardsPerWeight);
+        pending = _weightToReward((userWeight + weightToAdd), yieldRewardsPerWeight);
     }
 
     /**

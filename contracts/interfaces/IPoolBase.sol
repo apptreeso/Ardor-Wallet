@@ -11,18 +11,30 @@ interface IPoolBase {
         /// @dev pending yield rewards to be claimed
         uint128 pendingYield;
         /// @dev Total weight
-        uint256 totalWeight;
+        uint248 totalWeight;
+        /// @dev number of v1StakesIds
+        uint8 v1IdsLength;
         /// @dev Auxiliary variable for yield calculation
         uint256 subYieldRewards;
         /// @dev Auxiliary variable for vault rewards calculation
         uint256 subVaultRewards;
         /// @dev An array of holder's stakes
         Stake.Data[] stakes;
-        /// @dev An array of holder's stakes ids in V1
-        uint256[] v1StakesIds;
+        /// @dev A mapping of holder's stakes ids in V1
+        mapping(uint256 => uint256) v1StakesIds;
     }
 
-    function users(address _user) external view returns (User memory);
+    function users(address _user)
+        external
+        view
+        returns (
+            uint128,
+            uint128,
+            uint248,
+            uint8,
+            uint256,
+            uint256
+        );
 
     function silv() external view returns (address);
 

@@ -82,6 +82,7 @@ abstract contract V2Migrator is CorePool {
             require(!v1StakesMigrated[stakeHash], "stake id already migrated");
 
             v1StakesMigrated[stakeHash] = true;
+            user.v1IdsLength++;
             user.v1StakesIds.push(_stakeIds[i]);
         }
 
