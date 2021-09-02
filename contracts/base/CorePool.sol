@@ -403,6 +403,35 @@ abstract contract CorePool is
         emit LogStakeFlexible(msg.sender, _value);
     }
 
+    function fillStakeId(uint256 _position) external updatePool {
+        User storage user = users[msg.sender];
+        uint256 stakeId = user.v1StakesIds[_position];
+        assert(stakeId > 0);
+        (uint120 value, , uint64 lockedFrom, uint64 lockedUntil) = ICorePoolV1(corePoolV1).getDeposit(
+            msg.sender,
+            stakeId
+        );
+        require(_now256() > lockedUntil, "v1 stake still locked");
+
+        delete user.v1StakesIds[_position];
+        Stake.Data memory stake = Stake.Data({
+            value: value,
+            lockedFrom: lockedFrom,
+            lockedUntil: lockedUntil,
+            isYield: false
+        });
+        uint256 stakeWeight = (((lockedUntil - lockedFrom) * Stake.WEIGHT_MULTIPLIER) /
+            730 days +
+            Stake.WEIGHT_MULTIPLIER) * value;
+
+        user.stakes.push(stake);
+        // update user record
+        user.totalWeight += stakeWeight;
+        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
+        // update global variable
+        globalWeight += stakeWeight;
+    }
+
     /**
      * @dev migrates msg.sender data to a new address
      *
