@@ -27,7 +27,7 @@ library Stake {
     function weight(Data storage _self) internal view returns (uint256) {
         return
             uint256(
-                (((_self.lockedUntil - _self.lockedFrom) * WEIGHT_MULTIPLIER) / 365 days + WEIGHT_MULTIPLIER) *
+                (((_self.lockedUntil - _self.lockedFrom) * WEIGHT_MULTIPLIER) / 730 days + WEIGHT_MULTIPLIER) *
                     _self.value
             );
     }

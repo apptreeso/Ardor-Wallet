@@ -446,11 +446,11 @@ abstract contract CorePool is
 
         // verify locked from and locked until values
         if (stakeLockedFrom == 0) {
-            require(_lockedUntil - _now256() <= 365 days, "max lock period is 365 days");
+            require(_lockedUntil - _now256() <= 730 days, "max lock period is 730 days");
             stakeLockedFrom = uint64(_now256());
             stake.lockedFrom = stakeLockedFrom;
         } else {
-            require(_lockedUntil - stakeLockedFrom <= 365 days, "max lock period is 365 days");
+            require(_lockedUntil - stakeLockedFrom <= 730 days, "max lock period is 730 days");
         }
 
         // update locked until value, calculate new weight
@@ -557,7 +557,7 @@ abstract contract CorePool is
         // validate the inputs
         require(_value > 0, "zero value");
         require(
-            _lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 365 days),
+            _lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 730 days),
             "invalid lock interval"
         );
 
@@ -590,7 +590,7 @@ abstract contract CorePool is
 
         // stake weight formula rewards for locking
         uint256 stakeWeight = (((lockUntil - lockFrom) * Stake.WEIGHT_MULTIPLIER) /
-            365 days +
+            730 days +
             Stake.WEIGHT_MULTIPLIER) * addedValue;
 
         // makes sure stakeWeight is valid
@@ -794,7 +794,7 @@ abstract contract CorePool is
             Stake.Data memory newStake = Stake.Data({
                 value: pendingYieldToClaim,
                 lockedFrom: uint64(_now256()),
-                lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
+                lockedUntil: uint64(_now256() + 730 days), // staking yield for 1 year
                 isYield: true
             });
 
