@@ -29,6 +29,11 @@ abstract contract CorePool is
     using SafeERC20 for IERC20;
     using Stake for Stake.Data;
 
+    struct UnstakeParameter {
+        uint256 stakeId;
+        uint256 value;
+    }
+
     /// @dev Token holder storage, maps token holder address to their data record
     mapping(address => User) public override users;
 
@@ -731,6 +736,64 @@ abstract contract CorePool is
 
         // emit an event
         emit LogUnstakeLocked(msg.sender, _stakeId, _value);
+    }
+
+    // TODO: improve variable names
+    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
+        require(_stakes.length > 0, "invalid array");
+        User storage user = users[msg.sender];
+
+        _processRewards(msg.sender);
+
+        uint256 weightToRemove;
+        uint256 valueToUnstake;
+
+        for (uint256 i = 0; i < _stakes.length; i++) {
+            (uint256 _stakeId, uint256 _value) = (_stakes[i].stakeId, _stakes[i].value);
+            Stake.Data storage stake = user.stakes[_stakeId];
+            // checks if stake is unlocked already
+            require(_now256() > stake.lockedUntil, "deposit not yet unlocked");
+            // stake structure may get deleted, so we save isYield flag to be able to use it
+            // we also save stakeValue for gasSavings
+            (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
+            require(isYield == _unstakingYield, "invalid yield parameter");
+
+            // store stake weight
+            uint256 previousWeight = stake.weight();
+            // value used to save new weight after updates in storage
+            uint256 newWeight;
+
+            // update the stake, or delete it if its depleted
+            if (stakeValue - _value == 0) {
+                // deletes stake struct, no need to save new weight because it stays 0
+                delete user.stakes[_stakeId];
+            } else {
+                stake.value -= uint120(_value);
+                // saves new weight to memory
+                newWeight = stake.weight();
+            }
+
+            weightToRemove += previousWeight - newWeight;
+            valueToUnstake += _value;
+
+            // TODO: change event
+            emit LogUnstakeLocked(msg.sender, _stakeId, _value);
+        }
+
+        user.totalWeight -= weightToRemove;
+        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
+
+        // update global variable
+        globalWeight -= weightToRemove;
+
+        // if the stake was created by the pool itself as a yield reward
+        if (_unstakingYield) {
+            // mint the yield via the factory
+            factory.mintYieldTo(msg.sender, valueToUnstake, false);
+        } else {
+            // otherwise just return tokens back to holder
+            IERC20(poolToken).safeTransfer(msg.sender, valueToUnstake);
+        }
     }
 
     /**
