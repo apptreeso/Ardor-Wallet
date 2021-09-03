@@ -64,6 +64,26 @@ abstract contract V2Migrator is CorePool {
         emit LogV1YieldMinted(msg.sender, _stakeId, tokenAmount);
     }
 
+    function mintV1YieldMultiple(uint256[] memory _stakeIds) external {
+        uint256 amountToMint;
+
+        for (uint256 i = 0; i < _stakeIds.length; i++) {
+            uint256 _stakeId = _stakeIds[i];
+            (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getStake(
+                msg.sender,
+                _stakeId
+            );
+            require(isYield, "not yield");
+            require(_now256() > lockedUntil, "yield not unlocked yet");
+            bytes32 stakeHash = keccak256(abi.encodePacked(msg.sender, _stakeId));
+            require(!v1YieldMinted[stakeHash], "yield already minted");
+
+            v1YieldMinted[stakeHash] = true;
+        }
+
+        factory.mintYieldTo(msg.sender, amountToMint, false);
+    }
+
     /**
      * @dev reads v1 core pool locked stakes data (by looping through the `_stakeIds` array),
      *      checks if it's a valid v1 stake to migrate and save the id to v2 user struct
