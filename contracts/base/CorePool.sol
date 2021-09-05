@@ -421,6 +421,8 @@ abstract contract CorePool is
 
         // update global variable
         globalWeight += stakeWeight;
+        // update reserve count
+        poolTokenReserve += addedValue;
 
         // emit an event
         emit LogStakeFlexible(msg.sender, _value);
@@ -714,6 +716,8 @@ abstract contract CorePool is
 
         // update global variable
         globalWeight += stakeWeight;
+        // update reserve count
+        poolTokenReserve += addedValue;
 
         // emit an event
         emit LogStakeAndLock(msg.sender, _value, _lockUntil);
@@ -732,6 +736,8 @@ abstract contract CorePool is
         // updates user data in storage
         user.flexibleBalance -= uint128(_value);
         user.totalWeight -= _value * Stake.WEIGHT_MULTIPLIER;
+        // update reserve count
+        poolTokenReserve -= _value;
 
         // finally, transfers `_value` poolTokens
         IERC20(poolToken).safeTransfer(msg.sender, _value);
@@ -784,6 +790,8 @@ abstract contract CorePool is
 
         // update global variable
         globalWeight = globalWeight - previousWeight + newWeight;
+        // update reserve count
+        poolTokenReserve -= _value;
 
         // if the stake was created by the pool itself as a yield reward
         if (isYield) {
@@ -845,6 +853,8 @@ abstract contract CorePool is
 
         // update global variable
         globalWeight -= weightToRemove;
+        // update reserve count
+        poolTokenReserve -= valueToUnstake;
 
         // if the stake was created by the pool itself as a yield reward
         if (_unstakingYield) {
@@ -972,6 +982,8 @@ abstract contract CorePool is
 
             // update global variable
             globalWeight += stakeWeight;
+            // update reserve count
+            poolTokenReserve += pendingYieldToClaim;
         } else {
             // for other pools - stake as pool
             address ilvPool = factory.getPoolAddress(ilv);
