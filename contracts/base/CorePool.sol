@@ -12,7 +12,7 @@ import { IlluviumAware } from "../libraries/IlluviumAware.sol";
 import { Stake } from "../libraries/Stake.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ICorePool } from "../interfaces/ICorePool.sol";
-import { ICorePool } from "../interfaces/ICorePool.sol";
+import { IFactory } from "../interfaces/IFactory.sol";
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 
 import "hardhat/console.sol";
@@ -547,6 +547,13 @@ abstract contract CorePool is
 
     function claimRewards(bool _useSILV) external override updatePool {
         _claimRewards(msg.sender, _useSILV);
+    }
+
+    function claimRewardsMultiple(address _staker, bool _useSILV) external override updatePool {
+        bool poolIsValid = IFactory(factory).pools(ilv) == msg.sender;
+        require(poolIsValid, "invalid caller");
+
+        _claimRewards(_staker, _useSILV);
     }
 
     /**

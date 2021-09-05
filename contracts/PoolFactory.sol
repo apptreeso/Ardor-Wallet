@@ -7,7 +7,6 @@ import { Timestamp } from "./base/Timestamp.sol";
 // import { CorePool } from "./CorePool.sol";
 import { IlluviumAware } from "./libraries/IlluviumAware.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
-import { ICorePool } from "./interfaces/ICorePool.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 
 import "hardhat/console.sol";
