@@ -86,12 +86,19 @@ contract Vault is AccessControl {
     /**
      * @dev Fired in setCorePools()
      *
-     * @param _by ROLE_VAULT_MANAGER who executed the setup
+     * @param by ROLE_VAULT_MANAGER who executed the setup
      * @param ilvPool deployed ILV core pool address
      * @param pairPool deployed ILV/ETH pair (LP) pool address
-     * @param lockedPool deployed locked pool address
+     * @param lockedPoolV1 deployed locked pool V1 address
+     * @param lockedPoolV2 deployed locked pool V2 address
      */
-    event CorePoolsUpdated(address indexed _by, address ilvPool, address pairPool, address lockedPool);
+    event CorePoolsUpdated(
+        address indexed by,
+        address ilvPool,
+        address pairPool,
+        address lockedPoolV1,
+        address lockedPoolV2
+    );
 
     /**
      * @notice Creates (deploys) IlluviumVault linked to UniswapV2Router02 and IlluviumERC20 token
@@ -115,7 +122,8 @@ contract Vault is AccessControl {
      *
      * @param ilvPool deployed ILV core pool address
      * @param pairPool deployed ILV/ETH pair (LP) pool address
-     * @param lockedPool deployed locked pool address
+     * @param lockedPoolV1 deployed locked pool V1 address
+     * @param lockedPoolV2 deployed locked pool V2 address
      */
     function setCorePools(
         ICorePool ilvPool,
@@ -132,17 +140,20 @@ contract Vault is AccessControl {
         require(address(lockedPoolV1) != address(0), "locked pool v1 is not set");
         require(address(lockedPoolV2) != address(0), "locked pool v2 is not set");
 
-        require(address(ilvPool) != address(pairPool), "ILV and LP pool addresses are the same");
-        require(address(pairPool) != address(lockedPool), "LP and locked pool addresses are the same");
-        require(address(ilvPool) != address(lockedPool), "ILV and locked pool addresses are the same");
-
         // set up
         pools.ilvPool = ilvPool;
         pools.pairPool = pairPool;
-        pools.lockedPoolV1 = lockedPool;
+        pools.lockedPoolV1 = lockedPoolV1;
+        pools.lockedPoolV2 = lockedPoolV2;
 
         // emit an event
-        emit CorePoolsUpdated(msg.sender, address(ilvPool), address(pairPool), address(lockedPool));
+        emit CorePoolsUpdated(
+            msg.sender,
+            address(ilvPool),
+            address(pairPool),
+            address(lockedPoolV1),
+            address(lockedPoolV2)
+        );
     }
 
     /**
@@ -211,10 +222,11 @@ contract Vault is AccessControl {
         }
 
         // reads core pools
-        (ICorePool ilvPool, ICorePool pairPool, ILockedPool lockedPool) = (
+        (ICorePool ilvPool, ICorePool pairPool, ICorePool lockedPoolV1, ICorePool lockedPoolV2) = (
             pools.ilvPool,
             pools.pairPool,
-            pools.lockedPool
+            pools.lockedPoolV1,
+            pools.lockedPoolV2
         );
 
         // read contract's ILV balance
@@ -226,32 +238,39 @@ contract Vault is AccessControl {
         if (ilv.allowance(address(this), address(pairPool)) < ilvBalance) {
             ilv.approve(address(pairPool), type(uint256).max);
         }
-        if (ilv.allowance(address(this), address(lockedPool)) < ilvBalance) {
-            ilv.approve(address(lockedPool), type(uint256).max);
+        if (ilv.allowance(address(this), address(lockedPoolV1)) < ilvBalance) {
+            ilv.approve(address(lockedPoolV1), type(uint256).max);
+        }
+        if (ilv.allowance(address(this), address(lockedPoolV2)) < ilvBalance) {
+            ilv.approve(address(lockedPoolV2), type(uint256).max);
         }
 
         // gets poolToken reserves in each pool
         uint256 reserve0 = ilvPool.poolTokenReserve();
         uint256 reserve1 = estimatePairPoolReserve(pairPool);
-        uint256 reserve2 = lockedPool.poolTokenReserve();
+        uint256 reserve2 = lockedPoolV1.poolTokenReserve();
+        uint256 reserve3 = lockedPoolV2.poolTokenReserve();
 
         // ILV in ILV core pool + ILV in ILV/ETH core pool representation + ILV in locked pool
-        uint256 totalReserve = reserve0 + reserve1 + reserve2;
+        uint256 totalReserve = reserve0 + reserve1 + reserve2 + reserve3;
 
         // amount of ILV to send to ILV core pool
         uint256 amountToSend0 = _getAmountToSend(ilvBalance, reserve0, totalReserve);
         // amount of ILV to send to ILV/ETH core pool
         uint256 amountToSend1 = _getAmountToSend(ilvBalance, reserve1, totalReserve);
-        // amount of ILV to send to locked ILV core pool
+        // amount of ILV to send to locked ILV core pool V1
         uint256 amountToSend2 = _getAmountToSend(ilvBalance, reserve2, totalReserve);
+        // amount of ILV to send to locked ILV core pool V2
+        uint256 amountToSend3 = _getAmountToSend(ilvBalance, reserve3, totalReserve);
 
         // makes sure we are sending a valid amount
-        assert(amountToSend0 + amountToSend1 + amountToSend2 <= ilvBalance);
+        assert(amountToSend0 + amountToSend1 + amountToSend2 + amountToSend3 <= ilvBalance);
 
         // sends ILV to both core pools
         ilvPool.receiveVaultRewards(amountToSend0);
         pairPool.receiveVaultRewards(amountToSend1);
-        lockedPool.receiveVaultRewards(amountToSend2);
+        lockedPoolV1.receiveVaultRewards(amountToSend2);
+        lockedPoolV2.receuveVaultRewards(amountToSend3);
 
         // emit an event
         emit IlvRewardsSent(msg.sender, ilvBalance);
