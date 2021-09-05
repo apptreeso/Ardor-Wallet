@@ -74,7 +74,7 @@ abstract contract V2Migrator is CorePool {
         emit LogV1YieldMinted(msg.sender, _stakeId, tokenAmount);
     }
 
-    function mintV1YieldMultiple(uint256[] memory _stakeIds) external {
+    function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
         uint256 amountToMint;
 
         for (uint256 i = 0; i < _stakeIds.length; i++) {

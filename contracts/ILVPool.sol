@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { IFactory } from "./interfaces/IFactory.sol";
+import { ICorePool } from "./interfaces/ICorePool.sol";
 import { CorePool } from "./base/CorePool.sol";
 
 contract ILVPool is CorePool {
+    event LogClaimRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
+
     /// @dev see __ICorePool_init
     function __ILVPool_init(
         address _ilv,
@@ -14,5 +18,21 @@ contract ILVPool is CorePool {
         uint32 _weight
     ) internal initializer {
         __CorePool_init(_ilv, _silv, _poolToken, _factory, _initTime, _weight);
+    }
+
+    function claimRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external {
+        require(_pools.length == _useSILV.length, "invalid parameters");
+        for (uint256 i = 0; i < _pools.length; i++) {
+            address pool = _pools[i];
+            require(IFactory(factory).poolExists(pool), "invalid pool");
+
+            if (ICorePool(pool).poolToken() == ilv) {
+                _claimRewards(msg.sender, _useSILV[i]);
+            } else {
+                ICorePool(pool).claimRewardsFromRouter(msg.sender, _useSILV[i]);
+            }
+        }
+
+        emit LogClaimRewardsMultiple(msg.sender, _pools, _useSILV);
     }
 }
