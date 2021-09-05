@@ -8,6 +8,7 @@ import { ICorePool } from "./interfaces/ICorePool.sol";
 
 contract ILVPool is CorePool {
     event LogClaimRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
+    event LogStakeAsPool(address indexed from, address indexed staker, uint256 value);
 
     /// @dev see __ICorePool_init
     function __ILVPool_init(
@@ -56,6 +57,8 @@ contract ILVPool is CorePool {
 
         // update `poolTokenReserve` only if this is a LP Core Pool (stakeAsPool can be executed only for LP pool)
         poolTokenReserve += _value;
+
+        emit LogStakeAsPool(msg.sender, _staker, _value);
     }
 
     /**
