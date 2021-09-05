@@ -447,11 +447,30 @@ abstract contract CorePool is
      */
     function migrateUser(address _to) external updatePool {
         User storage newUser = users[_to];
-        require(newUser.stakes.length == 0 && newUser.v1IdsLength == 0, "invalid user, already exists");
+        require(
+            newUser.totalWeight == 0 && newUser.v1IdsLength == 0 && newUser.pendingYield == 0,
+            "invalid user, already exists"
+        );
 
         User storage previousUser = users[msg.sender];
-        delete users[msg.sender];
-        newUser = previousUser;
+        uint128 flexibleBalance = previousUser.flexibleBalance;
+        uint128 pendingYield = previousUser.pendingYield;
+        uint248 totalWeight = previousUser.totalWeight;
+        uint256 subYieldRewards = previousUser.subYieldRewards;
+        uint256 subVaultRewards = previousUser.subVaultRewards;
+        previousUser.flexibleBalance = 0;
+        previousUser.pendingYield = 0;
+        previousUser.totalWeight = 0;
+        previousUser.subYieldRewards = 0;
+        previousUser.subVaultRewards = 0;
+        for (uint256 i = 0; i < previousUser.stakes.length; i++) {
+            delete previousUser.stakes[i];
+        }
+        newUser.flexibleBalance = flexibleBalance;
+        newUser.pendingYield = pendingYield;
+        newUser.totalWeight = totalWeight;
+        newUser.subYieldRewards = subYieldRewards;
+        newUser.subVaultRewards = subVaultRewards;
 
         emit LogMigrateUser(msg.sender, _to);
     }
