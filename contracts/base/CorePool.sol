@@ -227,6 +227,7 @@ abstract contract CorePool is
      * @return calculated yield reward value for the given address
      */
     function pendingYieldRewards(address _staker) external view override returns (uint256 pending) {
+        require(_staker != address(0), "invalid _staker");
         // `newYieldRewardsPerWeight` will store stored or recalculated value for `yieldRewardsPerWeight`
         uint256 newYieldRewardsPerWeight;
 
@@ -456,6 +457,7 @@ abstract contract CorePool is
      * @param _to new user address
      */
     function migrateUser(address _to) external updatePool {
+        require(_to != address(0), "invalid _to");
         User storage newUser = users[_to];
         require(
             newUser.totalWeight == 0 && newUser.v1IdsLength == 0 && newUser.pendingYield == 0,
