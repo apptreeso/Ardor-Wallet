@@ -233,7 +233,7 @@ abstract contract CorePool is
      * @dev see _pendingYieldRewards() for further details
      *
      * @param _staker an address to calculate yield rewards value for
-     * @return calculated yield reward value for the given address
+     * @return pending calculated yield reward value for the given address
      */
     function pendingYieldRewards(address _staker) external view override returns (uint256 pending) {
         require(_staker != address(0), "invalid _staker");
@@ -328,7 +328,7 @@ abstract contract CorePool is
      *
      * @param _user an address to query stake for
      * @param _desiredId desired stakeId position in the array to find
-     * @return stake info as Stake structure
+     * @return position stake info as Stake structure
      */
     function getV1StakePosition(address _user, uint256 _desiredId) external view returns (uint256 position) {
         User storage user = users[_user];
