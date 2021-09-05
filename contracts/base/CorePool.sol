@@ -549,7 +549,7 @@ abstract contract CorePool is
         _claimRewards(msg.sender, _useSILV);
     }
 
-    function claimRewardsMultiple(address _staker, bool _useSILV) external override updatePool {
+    function claimRewardsFromRouter(address _staker, bool _useSILV) external override updatePool {
         bool poolIsValid = IFactory(factory).pools(ilv) == msg.sender;
         require(poolIsValid, "invalid caller");
 

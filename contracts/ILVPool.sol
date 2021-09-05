@@ -35,4 +35,6 @@ contract ILVPool is CorePool {
 
         emit LogClaimRewardsMultiple(msg.sender, _pools, _useSILV);
     }
+
+    function claimRewardsFromRouter(address _staker, bool _useSILV) external override {}
 }
