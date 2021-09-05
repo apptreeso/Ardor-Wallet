@@ -545,10 +545,25 @@ abstract contract CorePool is
         _sync();
     }
 
+    /**
+     * @dev calls internal _claimRewards() passing `msg.sender` as `_staker`
+     *
+     * @notice pool state is updated before calling the internal function
+     */
     function claimRewards(bool _useSILV) external override updatePool {
         _claimRewards(msg.sender, _useSILV);
     }
 
+    /**
+     * @notice this function can be called only by ILV core pool
+     *
+     * @dev uses ILV pool as a router by receiving the _staker address and executing
+     *      the internal _claimRewards()
+     * @dev its usage allows claiming multiple pool contracts in one transaction
+     *
+     * @param _staker user address
+     * @param _useSILV whether it should claim pendingYield as ILV or sILV
+     */
     function claimRewardsFromRouter(address _staker, bool _useSILV) external override updatePool {
         bool poolIsValid = IFactory(factory).pools(ilv) == msg.sender;
         require(poolIsValid, "invalid caller");
@@ -894,6 +909,15 @@ abstract contract CorePool is
         emit LogProcessRewards(_staker, pendingYield);
     }
 
+    /**
+     * @dev claims all pendingYield from _staker using ILV or sILV
+     *
+     * @notice sILV is minted straight away to _staker wallet, ILV is created as
+     *         a new stake and locked for 365 days
+     *
+     * @param _staker user address
+     * @param _useSILV whether the user wants to claim ILV or sILV
+     */
     function _claimRewards(address _staker, bool _useSILV) internal {
         // update user state
         _processRewards(_staker);
