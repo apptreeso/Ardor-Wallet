@@ -5,7 +5,6 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { Timestamp } from "./Timestamp.sol";
-import { FactoryControlled } from "./FactoryControlled.sol";
 import { VaultRecipient } from "./VaultRecipient.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IlluviumAware } from "../libraries/IlluviumAware.sol";
@@ -20,7 +19,6 @@ import "hardhat/console.sol";
 abstract contract CorePool is
     ICorePool,
     UUPSUpgradeable,
-    FactoryControlled,
     VaultRecipient,
     ReentrancyGuardUpgradeable,
     PausableUpgradeable,
@@ -63,6 +61,12 @@ abstract contract CorePool is
     /// @dev Used to calculate yield rewards, keeps track of the tokens weight locked in staking
     uint256 public override globalWeight;
 
+    /// @dev Pool tokens value available in the pool;
+    ///      pool token examples are ILV (ILV core pool) or ILV/ETH pair (LP core pool)
+    /// @dev For LP core pool this value doesnt' count for ILV tokens received as Vault rewards
+    ///      while for ILV core pool it does count for such tokens as well
+    uint256 public poolTokenReserve;
+
     /**
      * @dev When we know beforehand that staking is done for a year, and fraction of the year locked is one,
      *      we use simplified calculation and use the following constant instead previos one
@@ -86,6 +90,9 @@ abstract contract CorePool is
      *         we need to multiply v1 weight by 1.5x
      */
     uint256 internal constant V1_WEIGHT_MULTIPLIER = 1500;
+
+    /// @dev Flag indicating pool type, false means "core pool"
+    bool public constant override isFlashPool = false;
 
     /**
      * @dev Fired in stakeFlexible()
@@ -986,7 +993,7 @@ abstract contract CorePool is
      * @param _rewardPerWeight ILV reward per weight
      * @return reward value normalized to 10^12
      */
-    function _weightToReward(uint256 _weight, uint256 _rewardPerWeight) private pure returns (uint256) {
+    function _weightToReward(uint256 _weight, uint256 _rewardPerWeight) internal pure returns (uint256) {
         // apply the formula and return
         return (_weight * _rewardPerWeight) / REWARD_PER_WEIGHT_MULTIPLIER;
     }
@@ -1002,12 +1009,12 @@ abstract contract CorePool is
      * @param _globalWeight total weight in the pool
      * @return reward per weight value
      */
-    function _rewardPerWeight(uint256 _reward, uint256 _globalWeight) private pure returns (uint256) {
+    function _rewardPerWeight(uint256 _reward, uint256 _globalWeight) internal pure returns (uint256) {
         // apply the reverse formula and return
         return (_reward * REWARD_PER_WEIGHT_MULTIPLIER) / _globalWeight;
     }
 
-    function _toV2Weight(uint256 _v1Weight) private pure returns (uint256) {
+    function _toV2Weight(uint256 _v1Weight) internal pure returns (uint256) {
         return (_v1Weight * V1_WEIGHT_BONUS * V1_WEIGHT_MULTIPLIER) / 1000;
     }
 

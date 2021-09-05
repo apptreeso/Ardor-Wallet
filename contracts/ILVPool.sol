@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { CorePool } from "./base/CorePool.sol";
+import { Stake } from "./libraries/Stake.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
-import { CorePool } from "./base/CorePool.sol";
 
 contract ILVPool is CorePool {
     event LogClaimRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
@@ -18,6 +19,43 @@ contract ILVPool is CorePool {
         uint32 _weight
     ) external initializer {
         __CorePool_init(_ilv, _silv, _poolToken, _factory, _initTime, _weight);
+    }
+
+    /**
+     * @dev Executed by other core pools and flash pools
+     *      as part of yield rewards processing logic (`_claimRewards` function)
+     * @dev Executed when _useSILV is false and pool is not an ILV pool - see `IlluviumPoolBase._processRewards`
+     *
+     * @param _staker an address which stakes (the yield reward)
+     * @param _value amount to be staked (yield reward amount)
+     */
+    function stakeAsPool(address _staker, uint256 _value) external updatePool {
+        require(factory.poolExists(msg.sender), "access denied");
+        User storage user = users[_staker];
+        if (user.totalWeight > 0) {
+            _processRewards(_staker);
+        }
+        uint256 stakeWeight = _value * YEAR_STAKE_WEIGHT_MULTIPLIER;
+        Stake.Data memory newStake = Stake.Data({
+            value: _value,
+            lockedFrom: uint64(_now256()),
+            lockedUntil: uint64(_now256() + 365 days),
+            isYield: true
+        });
+
+        user.totalWeight += stakeWeight;
+        user.stakes.push(newStake);
+
+        globalWeight += stakeWeight;
+
+        // gas savings
+        uint256 userTotalWeight = user.totalWeight;
+
+        user.subYieldRewards = _weightToReward(userTotalWeight, yieldRewardsPerWeight);
+        user.subVaultRewards = _weightToReward(userTotalWeight, vaultRewardsPerWeight);
+
+        // update `poolTokenReserve` only if this is a LP Core Pool (stakeAsPool can be executed only for LP pool)
+        poolTokenReserve += _value;
     }
 
     /**
