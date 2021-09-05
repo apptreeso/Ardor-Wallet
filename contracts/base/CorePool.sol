@@ -274,10 +274,16 @@ abstract contract CorePool is
      * @param _user an address to query balance for
      * @return total staked token balance
      */
-    // function balanceOf(address _user) external view override returns (uint256) {
-    //     // read specified user token value and return
-    //     return users[_user].tokenAmount;
-    // }
+    function balanceOf(address _user) external view override returns (uint256 balance) {
+        User storage user = users[msg.sender];
+        uint256 balanceInStakes;
+
+        for (uint256 i = 0; i < user.stakes.length; i++) {
+            balanceInStakes += user.stakes[i];
+        }
+
+        balance = balanceInStakes + user.flexibleBalance;
+    }
 
     /**
      * @notice Returns information on the given stake for the given address

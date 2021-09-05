@@ -16,7 +16,7 @@ contract ILVPool is CorePool {
         address _factory,
         uint64 _initTime,
         uint32 _weight
-    ) internal initializer {
+    ) external initializer {
         __CorePool_init(_ilv, _silv, _poolToken, _factory, _initTime, _weight);
     }
 
