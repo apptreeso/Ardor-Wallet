@@ -11,14 +11,14 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IlluviumAware } from "../libraries/IlluviumAware.sol";
 import { Stake } from "../libraries/Stake.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IPoolBase } from "../interfaces/IPoolBase.sol";
+import { ICorePool } from "../interfaces/ICorePool.sol";
 import { ICorePool } from "../interfaces/ICorePool.sol";
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 
 import "hardhat/console.sol";
 
 abstract contract CorePool is
-    IPoolBase,
+    ICorePool,
     UUPSUpgradeable,
     FactoryControlled,
     VaultRecipient,
@@ -184,6 +184,7 @@ abstract contract CorePool is
      * @param _ilv ILV ERC20 Token address
      * @param _silv sILV ERC20 Token address
      * @param _poolToken token the pool operates on, for example ILV or ILV/ETH pair
+     * @param _factory PoolFactory contract address
      * @param _initTime initial timestamp used to calculate the rewards
      *      note: _initTime can be set to the future effectively meaning _sync() calls will do nothing
      * @param _weight number representing a weight of the pool, actual weight fraction
@@ -193,12 +194,15 @@ abstract contract CorePool is
         address _ilv,
         address _silv,
         address _poolToken,
+        address _factory,
         uint64 _initTime,
         uint32 _weight
     ) internal initializer {
         require(_poolToken != address(0), "pool token address not set");
         require(_initTime > 0, "init time not set");
         require(_weight > 0, "pool weight not set");
+
+        __FactoryControlled_init(_factory);
 
         // verify ilv and silv instanes
         IlluviumAware.verifyILV(_ilv);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import { IPoolBase } from "./IPoolBase.sol";
+import { ICorePool } from "./ICorePool.sol";
 
 interface IFactory {
     /// @dev Auxiliary data structure used only in getPoolData() view function
@@ -99,7 +99,7 @@ interface IFactory {
     function silv() external view returns (address);
 
     /// @dev Maps pool token address (like ILV) -> pool address (like core pool instance)
-    function pools(address _poolToken) external view returns (IPoolBase);
+    function pools(address _poolToken) external view returns (ICorePool);
 
     /// @dev Keeps track of registered pool addresses, maps pool address -> exists flag
     function poolExists(address _poolAddress) external view returns (bool);
@@ -153,7 +153,7 @@ interface IFactory {
      *
      * @param pool address of the already deployed pool instance
      */
-    function registerPool(IPoolBase pool) external;
+    function registerPool(ICorePool pool) external;
 
     /**
      * @notice Decreases ILV/second reward by 3%, can be executed
@@ -183,5 +183,5 @@ interface IFactory {
      * @param pool address of the pool to change weight for
      * @param weight new weight value to set to
      */
-    function changePoolWeight(IPoolBase pool, uint32 weight) external;
+    function changePoolWeight(ICorePool pool, uint32 weight) external;
 }

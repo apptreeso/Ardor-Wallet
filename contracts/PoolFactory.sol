@@ -6,7 +6,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { Timestamp } from "./base/Timestamp.sol";
 // import { CorePool } from "./CorePool.sol";
 import { IlluviumAware } from "./libraries/IlluviumAware.sol";
-import { IPoolBase } from "./interfaces/IPoolBase.sol";
+import { ICorePool } from "./interfaces/ICorePool.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 
@@ -106,13 +106,13 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
     /// @inheritdoc IFactory
     function getPoolData(address _poolToken) public view override returns (PoolData memory) {
         // get the pool address from the mapping
-        IPoolBase pool = IPoolBase(pools[_poolToken]);
+        ICorePool pool = ICorePool(pools[_poolToken]);
 
         // throw if there is no pool registered for the token specified
         require(address(pool) != address(0), "pool not found");
 
         // read pool information from the pool smart contract
-        // via the pool interface (IPoolBase)
+        // via the pool interface (ICorePool)
         address poolToken = pool.poolToken();
         bool isFlashPool = pool.isFlashPool();
         uint32 weight = pool.weight();
@@ -149,10 +149,10 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
     /// @inheritdoc IFactory
     function registerPool(address pool) public override onlyOwner {
         // read pool information from the pool smart contract
-        // via the pool interface (IPoolBase)
-        address poolToken = IPoolBase(pool).poolToken();
-        bool isFlashPool = IPoolBase(pool).isFlashPool();
-        uint32 weight = IPoolBase(pool).weight();
+        // via the pool interface (ICorePool)
+        address poolToken = ICorePool(pool).poolToken();
+        bool isFlashPool = ICorePool(pool).isFlashPool();
+        uint32 weight = ICorePool(pool).weight();
 
         // create pool structure, register it within the factory
         pools[poolToken] = pool;
@@ -204,7 +204,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
         totalWeight = totalWeight + weight - pool.weight();
 
         // set the new pool weight
-        IPoolBase(pool).setWeight(weight);
+        ICorePool(pool).setWeight(weight);
 
         // emit an event
         emit WeightUpdated(msg.sender, address(pool), weight);
