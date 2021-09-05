@@ -24,6 +24,16 @@ abstract contract V2Migrator is CorePool {
     event LogV1YieldMinted(address indexed from, uint256 stakeId, uint256 value);
 
     /**
+     * @dev logs mintV1Yield()
+     *
+     * @param from user address
+     * @param stakeIds array of v1 yield ids
+     * @param value number of ILV tokens minted
+     *
+     */
+    event LogV1YieldMintedMultiple(address indexed from, uint256[] stakeIds, uint256 value);
+
+    /**
      * @dev logs migrateLockedStake()
      *
      * @param from user address
@@ -79,9 +89,12 @@ abstract contract V2Migrator is CorePool {
             require(!v1YieldMinted[stakeHash], "yield already minted");
 
             v1YieldMinted[stakeHash] = true;
+            amountToMint += tokenAmount;
         }
 
         factory.mintYieldTo(msg.sender, amountToMint, false);
+
+        emit LogV1YieldMintedMultiple(msg.sender, _stakeIds, amountToMint);
     }
 
     /**
