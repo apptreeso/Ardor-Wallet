@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.1;
+pragma solidity 0.8.4;
 
 import { ICorePool } from "./interfaces/ICorePool.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { IUniswapV2Router02 } from "./interfaces/IUniswapV2Router02.sol";
-import { AccessControl } from "./utils/AccessControl.sol";
+import { AccessControl } from "./base/AccessControl.sol";
 
 /**
  * @title Illuvium Vault
