@@ -52,27 +52,19 @@ interface ICorePool {
 
     function pendingYieldRewards(address _user) external view returns (uint256);
 
+    function poolTokenReserve() external view returns (uint256);
+
+    function claimRewardsFromRouter(address _staker, bool _useSILV) external;
+
     function balanceOf(address _user) external view returns (uint256);
 
     function getStake(address _user, uint256 _stakeId) external view returns (Stake.Data memory);
 
     function getStakesLength(address _user) external view returns (uint256);
 
-    function stake(
-        uint256 _value,
-        uint64 _lockedUntil,
-        bool useSILV
-    ) external;
-
-    function unstake(
-        uint256 _stakeId,
-        uint256 _value,
-        bool useSILV
-    ) external;
-
     function sync() external;
 
-    function processRewards(bool useSILV) external;
-
     function setWeight(uint32 _weight) external;
+
+    function receiveVaultRewards(uint256 value) external;
 }

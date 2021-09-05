@@ -38,13 +38,13 @@ contract ILVPool is CorePool {
         }
         uint256 stakeWeight = _value * YEAR_STAKE_WEIGHT_MULTIPLIER;
         Stake.Data memory newStake = Stake.Data({
-            value: _value,
+            value: uint120(_value),
             lockedFrom: uint64(_now256()),
             lockedUntil: uint64(_now256() + 365 days),
             isYield: true
         });
 
-        user.totalWeight += stakeWeight;
+        user.totalWeight += uint248(stakeWeight);
         user.stakes.push(newStake);
 
         globalWeight += stakeWeight;

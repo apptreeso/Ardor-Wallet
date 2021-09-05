@@ -270,7 +270,7 @@ contract Vault is AccessControl {
         ilvPool.receiveVaultRewards(amountToSend0);
         pairPool.receiveVaultRewards(amountToSend1);
         lockedPoolV1.receiveVaultRewards(amountToSend2);
-        lockedPoolV2.receuveVaultRewards(amountToSend3);
+        lockedPoolV2.receiveVaultRewards(amountToSend3);
 
         // emit an event
         emit IlvRewardsSent(msg.sender, ilvBalance);

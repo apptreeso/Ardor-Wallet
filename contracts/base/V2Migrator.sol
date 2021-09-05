@@ -59,7 +59,7 @@ abstract contract V2Migrator is CorePool {
      * @param _stakeId v1 yield id
      */
     function mintV1Yield(uint256 _stakeId) external {
-        (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getStake(
+        (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
             msg.sender,
             _stakeId
         );
@@ -79,7 +79,7 @@ abstract contract V2Migrator is CorePool {
 
         for (uint256 i = 0; i < _stakeIds.length; i++) {
             uint256 _stakeId = _stakeIds[i];
-            (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getStake(
+            (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
                 msg.sender,
                 _stakeId
             );
@@ -109,14 +109,14 @@ abstract contract V2Migrator is CorePool {
         User storage user = users[msg.sender];
 
         for (uint256 i = 0; i < _stakeIds.length; i++) {
-            (, uint256 lockedFrom, , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
+            (, uint256 lockedFrom, , , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
             require(lockedFrom > 0 && isYield, "invalid stake to migrate");
             bytes32 stakeHash = keccak256(abi.encodePacked(msg.sender, _stakeIds[i]));
             require(!v1StakesMigrated[stakeHash], "stake id already migrated");
 
             v1StakesMigrated[stakeHash] = true;
             user.v1IdsLength++;
-            user.v1StakesIds.push(_stakeIds[i]);
+            user.v1StakesIds[i] = _stakeIds[i];
         }
 
         emit LogMigrateLockedStake(msg.sender, _stakeIds);
