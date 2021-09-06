@@ -297,19 +297,19 @@ contract Vault is AccessControl {
      */
     function estimatePairPoolReserve(ICorePool _pairPool) public view returns (uint256) {
         // 1. Determine LP pool share in terms of LP tokens:
-        //    LP_share = lpAmount / lpTotal; LP_share < 1
+        //    lpShare = lpAmount / lpTotal; lpShare < 1
         //    where lpAmount is amount of LP tokens in the pool,
         //    and lpTotal is total LP tokens supply
         uint256 lpAmount = _pairPool.poolTokenReserve();
         uint256 lpTotal = IERC20(_pairPool.poolToken()).totalSupply();
-        // uint256 LP_share = lpAmount / lpTotal; - this will always be zero due to int rounding down,
+        // uint256 lpShare = lpAmount / lpTotal; - this will always be zero due to int rounding down,
         // therefore we don't calculate the share, but apply it to the calculations below
 
         // Note: for LP core pool `poolTokenReserve` doesn't count for ILV tokens pool holds
 
         // 2. Considering that LP pool share in terms of ILV tokens is the same as in terms of LP tokens,
-        //    ILV_share = LP_share, ILV amount the LP pool has in LP tokens would be estimated as
-        //    ilvAmount = ilvTotal * ILV_share = ilvTotal * LP_share
+        //    ilvShare = lpShare, ILV amount the LP pool has in LP tokens would be estimated as
+        //    ilvAmount = ilvTotal * ilvShare = ilvTotal * lpShare
         uint256 ilvTotal = ilv.balanceOf(_pairPool.poolToken());
         uint256 ilvAmount = (ilvTotal * lpAmount) / lpTotal;
 
