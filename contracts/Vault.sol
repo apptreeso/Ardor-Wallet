@@ -61,27 +61,27 @@ contract Vault is AccessControl {
     /**
      * @dev Fired in swapEthForIlv() and sendIlvRewards() (via swapEthForIlv)
      *
-     * @param _by an address which executed the function
+     * @param by an address which executed the function
      * @param ethSpent ETH amount sent to Uniswap
      * @param ilvReceived ILV amount received from Uniswap
      */
-    event EthIlvSwapped(address indexed _by, uint256 ethSpent, uint256 ilvReceived);
+    event LogSwapEthForILV(address indexed by, uint256 ethSpent, uint256 ilvReceived);
 
     /**
      * @dev Fired in sendIlvRewards()
      *
-     * @param _by an address which executed the function
-     * @param _value ILV amount sent to the pool
+     * @param by an address which executed the function
+     * @param value ILV amount sent to the pool
      */
-    event IlvRewardsSent(address indexed _by, uint256 _value);
+    event LogSendILVRewards(address indexed by, uint256 value);
 
     /**
      * @dev Fired in default payable receive()
      *
-     * @param _by an address which sent ETH into the vault (this contract)
-     * @param _value ETH amount received
+     * @param by an address which sent ETH into the vault (this contract)
+     * @param value ETH amount received
      */
-    event EthReceived(address indexed _by, uint256 _value);
+    event LogEthReceived(address indexed by, uint256 value);
 
     /**
      * @dev Fired in setCorePools()
@@ -198,7 +198,7 @@ contract Vault is AccessControl {
         );
 
         // emit an event logging the operation
-        emit EthIlvSwapped(msg.sender, amounts[0], amounts[1]);
+        emit LogSwapEthForILV(msg.sender, amounts[0], amounts[1]);
     }
 
     /**
@@ -281,7 +281,7 @@ contract Vault is AccessControl {
         lockedPoolV2.receiveVaultRewards(amountToSend3);
 
         // emit an event
-        emit IlvRewardsSent(msg.sender, ilvBalance);
+        emit LogSendILVRewards(msg.sender, ilvBalance);
     }
 
     /**
@@ -292,16 +292,16 @@ contract Vault is AccessControl {
      * @dev The function counts for ILV held in LP pool in unpaired form as is,
      *      for the paired ILV it estimates its amount based on the LP token share the pool has
      *
-     * @param pairPool LP core pool extracted from pools structure (gas saving optimization)
+     * @param _pairPool LP core pool extracted from pools structure (gas saving optimization)
      * @return ILV estimate of the LP pool share among 2 other pools
      */
-    function estimatePairPoolReserve(ICorePool pairPool) public view returns (uint256) {
+    function estimatePairPoolReserve(ICorePool _pairPool) public view returns (uint256) {
         // 1. Determine LP pool share in terms of LP tokens:
         //    LP_share = LP_amt / LP_total; LP_share < 1
         //    where LP_amt is amount of LP tokens in the pool,
         //    and LP_total is total LP tokens supply
-        uint256 LP_amt = pairPool.poolTokenReserve();
-        uint256 LP_total = IERC20(pairPool.poolToken()).totalSupply();
+        uint256 LP_amt = _pairPool.poolTokenReserve();
+        uint256 LP_total = IERC20(_pairPool.poolToken()).totalSupply();
         // uint256 LP_share = LP_amt / LP_total; - this will always be zero due to int rounding down,
         // therefore we don't calculate the share, but apply it to the calculations below
 
@@ -310,11 +310,11 @@ contract Vault is AccessControl {
         // 2. Considering that LP pool share in terms of ILV tokens is the same as in terms of LP tokens,
         //    ILV_share = LP_share, ILV amount the LP pool has in LP tokens would be estimated as
         //    ILV_amt = ILV_total * ILV_share = ILV_total * LP_share
-        uint256 ILV_total = ilv.balanceOf(pairPool.poolToken());
+        uint256 ILV_total = ilv.balanceOf(_pairPool.poolToken());
         uint256 ILV_amt = (ILV_total * LP_amt) / LP_total;
 
         // 3. Finally, LP pool can have some ILV present directly on its balance and not in LP pair
-        uint256 ILV_balance = ilv.balanceOf(address(pairPool));
+        uint256 ILV_balance = ilv.balanceOf(address(_pairPool));
 
         // we estimate the result as a sum of the two (2) and (3):
         return ILV_amt + ILV_balance;
@@ -343,10 +343,10 @@ contract Vault is AccessControl {
      * @notice Default payable function, allows to top up contract's ETH balance
      *      to be exchanged into ILV via Uniswap
      *
-     * @dev Logs operation via `EthReceived` event
+     * @dev Logs operation via `LogEthReceived` event
      */
     receive() external payable {
         // emit an event
-        emit EthReceived(msg.sender, msg.value);
+        emit LogEthReceived(msg.sender, msg.value);
     }
 }
