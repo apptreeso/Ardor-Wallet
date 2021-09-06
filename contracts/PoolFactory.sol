@@ -6,8 +6,8 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { Timestamp } from "./base/Timestamp.sol";
 // import { CorePool } from "./CorePool.sol";
 import { IlluviumAware } from "./libraries/IlluviumAware.sol";
-import { IPoolBase } from "./interfaces/IPoolBase.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
+import { IERC20Mintable } from "./interfaces/IERC20Mintable.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 
 import "hardhat/console.sol";
@@ -26,37 +26,73 @@ import "hardhat/console.sol";
  *      (see `mintYieldTo` function)
  *
  */
-contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp {
-    /// @inheritdoc IFactory
+contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
+    /// @dev Auxiliary data structure used only in getPoolData() view function
+    struct PoolData {
+        // @dev pool token address (like ILV)
+        address poolToken;
+        // @dev pool address (like deployed core pool instance)
+        address poolAddress;
+        // @dev pool weight (200 for ILV pools, 800 for ILV/ETH pools - set during deployment)
+        uint32 weight;
+        // @dev flash pool flag
+        bool isFlashPool;
+    }
+
     /// @dev TODO: set correct UID
-    uint256 public constant override FACTORY_UID = 0xc5cfd88c6e4d7e5c8a03c255f03af23c0918d8e82cac196f57466af3fd4a5ec7;
+    uint256 public constant FACTORY_UID = 0xc5cfd88c6e4d7e5c8a03c255f03af23c0918d8e82cac196f57466af3fd4a5ec7;
 
-    /// @inheritdoc IFactory
-    uint192 public override ilvPerSecond;
+    uint192 public ilvPerSecond;
 
-    /// @inheritdoc IFactory
-    uint32 public override totalWeight;
+    uint32 public totalWeight;
 
-    /// @inheritdoc IFactory
-    uint32 public override secondsPerUpdate;
+    uint32 public secondsPerUpdate;
 
-    /// @inheritdoc IFactory
-    uint32 public override endTime;
+    uint32 public endTime;
 
-    /// @inheritdoc IFactory
-    uint32 public override lastRatioUpdate;
+    uint32 public lastRatioUpdate;
 
-    /// @inheritdoc IFactory
-    address public override ilv;
+    address public ilv;
 
-    /// @inheritdoc IFactory
-    address public override silv;
+    address public silv;
 
-    /// @inheritdoc IFactory
-    mapping(address => address) public override pools;
+    mapping(address => address) public pools;
 
-    /// @inheritdoc IFactory
-    mapping(address => bool) public override poolExists;
+    mapping(address => bool) public poolExists;
+
+    /**
+     * @dev Fired in createPool() and registerPool()
+     *
+     * @param _by an address which executed an action
+     * @param poolToken pool token address (like ILV)
+     * @param poolAddress deployed pool instance address
+     * @param weight pool weight
+     * @param isFlashPool flag indicating if pool is a flash pool
+     */
+    event PoolRegistered(
+        address indexed _by,
+        address indexed poolToken,
+        address indexed poolAddress,
+        uint64 weight,
+        bool isFlashPool
+    );
+
+    /**
+     * @dev Fired in changePoolWeight()
+     *
+     * @param _by an address which executed an action
+     * @param poolAddress deployed pool instance address
+     * @param weight new pool weight
+     */
+    event WeightUpdated(address indexed _by, address indexed poolAddress, uint32 weight);
+
+    /**
+     * @dev Fired in updateILVPerSecond()
+     *
+     * @param _by an address which executed an action
+     * @param newIlvPerSecond new ILV/second value
+     */
+    event IlvRatioUpdated(address indexed _by, uint256 newIlvPerSecond);
 
     /**
      * @dev Initializes a factory instance
@@ -97,22 +133,20 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
         endTime = _endTime;
     }
 
-    /// @inheritdoc IFactory
-    function getPoolAddress(address poolToken) external view override returns (address) {
+    function getPoolAddress(address poolToken) external view returns (address) {
         // read the mapping and return
         return address(pools[poolToken]);
     }
 
-    /// @inheritdoc IFactory
-    function getPoolData(address _poolToken) public view override returns (PoolData memory) {
+    function getPoolData(address _poolToken) public view returns (PoolData memory) {
         // get the pool address from the mapping
-        IPoolBase pool = IPoolBase(pools[_poolToken]);
+        ICorePool pool = ICorePool(pools[_poolToken]);
 
         // throw if there is no pool registered for the token specified
         require(address(pool) != address(0), "pool not found");
 
         // read pool information from the pool smart contract
-        // via the pool interface (IPoolBase)
+        // via the pool interface (ICorePool)
         address poolToken = pool.poolToken();
         bool isFlashPool = pool.isFlashPool();
         uint32 weight = pool.weight();
@@ -121,8 +155,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
         return PoolData({ poolToken: poolToken, poolAddress: address(pool), weight: weight, isFlashPool: isFlashPool });
     }
 
-    /// @inheritdoc IFactory
-    function shouldUpdateRatio() public view override returns (bool) {
+    function shouldUpdateRatio() public view returns (bool) {
         // if yield farming period has ended
         if (_now256() > endTime) {
             // ILV/second reward cannot be updated anymore
@@ -133,7 +166,6 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
         return _now256() >= lastRatioUpdate + secondsPerUpdate;
     }
 
-    /// @inheritdoc IFactory
     // function createPool(
     //     address poolToken,
     //     uint64 initTime,
@@ -146,13 +178,12 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
     //     registerPool(address(pool));
     // }
 
-    /// @inheritdoc IFactory
-    function registerPool(address pool) public override onlyOwner {
+    function registerPool(address pool) public onlyOwner {
         // read pool information from the pool smart contract
-        // via the pool interface (IPoolBase)
-        address poolToken = IPoolBase(pool).poolToken();
-        bool isFlashPool = IPoolBase(pool).isFlashPool();
-        uint32 weight = IPoolBase(pool).weight();
+        // via the pool interface (ICorePool)
+        address poolToken = ICorePool(pool).poolToken();
+        bool isFlashPool = ICorePool(pool).isFlashPool();
+        uint32 weight = ICorePool(pool).weight();
 
         // create pool structure, register it within the factory
         pools[poolToken] = pool;
@@ -164,8 +195,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
         emit PoolRegistered(msg.sender, poolToken, address(pool), weight, isFlashPool);
     }
 
-    /// @inheritdoc IFactory
-    function updateILVPerSecond() external override {
+    function updateILVPerSecond() external {
         // checks if ratio can be updated i.e. if seconds/update have passed
         require(shouldUpdateRatio(), "too frequent");
 
@@ -179,32 +209,30 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, IFactory, Timestamp
         emit IlvRatioUpdated(msg.sender, ilvPerSecond);
     }
 
-    /// @inheritdoc IFactory
     function mintYieldTo(
         address _to,
         uint256 _value,
         bool _useSILV
-    ) external override {
+    ) external {
         // verify that sender is a pool registered withing the factory
         require(poolExists[msg.sender], "access denied");
 
         if (!_useSILV) {
-            ilv.mint(_to, _value);
+            IERC20Mintable(ilv).mint(_to, _value);
         } else {
-            silv.mint(_to, _value);
+            IERC20Mintable(silv).mint(_to, _value);
         }
     }
 
-    /// @inheritdoc IFactory
-    function changePoolWeight(address pool, uint32 weight) external override {
+    function changePoolWeight(address pool, uint32 weight) external {
         // verify function is executed either by factory owner or by the pool itself
         require(msg.sender == owner() || poolExists[msg.sender]);
 
         // recalculate total weight
-        totalWeight = totalWeight + weight - pool.weight();
+        totalWeight = totalWeight + weight - ICorePool(pool).weight();
 
         // set the new pool weight
-        IPoolBase(pool).setWeight(weight);
+        ICorePool(pool).setWeight(weight);
 
         // emit an event
         emit WeightUpdated(msg.sender, address(pool), weight);

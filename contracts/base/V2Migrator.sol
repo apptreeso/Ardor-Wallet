@@ -24,6 +24,16 @@ abstract contract V2Migrator is CorePool {
     event LogV1YieldMinted(address indexed from, uint256 stakeId, uint256 value);
 
     /**
+     * @dev logs mintV1Yield()
+     *
+     * @param from user address
+     * @param stakeIds array of v1 yield ids
+     * @param value number of ILV tokens minted
+     *
+     */
+    event LogV1YieldMintedMultiple(address indexed from, uint256[] stakeIds, uint256 value);
+
+    /**
      * @dev logs migrateLockedStake()
      *
      * @param from user address
@@ -49,7 +59,7 @@ abstract contract V2Migrator is CorePool {
      * @param _stakeId v1 yield id
      */
     function mintV1Yield(uint256 _stakeId) external {
-        (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getStake(
+        (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
             msg.sender,
             _stakeId
         );
@@ -64,6 +74,29 @@ abstract contract V2Migrator is CorePool {
         emit LogV1YieldMinted(msg.sender, _stakeId, tokenAmount);
     }
 
+    function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
+        uint256 amountToMint;
+
+        for (uint256 i = 0; i < _stakeIds.length; i++) {
+            uint256 _stakeId = _stakeIds[i];
+            (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
+                msg.sender,
+                _stakeId
+            );
+            require(isYield, "not yield");
+            require(_now256() > lockedUntil, "yield not unlocked yet");
+            bytes32 stakeHash = keccak256(abi.encodePacked(msg.sender, _stakeId));
+            require(!v1YieldMinted[stakeHash], "yield already minted");
+
+            v1YieldMinted[stakeHash] = true;
+            amountToMint += tokenAmount;
+        }
+
+        factory.mintYieldTo(msg.sender, amountToMint, false);
+
+        emit LogV1YieldMintedMultiple(msg.sender, _stakeIds, amountToMint);
+    }
+
     /**
      * @dev reads v1 core pool locked stakes data (by looping through the `_stakeIds` array),
      *      checks if it's a valid v1 stake to migrate and save the id to v2 user struct
@@ -76,14 +109,14 @@ abstract contract V2Migrator is CorePool {
         User storage user = users[msg.sender];
 
         for (uint256 i = 0; i < _stakeIds.length; i++) {
-            (, uint256 lockedFrom, , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
+            (, uint256 lockedFrom, , , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
             require(lockedFrom > 0 && isYield, "invalid stake to migrate");
             bytes32 stakeHash = keccak256(abi.encodePacked(msg.sender, _stakeIds[i]));
             require(!v1StakesMigrated[stakeHash], "stake id already migrated");
 
             v1StakesMigrated[stakeHash] = true;
             user.v1IdsLength++;
-            user.v1StakesIds.push(_stakeIds[i]);
+            user.v1StakesIds[i] = _stakeIds[i];
         }
 
         emit LogMigrateLockedStake(msg.sender, _stakeIds);

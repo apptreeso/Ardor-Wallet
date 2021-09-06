@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import { IPoolBase } from "./IPoolBase.sol";
+import { ICorePool } from "./ICorePool.sol";
 
 interface IFactory {
     /// @dev Auxiliary data structure used only in getPoolData() view function
@@ -15,40 +15,6 @@ interface IFactory {
         // @dev flash pool flag
         bool isFlashPool;
     }
-
-    /**
-     * @dev Fired in createPool() and registerPool()
-     *
-     * @param _by an address which executed an action
-     * @param poolToken pool token address (like ILV)
-     * @param poolAddress deployed pool instance address
-     * @param weight pool weight
-     * @param isFlashPool flag indicating if pool is a flash pool
-     */
-    event PoolRegistered(
-        address indexed _by,
-        address indexed poolToken,
-        address indexed poolAddress,
-        uint64 weight,
-        bool isFlashPool
-    );
-
-    /**
-     * @dev Fired in changePoolWeight()
-     *
-     * @param _by an address which executed an action
-     * @param poolAddress deployed pool instance address
-     * @param weight new pool weight
-     */
-    event WeightUpdated(address indexed _by, address indexed poolAddress, uint32 weight);
-
-    /**
-     * @dev Fired in updateILVPerSecond()
-     *
-     * @param _by an address which executed an action
-     * @param newIlvPerSecond new ILV/second value
-     */
-    event IlvRatioUpdated(address indexed _by, uint256 newIlvPerSecond);
 
     function owner() external view returns (address);
 
@@ -99,7 +65,7 @@ interface IFactory {
     function silv() external view returns (address);
 
     /// @dev Maps pool token address (like ILV) -> pool address (like core pool instance)
-    function pools(address _poolToken) external view returns (IPoolBase);
+    function pools(address _poolToken) external view returns (ICorePool);
 
     /// @dev Keeps track of registered pool addresses, maps pool address -> exists flag
     function poolExists(address _poolAddress) external view returns (bool);
@@ -132,28 +98,13 @@ interface IFactory {
     function shouldUpdateRatio() external view returns (bool);
 
     /**
-     * @dev Creates a core pool (CorePool) and registers it within the factory
-     *
-     * @dev Can be executed by the pool factory owner only
-     *
-     * @param poolToken pool token address (like ILV, or ILV/ETH pair)
-     * @param initTime init time to be used for the pool created
-     * @param weight weight of the pool to be created
-     */
-    function createPool(
-        address poolToken,
-        uint64 initTime,
-        uint32 weight
-    ) external;
-
-    /**
      * @dev Registers an already deployed pool instance within the factory
      *
      * @dev Can be executed by the pool factory owner only
      *
      * @param pool address of the already deployed pool instance
      */
-    function registerPool(IPoolBase pool) external;
+    function registerPool(ICorePool pool) external;
 
     /**
      * @notice Decreases ILV/second reward by 3%, can be executed
@@ -183,5 +134,5 @@ interface IFactory {
      * @param pool address of the pool to change weight for
      * @param weight new weight value to set to
      */
-    function changePoolWeight(IPoolBase pool, uint32 weight) external;
+    function changePoolWeight(ICorePool pool, uint32 weight) external;
 }

@@ -6,7 +6,7 @@ import { IFactory } from "../interfaces/IFactory.sol";
 
 abstract contract FactoryControlled is Initializable {
     /// @dev Link to the pool factory IlluviumPoolFactory instance
-    IFactory public override factory;
+    IFactory public factory;
 
     function __FactoryControlled_init(address _factory) internal initializer {
         // verify PoolFactory instance supplied

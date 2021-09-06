@@ -17,7 +17,7 @@ library IlluviumAware {
      *
      * @param _ilv deployed ILV ERC20 instance address
      */
-    function verifyILV(address _ilv) internal view {
+    function verifyILV(address _ilv) internal pure {
         // verify ILV address is correct
         require(_ilv == ILV, "wrong ILV address");
     }
@@ -27,7 +27,7 @@ library IlluviumAware {
      *
      * @param _silv deployed sILV ERC20 instance address
      */
-    function verifySILV(address _silv) internal view {
+    function verifySILV(address _silv) internal pure {
         // verify sILV address is correct
         require(_silv == SILV, "wrong sILV address");
     }
