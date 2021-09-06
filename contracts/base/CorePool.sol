@@ -285,7 +285,7 @@ abstract contract CorePool is
      * @return balance total staked token balance
      */
     function balanceOf(address _user) external view override returns (uint256 balance) {
-        User storage user = users[msg.sender];
+        User storage user = users[_user];
         uint256 balanceInStakes;
 
         for (uint256 i = 0; i < user.stakes.length; i++) {
