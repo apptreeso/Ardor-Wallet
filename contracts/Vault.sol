@@ -35,7 +35,7 @@ contract Vault is AccessControl {
     /**
      * @dev Link to UniswapV2Router02 deployed instance
      */
-    IUniswapV2Router02 public uniswap;
+    IUniswapV2Router02 public sushi;
 
     /**
      * @dev Link to IlluviumERC20 token deployed instance
@@ -92,7 +92,7 @@ contract Vault is AccessControl {
      * @param lockedPoolV1 deployed locked pool V1 address
      * @param lockedPoolV2 deployed locked pool V2 address
      */
-    event CorePoolsUpdated(
+    event LogSetCorePools(
         address indexed by,
         address ilvPool,
         address pairPool,
@@ -103,16 +103,16 @@ contract Vault is AccessControl {
     /**
      * @notice Creates (deploys) IlluviumVault linked to UniswapV2Router02 and IlluviumERC20 token
      *
-     * @param _uniswap an address of the UniswapV2Router02 to use for ETH -> ILV exchange
+     * @param _sushi an address of the UniswapV2Router02 to use for ETH -> ILV exchange
      * @param _ilv an address of the IlluviumERC20 token to use
      */
-    constructor(address _uniswap, address _ilv) {
+    constructor(address _sushi, address _ilv) {
         // verify the inputs are set
-        require(_uniswap != address(0), "uniswap address is not set");
+        require(_sushi != address(0), "sushi address is not set");
         require(_ilv != address(0), "ILV address is not set");
 
         // assign the values
-        uniswap = IUniswapV2Router02(_uniswap);
+        sushi = IUniswapV2Router02(_sushi);
         ilv = IERC20(_ilv);
     }
 
@@ -120,39 +120,39 @@ contract Vault is AccessControl {
      * @dev Auxiliary function used as part of the contract setup process to setup core pools,
      *      executed by `ROLE_VAULT_MANAGER` after deployment
      *
-     * @param ilvPool deployed ILV core pool address
-     * @param pairPool deployed ILV/ETH pair (LP) pool address
-     * @param lockedPoolV1 deployed locked pool V1 address
-     * @param lockedPoolV2 deployed locked pool V2 address
+     * @param _ilvPool deployed ILV core pool address
+     * @param _pairPool deployed ILV/ETH pair (LP) pool address
+     * @param _lockedPoolV1 deployed locked pool V1 address
+     * @param _lockedPoolV2 deployed locked pool V2 address
      */
     function setCorePools(
-        ICorePool ilvPool,
-        ICorePool pairPool,
-        ICorePool lockedPoolV1,
-        ICorePool lockedPoolV2
+        ICorePool _ilvPool,
+        ICorePool _pairPool,
+        ICorePool _lockedPoolV1,
+        ICorePool _lockedPoolV2
     ) external {
         // verify access permissions
         require(isSenderInRole(ROLE_POOL_MANAGER), "access denied");
 
         // verify all the pools are set/supplied
-        require(address(ilvPool) != address(0), "ILV pool is not set");
-        require(address(pairPool) != address(0), "LP pool is not set");
-        require(address(lockedPoolV1) != address(0), "locked pool v1 is not set");
-        require(address(lockedPoolV2) != address(0), "locked pool v2 is not set");
+        require(address(_ilvPool) != address(0), "ILV pool is not set");
+        require(address(_pairPool) != address(0), "LP pool is not set");
+        require(address(_lockedPoolV1) != address(0), "locked pool v1 is not set");
+        require(address(_lockedPoolV2) != address(0), "locked pool v2 is not set");
 
         // set up
-        pools.ilvPool = ilvPool;
-        pools.pairPool = pairPool;
-        pools.lockedPoolV1 = lockedPoolV1;
-        pools.lockedPoolV2 = lockedPoolV2;
+        pools.ilvPool = _ilvPool;
+        pools.pairPool = _pairPool;
+        pools.lockedPoolV1 = _lockedPoolV1;
+        pools.lockedPoolV2 = _lockedPoolV2;
 
         // emit an event
-        emit CorePoolsUpdated(
+        emit LogSetCorePools(
             msg.sender,
-            address(ilvPool),
-            address(pairPool),
-            address(lockedPoolV1),
-            address(lockedPoolV2)
+            address(_ilvPool),
+            address(_pairPool),
+            address(_lockedPoolV1),
+            address(_lockedPoolV2)
         );
     }
 
@@ -161,36 +161,40 @@ contract Vault is AccessControl {
      *
      * @dev Logs operation via `EthIlvSwapped` event
      *
-     * @param ilvOut expected ILV amount to be received from Uniswap swap
-     * @param deadline maximum timestamp to wait for Uniswap swap (inclusive)
+     * @param _ilvOut expected ILV amount to be received from Uniswap swap
+     * @param _deadline maximum timestamp to wait for Uniswap swap (inclusive)
      */
-    function swapEthForIlv(uint256 ilvOut, uint256 deadline) public {
+    function swapEthForIlv(
+        uint256 _ethIn,
+        uint256 _ilvOut,
+        uint256 _deadline
+    ) public {
         // verify access permissions
         require(isSenderInRole(ROLE_VAULT_MANAGER), "access denied");
 
         // verify the inputs
-        require(ilvOut > 0, "zero input (ilvOut)");
-        require(deadline >= block.timestamp, "deadline expired");
+        require(_ilvOut > 0, "zero input (ilvOut)");
+        require(_deadline >= block.timestamp, "deadline expired");
 
-        // we want to exchange the entire contract balance
-        uint256 balance = address(this).balance;
-        require(balance > 0, "zero ETH balance");
+        // checks if there's enough balance
+
+        require(address(this).balance > _ethIn, "zero ETH balance");
 
         // create and initialize path array to be used in Uniswap
         // first element of the path determines an input token (what we send to Uniswap),
         // last element determines output token (what we receive from uniwsap)
         address[] memory path = new address[](2);
         // we send ETH wrapped as WETH into Uniswap
-        path[0] = uniswap.WETH();
+        path[0] = sushi.WETH();
         // we receive ILV from Uniswap
         path[1] = address(ilv);
 
         // exchange ETH -> ILV via Uniswap
-        uint256[] memory amounts = uniswap.swapExactETHForTokens{ value: balance }(
-            ilvOut,
+        uint256[] memory amounts = sushi.swapExactETHForTokens{ value: _ethIn }(
+            _ilvOut,
             path,
             address(this),
-            deadline
+            _deadline
         );
 
         // emit an event logging the operation
@@ -207,18 +211,22 @@ contract Vault is AccessControl {
      *
      * @dev Set `ilvOut` or `deadline` to zero to skip `swapEthForIlv` call
      *
-     * @param ilvOut expected ILV amount to be received from Uniswap swap
-     * @param deadline maximum timeout to wait for Uniswap swap
+     * @param _ilvOut expected ILV amount to be received from Uniswap swap
+     * @param _deadline maximum timeout to wait for Uniswap swap
      */
-    function sendIlvRewards(uint256 ilvOut, uint256 deadline) external {
+    function sendIlvRewards(
+        uint256 _ethIn,
+        uint256 _ilvOut,
+        uint256 _deadline
+    ) external {
         // check if caller has sufficient permissions to send tokens into the pool
         require(isSenderInRole(ROLE_VAULT_MANAGER), "access denied");
 
         // we treat set `ilvOut` and `deadline` as a flag to execute `swapEthForIlv`
         // in the same time we won't execute the swap if contract balance is zero
-        if (ilvOut > 0 && deadline > 0 && address(this).balance > 0) {
+        if (_ilvOut > 0 && _deadline > 0 && address(this).balance > 0) {
             // exchange ETH on the contract's balance into ILV via Uniswap - delegate to `swapEthForIlv`
-            swapEthForIlv(ilvOut, deadline);
+            swapEthForIlv(_ethIn, _ilvOut, _deadline);
         }
 
         // reads core pools
