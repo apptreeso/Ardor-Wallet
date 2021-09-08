@@ -180,7 +180,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
             uint256 ilvRewards = (multiplier * weight * factory.ilvPerSecond()) / factory.totalWeight();
 
             // recalculated value for `yieldRewardsPerToken`
-            newYieldRewardsPerToken = _rewardPerWeight(ilvRewards, globalWeight) + yieldRewardsPerToken;
+            newYieldRewardsPerToken = _rewardPerToken(ilvRewards, globalWeight) + yieldRewardsPerToken;
         } else {
             // if smart contract state is up to date, we don't recalculate
             newYieldRewardsPerToken = yieldRewardsPerToken;
@@ -205,7 +205,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
             }
         }
 
-        pending = _weightToReward(userWeight, newYieldRewardsPerToken) - user.subYieldRewards;
+        pending = _tokensToReward(userWeight, newYieldRewardsPerToken) - user.subYieldRewards;
     }
 
     /**
@@ -254,7 +254,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
 
         // update user record
         user.balance += uint128(addedValue);
-        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerToken);
+        user.subYieldRewards = _tokensToReward(user.totalWeight, yieldRewardsPerToken);
 
         // emit an event
         emit LogStake(msg.sender, _value);
@@ -392,7 +392,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
             }
         }
 
-        pending = _weightToReward((userWeight + weightToAdd), yieldRewardsPerToken);
+        pending = _tokensToReward((userWeight + weightToAdd), yieldRewardsPerToken);
     }
 
     function unstake(uint256 _value) external updatePool nonReentrant {
@@ -454,7 +454,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory.totalWeight();
 
         // update rewards per weight and `lastYieldDistribution`
-        yieldRewardsPerToken += _rewardPerWeight(ilvReward, globalWeight);
+        yieldRewardsPerToken += _rewardPerToken(ilvReward, globalWeight);
         lastYieldDistribution = uint64(currentTimestamp);
 
         // emit an event
@@ -522,7 +522,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         }
 
         // subYieldRewards needs to be updated on every `_processRewards` call
-        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerToken);
+        user.subYieldRewards = _tokensToReward(user.totalWeight, yieldRewardsPerToken);
 
         // emit an event
         emit LogClaimRewards(_staker, _useSILV, pendingYieldToClaim);
@@ -536,7 +536,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _rewardPerToken ILV reward per token
      * @return reward value normalized to 10^12
      */
-    function _tokensToRewards(uint256 _value, uint256 _rewardPerToken) internal pure returns (uint256) {
+    function _tokensToReward(uint256 _value, uint256 _rewardPerToken) internal pure returns (uint256) {
         // apply the formula and return
         return (_value * _rewardPerToken) / REWARD_PER_TOKEN_MULTIPLIER;
     }
