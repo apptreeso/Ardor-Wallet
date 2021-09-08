@@ -9,6 +9,7 @@ import { ICorePool } from "./interfaces/ICorePool.sol";
 contract ILVPool is CorePool {
     event LogClaimRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
     event LogStakeAsPool(address indexed from, address indexed staker, uint256 value);
+    event LogMigrateWeights(address indexed by, uint256 numberOfUsers, uint248 totalWeight);
 
     /// @dev see __ICorePool_init
     function __ILVPool_init(
@@ -88,16 +89,44 @@ contract ILVPool is CorePool {
         emit LogClaimRewardsMultiple(msg.sender, _pools, _useSILV);
     }
 
-    function migrateWeights(address[] calldata _users, uint248[] calldata _yieldWeights)
-        external
-        onlyFactoryController
-    {
+    /**
+     * @notice can be called only by the factory controller
+     * @notice the purpose of this function is to migrate yield weights from v1
+     *         in 1 single operation per user so we don't need to store each v1 yield
+     *         staked. `mintV1Yield()` function is used to mint v1 yield in v2 instead of using
+     *         v1 unstake function.
+     *
+     * @dev adds weight to an address according to how much weight the user
+     *      had in yield accumulated in staking v1.
+     *
+     * @param _users an array of v1 users addresses
+     * @param _yieldWeights an array of v1 yield weights to be added to users
+     * @param _totalWeight total value of weight to be migrated
+     */
+    function migrateWeights(
+        address[] calldata _users,
+        uint248[] calldata _yieldWeights,
+        uint248 _totalWeight
+    ) external onlyFactoryController {
+        // checks if parameters are valid
         require(_users.length == _yieldWeights.length, "invalid parameters");
 
+        // will be used to check if weights were added as expected
+        uint248 totalWeight;
+
+        // checks each weight at `_yieldWeights` array and adds to v2 user
         for (uint256 i = 0; i < _users.length; i++) {
             User storage user = users[_users[i]];
             user.totalWeight += _yieldWeights[i];
+
+            totalWeight += _yieldWeights[i];
         }
+
+        // makes sure total weight migrated is valid
+        assert(totalWeight == _totalWeight);
+
+        // emits an event
+        emit LogMigrateWeights(msg.sender, _users.length, totalWeight);
     }
 
     /// @notice not necessary for ILV pool because we claim internally in claimRewardsMultiple()
