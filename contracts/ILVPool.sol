@@ -31,7 +31,7 @@ contract ILVPool is CorePool {
      * @param _staker an address which stakes (the yield reward)
      * @param _value amount to be staked (yield reward amount)
      */
-    function stakeAsPool(address _staker, uint256 _value) external updatePool {
+    function stakeAsPool(address _staker, uint256 _value) external updatePool whenNotPaused {
         require(factory.poolExists(msg.sender), "access denied");
         User storage user = users[_staker];
         if (user.totalWeight > 0) {
@@ -73,7 +73,11 @@ contract ILVPool is CorePool {
      * @param _useSILV array of bool values telling if the pool should claim reward
      *                 as ILV or sILV
      */
-    function claimRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external {
+    function claimRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV)
+        external
+        updatePool
+        whenNotPaused
+    {
         require(_pools.length == _useSILV.length, "invalid parameters");
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];

@@ -318,7 +318,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *
      * @notice pool state is updated before calling the internal function
      */
-    function claimRewards(bool _useSILV) external updatePool {
+    function claimRewards(bool _useSILV) external updatePool whenNotPaused {
         _claimRewards(msg.sender, _useSILV);
     }
 
@@ -332,7 +332,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
-    function claimRewardsFromRouter(address _staker, bool _useSILV) external virtual override updatePool {
+    function claimRewardsFromRouter(address _staker, bool _useSILV) external virtual override updatePool whenNotPaused {
         bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
         require(poolIsValid, "invalid caller");
 

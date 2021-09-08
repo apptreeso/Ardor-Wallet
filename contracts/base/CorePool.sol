@@ -363,7 +363,7 @@ abstract contract CorePool is
      * @param _value value of tokens to stake
      * @param _lockUntil stake period as unix timestamp; zero means no locking
      */
-    function stakeAndLock(uint256 _value, uint64 _lockUntil) external nonReentrant {
+    function stakeAndLock(uint256 _value, uint64 _lockUntil) external whenNotPaused nonReentrant {
         // delegate call to an internal function
         _stakeAndLock(msg.sender, _value, _lockUntil, false);
     }
@@ -375,7 +375,7 @@ abstract contract CorePool is
      *
      * @param _value number of tokens to stake
      */
-    function stakeFlexible(uint256 _value) external updatePool nonReentrant {
+    function stakeFlexible(uint256 _value) external updatePool whenNotPaused nonReentrant {
         // validates input
         require(_value > 0, "zero value");
 
@@ -559,7 +559,7 @@ abstract contract CorePool is
      *
      * @notice pool state is updated before calling the internal function
      */
-    function claimRewards(bool _useSILV) external updatePool {
+    function claimRewards(bool _useSILV) external updatePool whenNotPaused {
         _claimRewards(msg.sender, _useSILV);
     }
 
@@ -575,7 +575,7 @@ abstract contract CorePool is
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
-    function claimRewardsFromRouter(address _staker, bool _useSILV) external virtual override updatePool {
+    function claimRewardsFromRouter(address _staker, bool _useSILV) external virtual override updatePool whenNotPaused {
         bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
         require(poolIsValid, "invalid caller");
 
