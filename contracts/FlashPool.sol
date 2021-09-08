@@ -20,8 +20,8 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
     using Stake for Stake.Data;
 
     struct User {
-        /// @dev Total staked amount in flexible mode
-        uint128 flexibleBalance;
+        /// @dev Total staked amount
+        uint128 balance;
         /// @dev pending yield rewards to be claimed
         uint128 pendingYield;
         /// @dev Auxiliary variable for yield calculation
@@ -216,97 +216,16 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
      * @return balance total staked token balance
      */
     function balanceOf(address _user) external view override returns (uint256 balance) {
-        User storage user = users[_user];
-        uint256 balanceInStakes;
-
-        for (uint256 i = 0; i < user.stakes.length; i++) {
-            balanceInStakes += user.stakes[i].value;
-        }
-
-        balance = balanceInStakes + user.flexibleBalance;
-    }
-
-    /**
-     * @notice Returns information on the given stake for the given address
-     *
-     * @dev See getStakesLength
-     *
-     * @param _user an address to query stake for
-     * @param _stakeId zero-indexed stake ID for the address specified
-     * @return stake info as Stake structure
-     */
-    function getStake(address _user, uint256 _stakeId) external view override returns (Stake.Data memory) {
-        // read stake at specified index and return
-        return users[_user].stakes[_stakeId];
-    }
-
-    /**
-     * @notice Returns a v1 stake id in the `user.v1StakesIds` array
-     *
-     *
-     * @param _user an address to query stake for
-     * @param _position position index in the array
-     * @return stakeId value
-     */
-    function getV1StakeId(address _user, uint256 _position) external view returns (uint256) {
-        return users[_user].v1StakesIds[_position];
-    }
-
-    /**
-     * @notice Returns a v1 stake position in the `user.v1StakesIds` array
-     *
-     * @dev helper function to call getV1StakeId()
-     *
-     * @param _user an address to query stake for
-     * @param _desiredId desired stakeId position in the array to find
-     * @return position stake info as Stake structure
-     */
-    function getV1StakePosition(address _user, uint256 _desiredId) external view returns (uint256 position) {
-        User storage user = users[_user];
-
-        for (uint256 i = 0; i < user.v1IdsLength; i++) {
-            if (user.v1StakesIds[i] == _desiredId) {
-                position = i;
-                break;
-            }
-        }
-    }
-
-    /**
-     * @notice Returns number of stakes for the given address. Allows iteration over stakes.
-     *
-     * @dev See getStake
-     *
-     * @param _user an address to query stake length for
-     * @return number of stakes for the given address
-     */
-    function getStakesLength(address _user) external view override returns (uint256) {
-        // read stakes array length and return
-        return users[_user].stakes.length;
-    }
-
-    /**
-     * @notice Stakes specified value of tokens for the specified value of time,
-     *      and pays pending yield rewards if any
-     *
-     * @dev Requires value to stake to be greater than zero
-     *
-     * @param _value value of tokens to stake
-     * @param _lockUntil stake period as unix timestamp; zero means no locking
-     */
-    function stakeAndLock(uint256 _value, uint64 _lockUntil) external nonReentrant {
-        // delegate call to an internal function
-        _stakeAndLock(msg.sender, _value, _lockUntil, false);
+        balance = users[_user].balance;
     }
 
     /**
      * @dev stakes poolTokens without lock
      *
-     * @notice we use standard weight for flexible stakes (since it's never locked)
      *
      * @param _value number of tokens to stake
      */
-    function stakeFlexible(uint256 _value) external updatePool nonReentrant {
+    function stake(uint256 _value) external updatePool nonReentrant {
         // validates input
         require(_value > 0, "zero value");
 
@@ -348,7 +267,7 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
         user.stakes.push(stake);
 
         // update user record
-        user.flexibleBalance += uint128(addedValue);
+        user.balance += uint128(addedValue);
         user.totalWeight += uint248(stakeWeight);
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
@@ -358,7 +277,7 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
         poolTokenReserve += addedValue;
 
         // emit an event
-        emit LogStakeFlexible(msg.sender, _value);
+        emit LogStake(msg.sender, _value);
     }
 
     function fillStakeId(uint256 _position) external updatePool {
@@ -407,12 +326,12 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
         );
 
         User storage previousUser = users[msg.sender];
-        uint128 flexibleBalance = previousUser.flexibleBalance;
+        uint128 balance = previousUser.balance;
         uint128 pendingYield = previousUser.pendingYield;
         uint248 totalWeight = previousUser.totalWeight;
         uint256 subYieldRewards = previousUser.subYieldRewards;
         uint256 subVaultRewards = previousUser.subVaultRewards;
-        previousUser.flexibleBalance = 0;
+        previousUser.balance = 0;
         previousUser.pendingYield = 0;
         previousUser.totalWeight = 0;
         previousUser.subYieldRewards = 0;
@@ -420,7 +339,7 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
         for (uint256 i = 0; i < previousUser.stakes.length; i++) {
             delete previousUser.stakes[i];
         }
-        newUser.flexibleBalance = flexibleBalance;
+        newUser.balance = balance;
         newUser.pendingYield = pendingYield;
         newUser.totalWeight = totalWeight;
         newUser.subYieldRewards = subYieldRewards;
@@ -658,18 +577,18 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
         emit LogStakeAndLock(msg.sender, _value, _lockUntil);
     }
 
-    function unstakeFlexible(uint256 _value) external updatePool {
+    function unstake(uint256 _value) external updatePool {
         // verify a value is set
         require(_value > 0, "zero value");
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
         // verify available balance
-        require(user.flexibleBalance >= _value, "value exceeds user balance");
+        require(user.balance >= _value, "value exceeds user balance");
         // and process current pending rewards if any
         _processRewards(msg.sender);
 
         // updates user data in storage
-        user.flexibleBalance -= uint128(_value);
+        user.balance -= uint128(_value);
         user.totalWeight -= uint248(_value * Stake.WEIGHT_MULTIPLIER);
         // update reserve count
         poolTokenReserve -= _value;
@@ -678,7 +597,7 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
         IERC20(poolToken).safeTransfer(msg.sender, _value);
 
         // emit an event
-        emit LogUnstakeFlexible(msg.sender, _value);
+        emit LogUnstake(msg.sender, _value);
     }
 
     /**
