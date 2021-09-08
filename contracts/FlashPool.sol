@@ -250,31 +250,12 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
         // calculate real value taking into account deflation
         uint256 addedValue = newBalance - previousBalance;
 
-        // no need to calculate locking weight, flexible stake never locks
-        uint256 stakeWeight = Stake.WEIGHT_MULTIPLIER * addedValue;
-
-        // makes sure stakeWeight is valid
-        assert(stakeWeight > 0);
-
-        // create and save the stake (append it to stakes array)
-        Stake.Data memory stake = Stake.Data({
-            value: uint120(addedValue),
-            lockedFrom: 0,
-            lockedUntil: 0,
-            isYield: false
-        });
-        // stake ID is an index of the stake in `stakes` array
-        user.stakes.push(stake);
+        // makes sure addedValue is valid
+        assert(addedValue > 0);
 
         // update user record
         user.balance += uint128(addedValue);
-        user.totalWeight += uint248(stakeWeight);
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
-
-        // update global variable
-        globalWeight += stakeWeight;
-        // update reserve count
-        poolTokenReserve += addedValue;
 
         // emit an event
         emit LogStake(msg.sender, _value);

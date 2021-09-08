@@ -406,16 +406,6 @@ abstract contract CorePool is
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
 
-        // create and save the stake (append it to stakes array)
-        Stake.Data memory stake = Stake.Data({
-            value: uint120(addedValue),
-            lockedFrom: 0,
-            lockedUntil: 0,
-            isYield: false
-        });
-        // stake ID is an index of the stake in `stakes` array
-        user.stakes.push(stake);
-
         // update user record
         user.flexibleBalance += uint128(addedValue);
         user.totalWeight += uint248(stakeWeight);
@@ -966,7 +956,7 @@ abstract contract CorePool is
         // if sILV is requested
         if (_useSILV) {
             // - mint sILV
-            IERC20Mintable(silv).mint(_staker, pendingYieldToClaim);
+            factory.mintYieldTo(msg.sender, pendingYieldToClaim, true);
         } else if (poolToken == ilv) {
             // calculate pending yield weight,
             // 2e6 is the bonus weight when staking for 1 year
