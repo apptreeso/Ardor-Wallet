@@ -4,20 +4,18 @@ pragma solidity 0.8.4;
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import { Timestamp } from "./Timestamp.sol";
+import { Timestamp } from "./base/Timestamp.sol";
+import { FactoryControlled } from "./base/FactoryControlled.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IlluviumAware } from "../libraries/IlluviumAware.sol";
-import { Stake } from "../libraries/Stake.sol";
+import { IlluviumAware } from "./libraries/IlluviumAware.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IERC20Mintable } from "../interfaces/IERC20Mintable.sol";
-import { IILVPool } from "../interfaces/IILVPool.sol";
-import { IFactory } from "../interfaces/IFactory.sol";
+import { IILVPool } from "./interfaces/IILVPool.sol";
+import { IFactory } from "./interfaces/IFactory.sol";
 
 import "hardhat/console.sol";
 
-contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable, Timestamp {
+contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgradeable, PausableUpgradeable, Timestamp {
     using SafeERC20 for IERC20;
-    using Stake for Stake.Data;
 
     struct User {
         /// @dev Total staked amount
@@ -225,7 +223,7 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
      *
      * @param _value number of tokens to stake
      */
-    function stake(uint256 _value) external updatePool nonReentrant {
+    function stake(uint256 _value) external updatePool whenNotPaused nonReentrant {
         // validates input
         require(_value > 0, "zero value");
 
@@ -259,35 +257,6 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
 
         // emit an event
         emit LogStake(msg.sender, _value);
-    }
-
-    function fillStakeId(uint256 _position) external updatePool {
-        User storage user = users[msg.sender];
-        uint256 stakeId = user.v1StakesIds[_position];
-        assert(stakeId > 0);
-        (uint256 value, , uint64 lockedFrom, uint64 lockedUntil, ) = ICorePoolV1(corePoolV1).getDeposit(
-            msg.sender,
-            stakeId
-        );
-        require(_now256() > lockedUntil, "v1 stake still locked");
-
-        delete user.v1StakesIds[_position];
-        Stake.Data memory stake = Stake.Data({
-            value: uint120(value),
-            lockedFrom: lockedFrom,
-            lockedUntil: lockedUntil,
-            isYield: false
-        });
-        uint256 stakeWeight = (((lockedUntil - lockedFrom) * Stake.WEIGHT_MULTIPLIER) /
-            730 days +
-            Stake.WEIGHT_MULTIPLIER) * value;
-
-        user.stakes.push(stake);
-        // update user record
-        user.totalWeight += uint248(stakeWeight);
-        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
-        // update global variable
-        globalWeight += stakeWeight;
     }
 
     /**
@@ -330,57 +299,6 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
     }
 
     /**
-     * @notice Extends locking period for a given stake
-     *
-     * @dev Requires new lockedUntil value to be:
-     *      higher than the current one, and
-     *      in the future, but
-     *      no more than 2 years in the future
-     *
-     * @param _stakeId updated stake ID
-     * @param _lockedUntil updated stake locked until value
-     */
-    function updateStakeLock(uint256 _stakeId, uint64 _lockedUntil) external updatePool {
-        _processRewards(msg.sender);
-
-        // validate the input time
-        require(_lockedUntil > _now256(), "lock should be in the future");
-
-        // get a link to user data struct, we will write to it later
-        User storage user = users[msg.sender];
-        // get a link to the corresponding stake, we may write to it later
-        Stake.Data storage stake = user.stakes[_stakeId];
-
-        // validate the input against stake structure
-        require(_lockedUntil > stake.lockedUntil, "invalid new lock");
-
-        // saves previous weight into memory
-        uint256 previousWeight = stake.weight();
-        // gas savings
-        uint64 stakeLockedFrom = stake.lockedFrom;
-
-        // verify locked from and locked until values
-        if (stakeLockedFrom == 0) {
-            require(_lockedUntil - _now256() <= 730 days, "max lock period is 730 days");
-            stakeLockedFrom = uint64(_now256());
-            stake.lockedFrom = stakeLockedFrom;
-        } else {
-            require(_lockedUntil - stakeLockedFrom <= 730 days, "max lock period is 730 days");
-        }
-
-        // update locked until value, calculate new weight
-        stake.lockedUntil = _lockedUntil;
-        // saves new weight into memory
-        uint256 newWeight = stake.weight();
-        // update user total weight and global locking weight
-        user.totalWeight = uint248(user.totalWeight - previousWeight + newWeight);
-        globalWeight = globalWeight - previousWeight + newWeight;
-
-        // emit an event
-        emit LogUpdateStakeLock(msg.sender, _stakeId, stakeLockedFrom, _lockedUntil);
-    }
-
-    /**
      * @notice Service function to synchronize pool state with current time
      *
      * @dev Can be executed by anyone at any time, but has an effect only when
@@ -403,8 +321,6 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
     function claimRewards(bool _useSILV) external updatePool {
         _claimRewards(msg.sender, _useSILV);
     }
-
-    function receiveVaultRewards(uint256 _value) external override updatePool {}
 
     /**
      * @notice this function can be called only by ILV core pool
@@ -478,86 +394,6 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
         pending = _weightToReward((userWeight + weightToAdd), yieldRewardsPerWeight);
     }
 
-    /**
-     * @dev Used internally, mostly by children implementations, see stake()
-     *
-     * @param _staker an address which stakes tokens and which will receive them back
-     * @param _value value of tokens to stake
-     * @param _lockUntil stake period as unix timestamp; zero means no locking
-     * @param _isYield a flag indicating if that stake is created to store yield reward
-     *      from the previously unstaked stake
-     */
-    function _stakeAndLock(
-        address _staker,
-        uint256 _value,
-        uint64 _lockUntil,
-        bool _isYield
-    ) internal virtual updatePool {
-        // validate the inputs
-        require(_value > 0, "zero value");
-        require(
-            _lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 730 days),
-            "invalid lock interval"
-        );
-
-        // get a link to user data struct, we will write to it later
-        User storage user = users[_staker];
-        // process current pending rewards if any
-        if (user.totalWeight > 0) {
-            _processRewards(_staker);
-        }
-
-        // in most of the cases added value `addedValue` is simply `_value`
-        // however for deflationary tokens this can be different
-
-        // gas savings
-        address _poolToken = poolToken;
-        // read the current balance
-        uint256 previousBalance = IERC20(_poolToken).balanceOf(address(this));
-        // transfer `_value`; note: some tokens may get burnt here
-        IERC20(_poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
-        // read new balance, usually this is just the difference `previousBalance - _value`
-        uint256 newBalance = IERC20(_poolToken).balanceOf(address(this));
-        // calculate real value taking into account deflation
-        uint256 addedValue = newBalance - previousBalance;
-
-        // set the `lockFrom` and `lockUntil` taking into account that
-        // zero value for `_lockUntil` means "no locking" and leads to zero values
-        // for both `lockFrom` and `lockUntil`
-        uint64 lockFrom = _lockUntil > 0 ? uint64(_now256()) : 0;
-        uint64 lockUntil = _lockUntil;
-
-        // stake weight formula rewards for locking
-        uint256 stakeWeight = (((lockUntil - lockFrom) * Stake.WEIGHT_MULTIPLIER) /
-            730 days +
-            Stake.WEIGHT_MULTIPLIER) * addedValue;
-
-        // makes sure stakeWeight is valid
-        assert(stakeWeight > 0);
-
-        // create and save the stake (append it to stakes array)
-        Stake.Data memory stake = Stake.Data({
-            value: uint120(addedValue),
-            lockedFrom: lockFrom,
-            lockedUntil: lockUntil,
-            isYield: _isYield
-        });
-        // stake ID is an index of the stake in `stakes` array
-        user.stakes.push(stake);
-
-        // update user record
-        user.totalWeight += uint248(stakeWeight);
-        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
-
-        // update global variable
-        globalWeight += stakeWeight;
-        // update reserve count
-        poolTokenReserve += addedValue;
-
-        // emit an event
-        emit LogStakeAndLock(msg.sender, _value, _lockUntil);
-    }
-
     function unstake(uint256 _value) external updatePool {
         // verify a value is set
         require(_value > 0, "zero value");
@@ -579,126 +415,6 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
 
         // emit an event
         emit LogUnstake(msg.sender, _value);
-    }
-
-    /**
-     * @dev Used internally, mostly by children implementations, see unstake()
-     *
-     * @param _stakeId stake ID to unstake from, zero-indexed
-     * @param _value value of tokens to unstake
-     */
-    function unstakeLocked(uint256 _stakeId, uint256 _value) external updatePool {
-        // verify a value is set
-        require(_value > 0, "zero value");
-        // get a link to user data struct, we will write to it later
-        User storage user = users[msg.sender];
-        // get a link to the corresponding stake, we may write to it later
-        Stake.Data storage stake = user.stakes[_stakeId];
-        // checks if stake is unlocked already
-        require(_now256() > stake.lockedUntil, "deposit not yet unlocked");
-        // stake structure may get deleted, so we save isYield flag to be able to use it
-        // we also save stakeValue for gasSavings
-        (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
-        // verify available balance
-        require(stakeValue >= _value, "value exceeds stake");
-        // and process current pending rewards if any
-        _processRewards(msg.sender);
-
-        // store stake weight
-        uint256 previousWeight = stake.weight();
-        // value used to save new weight after updates in storage
-        uint256 newWeight;
-
-        // update the stake, or delete it if its depleted
-        if (stakeValue - _value == 0) {
-            // deles stake struct, no need to save new weight because it stays 0
-            delete user.stakes[_stakeId];
-        } else {
-            stake.value -= uint120(_value);
-            // saves new weight to memory
-            newWeight = stake.weight();
-        }
-
-        // update user record
-        user.totalWeight = uint248(user.totalWeight - previousWeight + newWeight);
-        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
-
-        // update global variable
-        globalWeight = globalWeight - previousWeight + newWeight;
-        // update reserve count
-        poolTokenReserve -= _value;
-
-        // if the stake was created by the pool itself as a yield reward
-        if (isYield) {
-            // mint the yield via the factory
-            factory.mintYieldTo(msg.sender, _value, false);
-        } else {
-            // otherwise just return tokens back to holder
-            IERC20(poolToken).safeTransfer(msg.sender, _value);
-        }
-
-        // emit an event
-        emit LogUnstakeLocked(msg.sender, _stakeId, _value);
-    }
-
-    // TODO: improve variable names
-    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
-        require(_stakes.length > 0, "invalid array");
-        User storage user = users[msg.sender];
-
-        _processRewards(msg.sender);
-
-        uint256 weightToRemove;
-        uint256 valueToUnstake;
-
-        for (uint256 i = 0; i < _stakes.length; i++) {
-            (uint256 _stakeId, uint256 _value) = (_stakes[i].stakeId, _stakes[i].value);
-            Stake.Data storage stake = user.stakes[_stakeId];
-            // checks if stake is unlocked already
-            require(_now256() > stake.lockedUntil, "deposit not yet unlocked");
-            // stake structure may get deleted, so we save isYield flag to be able to use it
-            // we also save stakeValue for gasSavings
-            (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
-            require(isYield == _unstakingYield, "invalid yield parameter");
-
-            // store stake weight
-            uint256 previousWeight = stake.weight();
-            // value used to save new weight after updates in storage
-            uint256 newWeight;
-
-            // update the stake, or delete it if its depleted
-            if (stakeValue - _value == 0) {
-                // deletes stake struct, no need to save new weight because it stays 0
-                delete user.stakes[_stakeId];
-            } else {
-                stake.value -= uint120(_value);
-                // saves new weight to memory
-                newWeight = stake.weight();
-            }
-
-            weightToRemove += previousWeight - newWeight;
-            valueToUnstake += _value;
-
-            // TODO: change event
-            emit LogUnstakeLocked(msg.sender, _stakeId, _value);
-        }
-
-        user.totalWeight -= uint248(weightToRemove);
-        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
-
-        // update global variable
-        globalWeight -= weightToRemove;
-        // update reserve count
-        poolTokenReserve -= valueToUnstake;
-
-        // if the stake was created by the pool itself as a yield reward
-        if (_unstakingYield) {
-            // mint the yield via the factory
-            factory.mintYieldTo(msg.sender, valueToUnstake, false);
-        } else {
-            // otherwise just return tokens back to holder
-            IERC20(poolToken).safeTransfer(msg.sender, valueToUnstake);
-        }
     }
 
     /**
@@ -797,7 +513,7 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
         // if sILV is requested
         if (_useSILV) {
             // - mint sILV
-            IERC20Mintable(silv).mint(_staker, pendingYieldToClaim);
+            factory.mintYieldTo(msg.sender, pendingYieldToClaim, true);
         } else if (poolToken == ilv) {
             // calculate pending yield weight,
             // 2e6 is the bonus weight when staking for 1 year
@@ -859,10 +575,6 @@ contract FlashPool is UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgra
     function _rewardPerWeight(uint256 _reward, uint256 _globalWeight) internal pure returns (uint256) {
         // apply the reverse formula and return
         return (_reward * REWARD_PER_WEIGHT_MULTIPLIER) / _globalWeight;
-    }
-
-    function _toV2Weight(uint256 _v1Weight) internal pure returns (uint256) {
-        return (_v1Weight * V1_WEIGHT_BONUS * V1_WEIGHT_MULTIPLIER) / 1000;
     }
 
     /// @inheritdoc UUPSUpgradeable
