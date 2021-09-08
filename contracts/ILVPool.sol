@@ -31,7 +31,7 @@ contract ILVPool is CorePool {
      * @param _staker an address which stakes (the yield reward)
      * @param _value amount to be staked (yield reward amount)
      */
-    function stakeAsPool(address _staker, uint256 _value) external updatePool whenNotPaused {
+    function stakeAsPool(address _staker, uint256 _value) external updatePool whenNotPaused nonReentrant {
         require(factory.poolExists(msg.sender), "access denied");
         User storage user = users[_staker];
         if (user.totalWeight > 0) {

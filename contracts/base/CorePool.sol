@@ -717,7 +717,7 @@ abstract contract CorePool is
         emit LogStakeAndLock(msg.sender, _value, _lockUntil);
     }
 
-    function unstakeFlexible(uint256 _value) external updatePool {
+    function unstakeFlexible(uint256 _value) external updatePool nonReentrant {
         // verify a value is set
         require(_value > 0, "zero value");
         // get a link to user data struct, we will write to it later
@@ -746,7 +746,7 @@ abstract contract CorePool is
      * @param _stakeId stake ID to unstake from, zero-indexed
      * @param _value value of tokens to unstake
      */
-    function unstakeLocked(uint256 _stakeId, uint256 _value) external updatePool {
+    function unstakeLocked(uint256 _stakeId, uint256 _value) external updatePool nonReentrant {
         // verify a value is set
         require(_value > 0, "zero value");
         // get a link to user data struct, we will write to it later
@@ -801,7 +801,7 @@ abstract contract CorePool is
     }
 
     // TODO: improve variable names
-    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
+    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external nonReentrant {
         require(_stakes.length > 0, "invalid array");
         User storage user = users[msg.sender];
 

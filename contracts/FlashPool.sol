@@ -394,7 +394,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         pending = _weightToReward((userWeight + weightToAdd), yieldRewardsPerWeight);
     }
 
-    function unstake(uint256 _value) external updatePool {
+    function unstake(uint256 _value) external updatePool nonReentrant {
         // verify a value is set
         require(_value > 0, "zero value");
         // get a link to user data struct, we will write to it later
