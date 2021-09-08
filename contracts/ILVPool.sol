@@ -88,6 +88,18 @@ contract ILVPool is CorePool {
         emit LogClaimRewardsMultiple(msg.sender, _pools, _useSILV);
     }
 
+    function migrateWeights(address[] calldata _users, uint248[] calldata _yieldWeights)
+        external
+        onlyFactoryController
+    {
+        require(_users.length == _yieldWeights.length, "invalid parameters");
+
+        for (uint256 i = 0; i < _users.length; i++) {
+            User storage user = users[_users[i]];
+            user.totalWeight += _yieldWeights[i];
+        }
+    }
+
     /// @notice not necessary for ILV pool because we claim internally in claimRewardsMultiple()
     function claimRewardsFromRouter(address _staker, bool _useSILV) external override {}
 }
