@@ -47,7 +47,8 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     /// @dev Used to calculate yield rewards
     uint256 public yieldRewardsPerToken;
 
-    uint256 public constant REWARD_PER_TOKEN_MULTIPLIER = 1e12;
+    /// @dev Rewards per token are stored multiplied by 1e12 as uint
+    uint256 internal constant REWARD_PER_TOKEN_MULTIPLIER = 1e12;
 
     /// @dev Flag indicating pool type, false means "core pool"
     bool public constant isFlashPool = true;
@@ -166,8 +167,8 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      */
     function pendingYieldRewards(address _staker) external view returns (uint256 pending) {
         require(_staker != address(0), "invalid _staker");
-        // `newyieldRewardsPerToken` will store stored or recalculated value for `yieldRewardsPerToken`
-        uint256 newyieldRewardsPerToken;
+        // `newYieldRewardsPerToken` will store stored or recalculated value for `yieldRewardsPerToken`
+        uint256 newYieldRewardsPerToken;
 
         // if smart contract state was not updated recently, `yieldRewardsPerToken` value
         // is outdated and we need to recalculate it in order to calculate pending rewards correctly
@@ -179,10 +180,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
             uint256 ilvRewards = (multiplier * weight * factory.ilvPerSecond()) / factory.totalWeight();
 
             // recalculated value for `yieldRewardsPerToken`
-            newyieldRewardsPerToken = _rewardPerWeight(ilvRewards, globalWeight) + yieldRewardsPerToken;
+            newYieldRewardsPerToken = _rewardPerWeight(ilvRewards, globalWeight) + yieldRewardsPerToken;
         } else {
             // if smart contract state is up to date, we don't recalculate
-            newyieldRewardsPerToken = yieldRewardsPerToken;
+            newYieldRewardsPerToken = yieldRewardsPerToken;
         }
 
         // based on the rewards per weight value, calculate pending rewards;
@@ -204,7 +205,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
             }
         }
 
-        pending = _weightToReward(userWeight, newyieldRewardsPerToken) - user.subYieldRewards;
+        pending = _weightToReward(userWeight, newYieldRewardsPerToken) - user.subYieldRewards;
     }
 
     /**
@@ -528,32 +529,29 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     }
 
     /**
-     * @dev Converts stake weight (not to be mixed with the pool weight) to
-     *      ILV reward value, applying the 10^12 division on weight
+     * @dev Converts number of tokens staked to ILV reward value, applying the
+     *      10^12 division on weight
      *
-     * @param _weight stake weight
-     * @param _rewardPerWeight ILV reward per weight
+     * @param _value stake weight
+     * @param _rewardPerToken ILV reward per token
      * @return reward value normalized to 10^12
      */
-    function _weightToReward(uint256 _weight, uint256 _rewardPerWeight) internal pure returns (uint256) {
+    function _tokensToRewards(uint256 _value, uint256 _rewardPerToken) internal pure returns (uint256) {
         // apply the formula and return
-        return (_weight * _rewardPerWeight) / REWARD_PER_WEIGHT_MULTIPLIER;
+        return (_value * _rewardPerToken) / REWARD_PER_TOKEN_MULTIPLIER;
     }
 
     /**
-     * @dev Converts reward ILV value to stake weight (not to be mixed with the pool weight),
-     *      applying the 10^12 multiplication on the reward
-     *      - OR -
      * @dev Converts reward ILV value to reward/weight if stake weight is supplied as second
      *      function parameter instead of reward/weight
      *
      * @param _reward yield reward
-     * @param _globalWeight total weight in the pool
-     * @return reward per weight value
+     * @param _totalStaked total value staked in the pool
+     * @return reward per token value
      */
-    function _rewardPerWeight(uint256 _reward, uint256 _globalWeight) internal pure returns (uint256) {
+    function _rewardPerToken(uint256 _reward, uint256 _totalStaked) internal pure returns (uint256) {
         // apply the reverse formula and return
-        return (_reward * REWARD_PER_WEIGHT_MULTIPLIER) / _globalWeight;
+        return (_reward * REWARD_PER_TOKEN_MULTIPLIER) / _totalStaked;
     }
 
     /// @inheritdoc UUPSUpgradeable

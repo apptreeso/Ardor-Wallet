@@ -76,7 +76,7 @@ abstract contract CorePool is
     uint256 internal constant YEAR_STAKE_WEIGHT_MULTIPLIER = 2 * 1e6;
 
     /**
-     * @dev Rewards per weight are stored multiplied by 1e12, as integers.
+     * @dev Rewards per weight are stored multiplied by 1e12 as uint
      */
     uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e12;
 
