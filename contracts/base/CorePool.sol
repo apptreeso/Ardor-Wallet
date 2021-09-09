@@ -634,7 +634,7 @@ abstract contract CorePool is
             }
         }
 
-        pending = _weightToReward((userWeight + weightToAdd), yieldRewardsPerWeight);
+        pending = _weightToReward((userWeight + weightToAdd), yieldRewardsPerWeight) - user.subYieldRewards;
     }
 
     /**

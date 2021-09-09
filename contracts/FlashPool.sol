@@ -165,14 +165,15 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _staker an address to calculate yield rewards value for
      * @return pending calculated yield reward value for the given address
      */
-    function pendingYieldRewards(address _staker) external view returns (uint256 pending) {
-        require(_staker != address(0), "invalid _staker");
+    function pendingYieldRewards(address _staker) external view override returns (uint256 pending) {
         // `newYieldRewardsPerToken` will store stored or recalculated value for `yieldRewardsPerToken`
         uint256 newYieldRewardsPerToken;
 
+        uint256 totalStaked = IERC20(poolToken).balanceOf(address(this));
+
         // if smart contract state was not updated recently, `yieldRewardsPerToken` value
         // is outdated and we need to recalculate it in order to calculate pending rewards correctly
-        if (_now256() > lastYieldDistribution && globalWeight != 0) {
+        if (_now256() > lastYieldDistribution && totalStaked != 0) {
             uint256 endTime = factory.endTime();
             uint256 multiplier = _now256() > endTime
                 ? endTime - lastYieldDistribution
@@ -180,32 +181,16 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
             uint256 ilvRewards = (multiplier * weight * factory.ilvPerSecond()) / factory.totalWeight();
 
             // recalculated value for `yieldRewardsPerToken`
-            newYieldRewardsPerToken = _rewardPerToken(ilvRewards, globalWeight) + yieldRewardsPerToken;
+            newYieldRewardsPerToken = _rewardPerToken(ilvRewards, totalStaked) + yieldRewardsPerToken;
         } else {
             // if smart contract state is up to date, we don't recalculate
             newYieldRewardsPerToken = yieldRewardsPerToken;
         }
 
         // based on the rewards per weight value, calculate pending rewards;
-        User storage user = users[_staker];
-
-        // gas savings
-        (uint256 v1StakesLength, uint256 userWeight) = (uint256(user.v1IdsLength), uint256(user.totalWeight));
-        // value will be used to add to final weight calculations before
-        // calculating rewards
-        uint256 weightToAdd;
-
-        // checks if user has any migrated stake from v1
-        if (v1StakesLength > 0) {
-            // loops through v1StakesIds and adds v1 weight with V1_WEIGHT_BONUS
-            for (uint256 i = 0; i < v1StakesLength; i++) {
-                (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
-
-                weightToAdd += _toV2Weight(_weight);
-            }
-        }
-
-        pending = _tokensToReward(userWeight, newYieldRewardsPerToken) - user.subYieldRewards;
+        User memory user = users[_staker];
+        pending = _tokensToReward(user.balance, yieldRewardsPerToken);
+        (user.totalWeight, newYieldRewardsPerToken) - user.subYieldRewards;
     }
 
     /**
@@ -376,23 +361,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // links to _staker user struct in storage
         User storage user = users[_staker];
 
-        // gas savings
-        (uint256 v1StakesLength, uint256 userWeight) = (uint256(user.v1IdsLength), uint256(user.totalWeight));
-        // value will be used to add to final weight calculations before
-        // calculating rewards
-        uint256 weightToAdd;
-
-        // checks if user has any migrated stake from v1
-        if (v1StakesLength > 0) {
-            // loops through v1StakesIds and adds v1 weight with V1_WEIGHT_BONUS
-            for (uint256 i = 0; i < v1StakesLength; i++) {
-                (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
-
-                weightToAdd += _toV2Weight(_weight);
-            }
-        }
-
-        pending = _tokensToReward((userWeight + weightToAdd), yieldRewardsPerToken);
+        pending = _tokensToReward(user.balance, yieldRewardsPerToken);
     }
 
     function unstake(uint256 _value) external updatePool nonReentrant {
@@ -407,9 +376,6 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
 
         // updates user data in storage
         user.balance -= uint128(_value);
-        user.totalWeight -= uint248(_value * Stake.WEIGHT_MULTIPLIER);
-        // update reserve count
-        poolTokenReserve -= _value;
 
         // finally, transfers `_value` poolTokens
         IERC20(poolToken).safeTransfer(msg.sender, _value);
@@ -439,8 +405,9 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         if (_now256() <= lastYieldDistribution) {
             return;
         }
+        uint256 totalStaked = IERC20(poolToken).balanceOf(address(this));
         // if locking weight is zero - update only `lastYieldDistribution` and exit
-        if (globalWeight == 0) {
+        if (totalStaked == 0) {
             lastYieldDistribution = uint64(_now256());
             return;
         }
@@ -454,7 +421,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory.totalWeight();
 
         // update rewards per weight and `lastYieldDistribution`
-        yieldRewardsPerToken += _rewardPerToken(ilvReward, globalWeight);
+        yieldRewardsPerToken += _rewardPerToken(ilvReward, totalStaked);
         lastYieldDistribution = uint64(currentTimestamp);
 
         // emit an event
