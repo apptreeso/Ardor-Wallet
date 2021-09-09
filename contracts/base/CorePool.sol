@@ -76,7 +76,7 @@ abstract contract CorePool is
     uint256 internal constant YEAR_STAKE_WEIGHT_MULTIPLIER = 2 * 1e6;
 
     /**
-     * @dev Rewards per weight are stored multiplied by 1e12, as integers.
+     * @dev Rewards per weight are stored multiplied by 1e12 as uint
      */
     uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e12;
 
@@ -160,9 +160,10 @@ abstract contract CorePool is
      * @dev Fired in _processRewards()
      *
      * @param from an address which received the yield
-     * @param value value of yield paid
+     * @param yieldValue value of yield processed
+     * @param revDisValue value of revenue distribution processed
      */
-    event LogProcessRewards(address indexed from, uint256 value);
+    event LogProcessRewards(address indexed from, uint256 yieldValue, uint256 revDisValue);
 
     /**
      * @dev Fired in setWeight()
@@ -180,6 +181,14 @@ abstract contract CorePool is
      * @param to new user address
      */
     event LogMigrateUser(address indexed from, address indexed to);
+
+    /**
+     * @dev Fired in receiveVaultRewards()
+     *
+     * @param by an address that sent the rewards, always a vault
+     * @param value amount of tokens received
+     */
+    event LogReceiveVaultRewards(address indexed by, uint256 value);
 
     /// @dev used for functions that require syncing contract state before execution
     modifier updatePool() {
@@ -230,12 +239,17 @@ abstract contract CorePool is
     /**
      * @notice Calculates current yield rewards value available for address specified
      *
-     * @dev see _pendingYieldRewards() for further details
+     * @dev see _pendingRewards() for further details
      *
      * @param _staker an address to calculate yield rewards value for
-     * @return pending calculated yield reward value for the given address
+     * @return (pendingYield, pendingRevDis) calculated yield and revenue distribution reward value for the given address
      */
-    function pendingYieldRewards(address _staker) external view override returns (uint256 pending) {
+    function pendingRewards(address _staker)
+        external
+        view
+        override
+        returns (uint256 pendingYield, uint256 pendingRevDis)
+    {
         require(_staker != address(0), "invalid _staker");
         // `newYieldRewardsPerWeight` will store stored or recalculated value for `yieldRewardsPerWeight`
         uint256 newYieldRewardsPerWeight;
@@ -275,7 +289,8 @@ abstract contract CorePool is
             }
         }
 
-        pending = _weightToReward(userWeight, newYieldRewardsPerWeight) - user.subYieldRewards;
+        pendingYield = _weightToReward(userWeight, newYieldRewardsPerWeight) - user.subYieldRewards;
+        pendingRevDis = _weightToReward(userWeight, vaultRewardsPerWeight) - user.subVaultRewards;
     }
 
     /**
@@ -363,7 +378,7 @@ abstract contract CorePool is
      * @param _value value of tokens to stake
      * @param _lockUntil stake period as unix timestamp; zero means no locking
      */
-    function stakeAndLock(uint256 _value, uint64 _lockUntil) external nonReentrant {
+    function stakeAndLock(uint256 _value, uint64 _lockUntil) external whenNotPaused nonReentrant {
         // delegate call to an internal function
         _stakeAndLock(msg.sender, _value, _lockUntil, false);
     }
@@ -375,7 +390,7 @@ abstract contract CorePool is
      *
      * @param _value number of tokens to stake
      */
-    function stakeFlexible(uint256 _value) external updatePool nonReentrant {
+    function stakeFlexible(uint256 _value) external updatePool whenNotPaused nonReentrant {
         // validates input
         require(_value > 0, "zero value");
 
@@ -405,16 +420,6 @@ abstract contract CorePool is
 
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
-
-        // create and save the stake (append it to stakes array)
-        Stake.Data memory stake = Stake.Data({
-            value: uint120(addedValue),
-            lockedFrom: 0,
-            lockedUntil: 0,
-            isYield: false
-        });
-        // stake ID is an index of the stake in `stakes` array
-        user.stakes.push(stake);
 
         // update user record
         user.flexibleBalance += uint128(addedValue);
@@ -569,11 +574,32 @@ abstract contract CorePool is
      *
      * @notice pool state is updated before calling the internal function
      */
-    function claimRewards(bool _useSILV) external updatePool {
+    function claimRewards(bool _useSILV) external updatePool whenNotPaused {
         _claimRewards(msg.sender, _useSILV);
     }
 
-    function receiveVaultRewards(uint256 _value) external override updatePool {}
+    /**
+     * @dev Executed by the vault to transfer vault rewards ILV from the vault
+     *      into the pool
+     *
+     * @dev This function is executed only for ILV core pools
+     *
+     * @param _value amount of ILV rewards to transfer into the pool
+     */
+    function receiveVaultRewards(uint256 _value) external override updatePool {
+        require(msg.sender == vault, "access denied");
+        // return silently if there is no reward to receive
+        if (_value == 0) {
+            return;
+        }
+        require(globalWeight > 0, "zero weight in the pool");
+
+        IERC20(ilv).safeTransferFrom(msg.sender, address(this), _value);
+
+        vaultRewardsPerWeight += _rewardPerWeight(_value, globalWeight);
+
+        emit LogReceiveVaultRewards(msg.sender, _value);
+    }
 
     /**
      * @notice this function can be called only by ILV core pool
@@ -585,7 +611,7 @@ abstract contract CorePool is
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
-    function claimRewardsFromRouter(address _staker, bool _useSILV) external virtual override updatePool {
+    function claimRewardsFromRouter(address _staker, bool _useSILV) external virtual override updatePool whenNotPaused {
         bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
         require(poolIsValid, "invalid caller");
 
@@ -622,9 +648,9 @@ abstract contract CorePool is
      *         adopters.
      *
      * @param _staker an address to calculate yield rewards value for
-     * @return pending calculated yield reward value for the given address
+     * @return (pendingYield, pendingRevDis) calculated yield and revenue distribution reward value for the given address
      */
-    function _pendingYieldRewards(address _staker) internal view returns (uint256 pending) {
+    function _pendingRewards(address _staker) internal view returns (uint256 pendingYield, uint256 pendingRevDis) {
         // links to _staker user struct in storage
         User storage user = users[_staker];
 
@@ -644,7 +670,8 @@ abstract contract CorePool is
             }
         }
 
-        pending = _weightToReward((userWeight + weightToAdd), yieldRewardsPerWeight);
+        pendingYield = _weightToReward((userWeight + weightToAdd), yieldRewardsPerWeight) - user.subYieldRewards;
+        pendingRevDis = _weightToReward((userWeight + weightToAdd), vaultRewardsPerWeight) - user.subVaultRewards;
     }
 
     /**
@@ -727,7 +754,7 @@ abstract contract CorePool is
         emit LogStakeAndLock(msg.sender, _value, _lockUntil);
     }
 
-    function unstakeFlexible(uint256 _value) external updatePool {
+    function unstakeFlexible(uint256 _value) external updatePool nonReentrant {
         // verify a value is set
         require(_value > 0, "zero value");
         // get a link to user data struct, we will write to it later
@@ -756,7 +783,7 @@ abstract contract CorePool is
      * @param _stakeId stake ID to unstake from, zero-indexed
      * @param _value value of tokens to unstake
      */
-    function unstakeLocked(uint256 _stakeId, uint256 _value) external updatePool {
+    function unstakeLocked(uint256 _stakeId, uint256 _value) external updatePool nonReentrant {
         // verify a value is set
         require(_value > 0, "zero value");
         // get a link to user data struct, we will write to it later
@@ -811,7 +838,7 @@ abstract contract CorePool is
     }
 
     // TODO: improve variable names
-    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
+    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external nonReentrant {
         require(_stakes.length > 0, "invalid array");
         User storage user = users[msg.sender];
 
@@ -922,20 +949,21 @@ abstract contract CorePool is
      * @param _staker an address which receives the reward (which has staked some tokens earlier)
      * @return pendingYield the rewards calculated and saved to the user struct
      */
-    function _processRewards(address _staker) internal virtual returns (uint256 pendingYield) {
+    function _processRewards(address _staker) internal virtual returns (uint256 pendingYield, uint256 pendingRevDis) {
         // calculate pending yield rewards, this value will be returned
-        pendingYield = _pendingYieldRewards(_staker);
+        (pendingYield, pendingRevDis) = _pendingRewards(_staker);
 
         // if pending yield is zero - just return silently
-        if (pendingYield == 0) return 0;
+        if (pendingYield == 0 && pendingRevDis == 0) return (0, 0);
 
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
 
         user.pendingYield += uint128(pendingYield);
+        user.pendingRevDis += uint128(pendingRevDis);
 
         // emit an event
-        emit LogProcessRewards(_staker, pendingYield);
+        emit LogProcessRewards(_staker, pendingYield, pendingRevDis);
     }
 
     /**
@@ -966,7 +994,7 @@ abstract contract CorePool is
         // if sILV is requested
         if (_useSILV) {
             // - mint sILV
-            IERC20Mintable(silv).mint(_staker, pendingYieldToClaim);
+            factory.mintYieldTo(msg.sender, pendingYieldToClaim, true);
         } else if (poolToken == ilv) {
             // calculate pending yield weight,
             // 2e6 is the bonus weight when staking for 1 year

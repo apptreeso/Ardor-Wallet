@@ -10,6 +10,8 @@ interface ICorePool {
         uint128 flexibleBalance;
         /// @dev pending yield rewards to be claimed
         uint128 pendingYield;
+        /// @dev pending revenue distribution to be claimed
+        uint128 pendingRevDis;
         /// @dev Total weight
         uint248 totalWeight;
         /// @dev number of v1StakesIds
@@ -28,6 +30,7 @@ interface ICorePool {
         external
         view
         returns (
+            uint128,
             uint128,
             uint128,
             uint248,
@@ -50,7 +53,7 @@ interface ICorePool {
 
     function globalWeight() external view returns (uint256);
 
-    function pendingYieldRewards(address _user) external view returns (uint256);
+    function pendingRewards(address _user) external view returns (uint256, uint256);
 
     function poolTokenReserve() external view returns (uint256);
 

@@ -59,7 +59,7 @@ abstract contract V2Migrator is CorePool {
      * @param _stakeId v1 yield id
      */
     function mintV1Yield(uint256 _stakeId) external {
-        (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
+        (uint256 tokenAmount, uint256 weight, , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
             msg.sender,
             _stakeId
         );
@@ -68,6 +68,7 @@ abstract contract V2Migrator is CorePool {
         bytes32 stakeHash = keccak256(abi.encodePacked(msg.sender, _stakeId));
         require(!v1YieldMinted[stakeHash], "yield already minted");
 
+        users[msg.sender].totalWeight -= uint248(weight);
         v1YieldMinted[stakeHash] = true;
         factory.mintYieldTo(msg.sender, tokenAmount, false);
 
