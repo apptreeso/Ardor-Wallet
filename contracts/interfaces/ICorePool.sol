@@ -10,6 +10,8 @@ interface ICorePool {
         uint128 flexibleBalance;
         /// @dev pending yield rewards to be claimed
         uint128 pendingYield;
+        /// @dev pending revenue distribution to be claimed
+        uint128 pendingRevDis;
         /// @dev Total weight
         uint248 totalWeight;
         /// @dev number of v1StakesIds

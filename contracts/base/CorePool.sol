@@ -160,9 +160,10 @@ abstract contract CorePool is
      * @dev Fired in _processRewards()
      *
      * @param from an address which received the yield
-     * @param value value of yield paid
+     * @param yieldValue value of yield processed
+     * @param revDisValue value of revenue distribution processed
      */
-    event LogProcessRewards(address indexed from, uint256 value);
+    event LogProcessRewards(address indexed from, uint256 yieldValue, revDisValue);
 
     /**
      * @dev Fired in setWeight()
@@ -238,12 +239,17 @@ abstract contract CorePool is
     /**
      * @notice Calculates current yield rewards value available for address specified
      *
-     * @dev see _pendingYieldRewards() for further details
+     * @dev see _pendingRewards() for further details
      *
      * @param _staker an address to calculate yield rewards value for
-     * @return pending calculated yield reward value for the given address
+     * @return pending calculated yield and revenue distribution reward value for the given address
      */
-    function pendingYieldRewards(address _staker) external view override returns (uint256 pending) {
+    function pendingRewards(address _staker)
+        external
+        view
+        override
+        returns (uint256 pendingYield, uint256 pendingRevDis)
+    {
         require(_staker != address(0), "invalid _staker");
         // `newYieldRewardsPerWeight` will store stored or recalculated value for `yieldRewardsPerWeight`
         uint256 newYieldRewardsPerWeight;
@@ -283,7 +289,8 @@ abstract contract CorePool is
             }
         }
 
-        pending = _weightToReward(userWeight, newYieldRewardsPerWeight) - user.subYieldRewards;
+        pendingYield = _weightToReward(userWeight, newYieldRewardsPerWeight) - user.subYieldRewards;
+        pendingRevDis = _weightToReward(userWeight, vaultRewardsPerWeight) - user.subVaultRewards;
     }
 
     /**
@@ -641,9 +648,9 @@ abstract contract CorePool is
      *         adopters.
      *
      * @param _staker an address to calculate yield rewards value for
-     * @return pending calculated yield reward value for the given address
+     * @return pending calculated yield and revenue distribution reward value for the given address
      */
-    function _pendingYieldRewards(address _staker) internal view returns (uint256 pending) {
+    function _pendingRewards(address _staker) internal view returns (uint256 pendingYield, uint256 pendingRevDis) {
         // links to _staker user struct in storage
         User storage user = users[_staker];
 
@@ -663,7 +670,8 @@ abstract contract CorePool is
             }
         }
 
-        pending = _weightToReward((userWeight + weightToAdd), yieldRewardsPerWeight) - user.subYieldRewards;
+        pendingYield = _weightToReward((userWeight + weightToAdd), yieldRewardsPerWeight) - user.subYieldRewards;
+        pendingRevDis = _weightToReward((userWeight + weightToAdd), vaultRewardsPerWeight) - user.subVaultRewards;
     }
 
     /**
@@ -941,20 +949,21 @@ abstract contract CorePool is
      * @param _staker an address which receives the reward (which has staked some tokens earlier)
      * @return pendingYield the rewards calculated and saved to the user struct
      */
-    function _processRewards(address _staker) internal virtual returns (uint256 pendingYield) {
+    function _processRewards(address _staker) internal virtual returns (uint256 pendingYield, uint256 pendingRevDis) {
         // calculate pending yield rewards, this value will be returned
-        pendingYield = _pendingYieldRewards(_staker);
+        (pendingYield, pendingRevDis) = _pendingRewards(_staker);
 
         // if pending yield is zero - just return silently
-        if (pendingYield == 0) return 0;
+        if (pendingYield == 0 && pendingRevDis == 0) return 0;
 
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
 
         user.pendingYield += uint128(pendingYield);
+        user.pendingRevDis += uint128(pendingRevDis);
 
         // emit an event
-        emit LogProcessRewards(_staker, pendingYield);
+        emit LogProcessRewards(_staker, pendingYield, pendingRevDis);
     }
 
     /**
