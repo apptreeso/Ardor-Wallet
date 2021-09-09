@@ -163,7 +163,7 @@ abstract contract CorePool is
      * @param yieldValue value of yield processed
      * @param revDisValue value of revenue distribution processed
      */
-    event LogProcessRewards(address indexed from, uint256 yieldValue, revDisValue);
+    event LogProcessRewards(address indexed from, uint256 yieldValue, uint256 revDisValue);
 
     /**
      * @dev Fired in setWeight()
@@ -242,7 +242,7 @@ abstract contract CorePool is
      * @dev see _pendingRewards() for further details
      *
      * @param _staker an address to calculate yield rewards value for
-     * @return pending calculated yield and revenue distribution reward value for the given address
+     * @return (pendingYield, pendingRevDis) calculated yield and revenue distribution reward value for the given address
      */
     function pendingRewards(address _staker)
         external
@@ -648,7 +648,7 @@ abstract contract CorePool is
      *         adopters.
      *
      * @param _staker an address to calculate yield rewards value for
-     * @return pending calculated yield and revenue distribution reward value for the given address
+     * @return (pendingYield, pendingRevDis) calculated yield and revenue distribution reward value for the given address
      */
     function _pendingRewards(address _staker) internal view returns (uint256 pendingYield, uint256 pendingRevDis) {
         // links to _staker user struct in storage
@@ -954,7 +954,7 @@ abstract contract CorePool is
         (pendingYield, pendingRevDis) = _pendingRewards(_staker);
 
         // if pending yield is zero - just return silently
-        if (pendingYield == 0 && pendingRevDis == 0) return 0;
+        if (pendingYield == 0 && pendingRevDis == 0) return (0, 0);
 
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];

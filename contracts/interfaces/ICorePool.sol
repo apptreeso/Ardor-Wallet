@@ -32,6 +32,7 @@ interface ICorePool {
         returns (
             uint128,
             uint128,
+            uint128,
             uint248,
             uint8,
             uint256,
@@ -52,7 +53,7 @@ interface ICorePool {
 
     function globalWeight() external view returns (uint256);
 
-    function pendingYieldRewards(address _user) external view returns (uint256);
+    function pendingRewards(address _user) external view returns (uint256, uint256);
 
     function poolTokenReserve() external view returns (uint256);
 
