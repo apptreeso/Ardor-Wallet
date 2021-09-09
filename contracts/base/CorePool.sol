@@ -181,6 +181,14 @@ abstract contract CorePool is
      */
     event LogMigrateUser(address indexed from, address indexed to);
 
+    /**
+     * @dev Fired in receiveVaultRewards()
+     *
+     * @param by an address that sent the rewards, always a vault
+     * @param value amount of tokens received
+     */
+    event LogReceiveVaultRewards(address indexed by, uint256 value);
+
     /// @dev used for functions that require syncing contract state before execution
     modifier updatePool() {
         _sync();
@@ -563,7 +571,28 @@ abstract contract CorePool is
         _claimRewards(msg.sender, _useSILV);
     }
 
-    function receiveVaultRewards(uint256 _value) external override updatePool {}
+    /**
+     * @dev Executed by the vault to transfer vault rewards ILV from the vault
+     *      into the pool
+     *
+     * @dev This function is executed only for ILV core pools
+     *
+     * @param _value amount of ILV rewards to transfer into the pool
+     */
+    function receiveVaultRewards(uint256 _value) external override updatePool {
+        require(msg.sender == vault, "access denied");
+        // return silently if there is no reward to receive
+        if (_value == 0) {
+            return;
+        }
+        require(globalWeight > 0, "zero weight in the pool");
+
+        IERC20(ilv).safeTransferFrom(msg.sender, address(this), _value);
+
+        vaultRewardsPerWeight += _rewardPerWeight(_value, globalWeight);
+
+        emit LogReceiveVaultRewards(msg.sender, _value);
+    }
 
     /**
      * @notice this function can be called only by ILV core pool
