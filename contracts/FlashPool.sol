@@ -165,7 +165,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _staker an address to calculate yield rewards value for
      * @return pending calculated yield reward value for the given address
      */
-    function pendingYieldRewards(address _staker) external view override returns (uint256 pending) {
+    function pendingYieldRewards(address _staker) external view returns (uint256 pending) {
         // `newYieldRewardsPerToken` will store stored or recalculated value for `yieldRewardsPerToken`
         uint256 newYieldRewardsPerToken;
 
@@ -187,10 +187,9 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
             newYieldRewardsPerToken = yieldRewardsPerToken;
         }
 
-        // based on the rewards per weight value, calculate pending rewards;
+        // based on the rewards per token value, calculate pending rewards;
         User memory user = users[_staker];
-        pending = _tokensToReward(user.balance, yieldRewardsPerToken);
-        (user.totalWeight, newYieldRewardsPerToken) - user.subYieldRewards;
+        pending = _tokensToReward(user.balance, yieldRewardsPerToken) - user.subYieldRewards;
     }
 
     /**
@@ -216,7 +215,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
         // process current pending rewards if any
-        if (user.totalWeight > 0) {
+        if (user.balance > 0) {
             _processRewards(msg.sender);
         }
 
@@ -239,7 +238,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
 
         // update user record
         user.balance += uint128(addedValue);
-        user.subYieldRewards = _tokensToReward(user.totalWeight, yieldRewardsPerToken);
+        user.subYieldRewards = _tokensToReward(user.balance, yieldRewardsPerToken);
 
         // emit an event
         emit LogStake(msg.sender, _value);
@@ -256,30 +255,19 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     function migrateUser(address _to) external updatePool {
         require(_to != address(0), "invalid _to");
         User storage newUser = users[_to];
-        require(
-            newUser.totalWeight == 0 && newUser.v1IdsLength == 0 && newUser.pendingYield == 0,
-            "invalid user, already exists"
-        );
+        require(newUser.balance == 0 && newUser.pendingYield == 0, "invalid user, already exists");
 
         User storage previousUser = users[msg.sender];
         uint128 balance = previousUser.balance;
         uint128 pendingYield = previousUser.pendingYield;
-        uint248 totalWeight = previousUser.totalWeight;
         uint256 subYieldRewards = previousUser.subYieldRewards;
-        uint256 subVaultRewards = previousUser.subVaultRewards;
         previousUser.balance = 0;
         previousUser.pendingYield = 0;
-        previousUser.totalWeight = 0;
         previousUser.subYieldRewards = 0;
-        previousUser.subVaultRewards = 0;
-        for (uint256 i = 0; i < previousUser.stakes.length; i++) {
-            delete previousUser.stakes[i];
-        }
+
         newUser.balance = balance;
         newUser.pendingYield = pendingYield;
-        newUser.totalWeight = totalWeight;
         newUser.subYieldRewards = subYieldRewards;
-        newUser.subVaultRewards = subVaultRewards;
 
         emit LogMigrateUser(msg.sender, _to);
     }
@@ -348,11 +336,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @dev Similar to public pendingYieldRewards, but performs calculations based on
      *      current smart contract state only, not taking into account any additional
      *      time which might have passed.
-     * @dev It performs a check on v1StakesIds and calls the corresponding V1 core pool
-     *      in order to add v1 weight into v2 yield calculations.
      *
-     * @notice v1 weight is multiplied by V1_WEIGHT_BONUS as a reward to staking early
-     *         adopters.
      *
      * @param _staker an address to calculate yield rewards value for
      * @return pending calculated yield reward value for the given address
@@ -406,7 +390,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
             return;
         }
         uint256 totalStaked = IERC20(poolToken).balanceOf(address(this));
-        // if locking weight is zero - update only `lastYieldDistribution` and exit
+        // if pool token balance is zero - update only `lastYieldDistribution` and exit
         if (totalStaked == 0) {
             lastYieldDistribution = uint64(_now256());
             return;
@@ -489,7 +473,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         }
 
         // subYieldRewards needs to be updated on every `_processRewards` call
-        user.subYieldRewards = _tokensToReward(user.totalWeight, yieldRewardsPerToken);
+        user.subYieldRewards = _tokensToReward(user.balance, yieldRewardsPerToken);
 
         // emit an event
         emit LogClaimRewards(_staker, _useSILV, pendingYieldToClaim);
@@ -497,9 +481,9 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
 
     /**
      * @dev Converts number of tokens staked to ILV reward value, applying the
-     *      10^12 division on weight
+     *      10^12 division on number of tokens (`_value`)
      *
-     * @param _value stake weight
+     * @param _value stake value
      * @param _rewardPerToken ILV reward per token
      * @return reward value normalized to 10^12
      */
@@ -509,8 +493,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     }
 
     /**
-     * @dev Converts reward ILV value to reward/weight if stake weight is supplied as second
-     *      function parameter instead of reward/weight
+     * @dev Converts reward ILV value to reward/tokens
      *
      * @param _reward yield reward
      * @param _totalStaked total value staked in the pool
