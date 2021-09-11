@@ -148,13 +148,13 @@ abstract contract CorePool is
     event LogSync(address indexed by, uint256 yieldRewardsPerWeight, uint64 lastYieldDistribution);
 
     /**
-     * @dev Fired in _claimRewards()
+     * @dev Fired in _claimYieldRewards()
      *
      * @param from an address which received the yield
      * @param sILV flag indicating if reward was paid (minted) in sILV
      * @param value value of yield paid
      */
-    event LogClaimRewards(address indexed from, bool sILV, uint256 value);
+    event LogClaimYieldRewards(address indexed from, bool sILV, uint256 value);
 
     /**
      * @dev Fired in _processRewards()
@@ -569,7 +569,7 @@ abstract contract CorePool is
     }
 
     /**
-     * @dev calls internal _claimRewards() passing `msg.sender` as `_staker`
+     * @dev calls internal _claimYieldRewards() passing `msg.sender` as `_staker`
      *
      * @notice pool state is updated before calling the internal function
      */
@@ -604,7 +604,7 @@ abstract contract CorePool is
      * @notice this function can be called only by ILV core pool
      *
      * @dev uses ILV pool as a router by receiving the _staker address and executing
-     *      the internal _claimRewards()
+     *      the internal _claimYieldRewards()
      * @dev its usage allows claiming multiple pool contracts in one transaction
      *
      * @param _staker user address
@@ -620,7 +620,7 @@ abstract contract CorePool is
         bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
         require(poolIsValid, "invalid caller");
 
-        _claimRewards(_staker, _useSILV);
+        _claimYieldRewards(_staker, _useSILV);
     }
 
     /**
@@ -979,7 +979,7 @@ abstract contract CorePool is
      * @param _staker user address
      * @param _useSILV whether the user wants to claim ILV or sILV
      */
-    function _claimYieldewards(address _staker, bool _useSILV) internal {
+    function _claimYieldRewards(address _staker, bool _useSILV) internal {
         // update user state
         _processRewards(_staker);
 
@@ -1030,7 +1030,7 @@ abstract contract CorePool is
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // emit an event
-        emit LogClaimRewards(_staker, _useSILV, pendingYieldToClaim);
+        emit LogClaimYieldRewards(_staker, _useSILV, pendingYieldToClaim);
     }
 
     /**
