@@ -242,7 +242,6 @@ abstract contract CorePool is
      * @dev see _pendingRewards() for further details
      *
      * @param _staker an address to calculate yield rewards value for
-     * @return (pendingYield, pendingRevDis) calculated yield and revenue distribution reward value for the given address
      */
     function pendingRewards(address _staker)
         external
@@ -574,8 +573,8 @@ abstract contract CorePool is
      *
      * @notice pool state is updated before calling the internal function
      */
-    function claimRewards(bool _useSILV) external updatePool whenNotPaused {
-        _claimRewards(msg.sender, _useSILV);
+    function claimYieldRewards(bool _useSILV) external updatePool whenNotPaused {
+        _claimYieldRewards(msg.sender, _useSILV);
     }
 
     /**
@@ -611,7 +610,13 @@ abstract contract CorePool is
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
-    function claimRewardsFromRouter(address _staker, bool _useSILV) external virtual override updatePool whenNotPaused {
+    function claimYieldRewardsFromRouter(address _staker, bool _useSILV)
+        external
+        virtual
+        override
+        updatePool
+        whenNotPaused
+    {
         bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
         require(poolIsValid, "invalid caller");
 
@@ -648,7 +653,6 @@ abstract contract CorePool is
      *         adopters.
      *
      * @param _staker an address to calculate yield rewards value for
-     * @return (pendingYield, pendingRevDis) calculated yield and revenue distribution reward value for the given address
      */
     function _pendingRewards(address _staker) internal view returns (uint256 pendingYield, uint256 pendingRevDis) {
         // links to _staker user struct in storage
@@ -975,7 +979,7 @@ abstract contract CorePool is
      * @param _staker user address
      * @param _useSILV whether the user wants to claim ILV or sILV
      */
-    function _claimRewards(address _staker, bool _useSILV) internal {
+    function _claimYieldewards(address _staker, bool _useSILV) internal {
         // update user state
         _processRewards(_staker);
 

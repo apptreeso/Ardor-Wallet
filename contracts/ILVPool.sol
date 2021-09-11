@@ -73,7 +73,7 @@ contract ILVPool is CorePool {
      * @param _useSILV array of bool values telling if the pool should claim reward
      *                 as ILV or sILV
      */
-    function claimRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV)
+    function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV)
         external
         updatePool
         whenNotPaused
@@ -133,6 +133,9 @@ contract ILVPool is CorePool {
         emit LogMigrateWeights(msg.sender, _users.length, totalWeight);
     }
 
-    /// @notice not necessary for ILV pool because we claim internally in claimRewardsMultiple()
-    function claimRewardsFromRouter(address _staker, bool _useSILV) external override {}
+    /// @notice not necessary for ILV pool because we claim internally in claimYieldRewardsMultiple()
+    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external override {}
+
+    /// @notice not necessary for ILV pool because we claim internally in claimVaultRewardsMultiple()
+    function claimVaultRewardsFromRouter(address _staker, bool _useSILV) external override {}
 }
