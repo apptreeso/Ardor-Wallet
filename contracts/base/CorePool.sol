@@ -578,6 +578,15 @@ abstract contract CorePool is
     }
 
     /**
+     * @dev calls internal _claimVaultRewards() passing `msg.sender` as `_staker`
+     *
+     * @notice pool state is updated before calling the internal function
+     */
+    function claimVaultRewards() external updatePool whenNotPaused {
+        _claimVaultRewards(msg.sender);
+    }
+
+    /**
      * @dev Executed by the vault to transfer vault rewards ILV from the vault
      *      into the pool
      *
@@ -1031,6 +1040,35 @@ abstract contract CorePool is
 
         // emit an event
         emit LogClaimYieldRewards(_staker, _useSILV, pendingYieldToClaim);
+    }
+
+    /**
+     * @dev claims all pendingRevDis from _staker using ILV
+     *
+     * @notice ILV is sent straight away to _staker address
+     *
+     * @param _staker user address
+     */
+    function _claimVaultRewards(address _staker) internal {
+        // update user state
+        _processRewards(_staker);
+
+        // get link to a user data structure, we will write into it later
+        User storage user = users[_staker];
+
+        // check pending yield rewards to claim and save to memory
+        uint256 pendingRevDis = uint256(user.pendingRevDis);
+
+        // if pending yield is zero - just return silently
+        if (pendingRevDis == 0) return;
+
+        // clears user pending revenue distribution
+        user.pendingRevDis = 0;
+
+        // subYieldRewards needs to be updated on every `_processRewards` call
+        user.subVaultRewards = _weightToReward(user.totalWeight, vaultRewardsPerWeight);
+
+        // emit an event
     }
 
     /**
