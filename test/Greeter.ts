@@ -1,28 +1,26 @@
-import hre from "hardhat";
-import { Artifact } from "hardhat/types";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { TestHelper } from "zos";
+require("chai").should();
 
-import { Greeter } from "../typechain/Greeter";
-import { Signers } from "../types";
-import { shouldBehaveLikeGreeter } from "./Greeter.behavior";
+const Sample = artifacts.require("Sample");
+const ERC20 = artifacts.require("ERC20");
 
-const { deployContract } = hre.waffle;
-
-describe("Unit tests", function () {
-  before(async function () {
-    this.signers = {} as Signers;
-
-    const signers: SignerWithAddress[] = await hre.ethers.getSigners();
-    this.signers.admin = signers[0];
+contract("Sample", function ([_, owner]) {
+  beforeEach(async function () {
+    this.project = await TestHelper({ from: owner });
   });
 
-  describe("Greeter", function () {
-    beforeEach(async function () {
-      const greeting: string = "Hello, world!";
-      const greeterArtifact: Artifact = await hre.artifacts.readArtifact("Greeter");
-      this.greeter = <Greeter>await deployContract(this.signers.admin, greeterArtifact, [greeting]);
-    });
+  it("should create a proxy", async function () {
+    const proxy = await this.project.createProxy(Sample);
+    const result = await proxy.greet();
+    result.should.eq("A sample");
+  });
 
-    shouldBehaveLikeGreeter();
+  it("should create a proxy for the EVM package", async function () {
+    const proxy = await this.project.createProxy(ERC20, {
+      contractName: "StandaloneERC20",
+      packageName: "openzeppelin-eth",
+    });
+    const result = await proxy.totalSupply();
+    result.toNumber().should.eq(0);
   });
 });
