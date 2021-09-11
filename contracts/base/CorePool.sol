@@ -60,11 +60,6 @@ abstract contract CorePool is
     /// @dev Note: stakes are different in duration and "weight" reflects that
     uint256 public override yieldRewardsPerWeight;
 
-    /// @dev Used to calculate revenue distribution rewards
-    /// @dev This value is different from "reward per token" used in flash pool
-    /// @dev Note: stakes are different in duration and "weight" reflects that
-    uint256 public override vaultRewardsPerWeight;
-
     /// @dev Used to calculate yield rewards, keeps track of the tokens weight locked in staking
     uint256 public override globalWeight;
 
@@ -643,6 +638,22 @@ abstract contract CorePool is
         require(poolIsValid, "invalid caller");
 
         _claimYieldRewards(_staker, _useSILV);
+    }
+
+    /**
+     * @notice this function can be called only by ILV core pool
+     *
+     * @dev uses ILV pool as a router by receiving the _staker address and executing
+     *      the internal _claimVaultRewards()
+     * @dev its usage allows claiming multiple pool contracts in one transaction
+     *
+     * @param _staker user address
+     */
+    function claimVaultRewardsFromRouter(address _staker) external virtual override updatePool whenNotPaused {
+        bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
+        require(poolIsValid, "invalid caller");
+
+        _claimVaultRewards(_staker);
     }
 
     /**

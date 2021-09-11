@@ -8,6 +8,7 @@ import { ICorePool } from "./interfaces/ICorePool.sol";
 
 contract ILVPool is CorePool {
     event LogClaimYieldRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
+    event LogClaimVaultRewardsMultiple(address indexed from, address[] pool);
     event LogStakeAsPool(address indexed from, address indexed staker, uint256 value);
     event LogMigrateWeights(address indexed by, uint256 numberOfUsers, uint248 totalWeight);
 
@@ -94,6 +95,30 @@ contract ILVPool is CorePool {
     }
 
     /**
+     * @dev calls multiple pools claimVaultRewardsFromRouter() in order to claim yield
+     * in 1 transaction.
+     *
+     * @notice ILV pool works as a router for claiming multiple pools registered
+     *         in the factory
+     *
+     * @param _pools array of pool addresses
+     */
+    function claimYieldRewardsMultiple(address[] calldata _pools) external updatePool whenNotPaused {
+        for (uint256 i = 0; i < _pools.length; i++) {
+            address pool = _pools[i];
+            require(IFactory(factory).poolExists(pool), "invalid pool");
+
+            if (ICorePool(pool).poolToken() == ilv) {
+                _claimVaultRewards(msg.sender);
+            } else {
+                ICorePool(pool).claimVaultRewardsFromRouter(msg.sender);
+            }
+        }
+
+        emit LogClaimVaultRewardsMultiple(msg.sender, _pools);
+    }
+
+    /**
      * @notice can be called only by the factory controller
      * @notice the purpose of this function is to migrate yield weights from v1
      *         in 1 single operation per user so we don't need to store each v1 yield
@@ -137,5 +162,5 @@ contract ILVPool is CorePool {
     function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external override {}
 
     /// @notice not necessary for ILV pool because we claim internally in claimVaultRewardsMultiple()
-    function claimVaultRewardsFromRouter(address _staker, bool _useSILV) external override {}
+    function claimVaultRewardsFromRouter(address _staker) external override {}
 }
