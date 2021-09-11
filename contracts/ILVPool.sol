@@ -25,7 +25,7 @@ contract ILVPool is CorePool {
 
     /**
      * @dev Executed by other core pools and flash pools
-     *      as part of yield rewards processing logic (`_claimRewards` function)
+     *      as part of yield rewards processing logic (`_claimYieldRewards` function)
      * @dev Executed when _useSILV is false and pool is not an ILV pool - see `IlluviumPoolBase._processRewards`
      *
      * @param _staker an address which stakes (the yield reward)
@@ -84,7 +84,7 @@ contract ILVPool is CorePool {
             require(IFactory(factory).poolExists(pool), "invalid pool");
 
             if (ICorePool(pool).poolToken() == ilv) {
-                _claimRewards(msg.sender, _useSILV[i]);
+                _claimYieldRewards(msg.sender, _useSILV[i]);
             } else {
                 ICorePool(pool).claimRewardsFromRouter(msg.sender, _useSILV[i]);
             }
