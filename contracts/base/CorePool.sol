@@ -56,9 +56,14 @@ abstract contract CorePool is
     uint64 public override lastYieldDistribution;
 
     /// @dev Used to calculate yield rewards
-    /// @dev This value is different from "reward per token" used in locked pool
+    /// @dev This value is different from "reward per token" used in flash pool
     /// @dev Note: stakes are different in duration and "weight" reflects that
     uint256 public override yieldRewardsPerWeight;
+
+    /// @dev Used to calculate revenue distribution rewards
+    /// @dev This value is different from "reward per token" used in flash pool
+    /// @dev Note: stakes are different in duration and "weight" reflects that
+    uint256 public override vaultRewardsPerWeight;
 
     /// @dev Used to calculate yield rewards, keeps track of the tokens weight locked in staking
     uint256 public override globalWeight;
@@ -155,6 +160,14 @@ abstract contract CorePool is
      * @param value value of yield paid
      */
     event LogClaimYieldRewards(address indexed from, bool sILV, uint256 value);
+
+    /**
+     * @dev Fired in _claimVaultRewards()
+     *
+     * @param from an address which received the yield
+     * @param value value of yield paid
+     */
+    event LogClaimVaultRewards(address indexed from, uint256 value);
 
     /**
      * @dev Fired in _processRewards()
@@ -1068,7 +1081,10 @@ abstract contract CorePool is
         // subYieldRewards needs to be updated on every `_processRewards` call
         user.subVaultRewards = _weightToReward(user.totalWeight, vaultRewardsPerWeight);
 
+        IERC20(ilv).safeTransfer(_staker, pendingRevDis);
+
         // emit an event
+        emit LogClaimVaultRewards(_staker, pendingRevDis);
     }
 
     /**

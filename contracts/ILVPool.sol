@@ -7,7 +7,7 @@ import { IFactory } from "./interfaces/IFactory.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 
 contract ILVPool is CorePool {
-    event LogClaimRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
+    event LogClaimYieldRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
     event LogStakeAsPool(address indexed from, address indexed staker, uint256 value);
     event LogMigrateWeights(address indexed by, uint256 numberOfUsers, uint248 totalWeight);
 
@@ -63,7 +63,7 @@ contract ILVPool is CorePool {
     }
 
     /**
-     * @dev calls multiple pools claimRewardsFromRouter() in order to claim yield
+     * @dev calls multiple pools claimYieldRewardsFromRouter() in order to claim yield
      * in 1 transaction.
      *
      * @notice ILV pool works as a router for claiming multiple pools registered
@@ -86,11 +86,11 @@ contract ILVPool is CorePool {
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimYieldRewards(msg.sender, _useSILV[i]);
             } else {
-                ICorePool(pool).claimRewardsFromRouter(msg.sender, _useSILV[i]);
+                ICorePool(pool).claimYieldRewardsFromRouter(msg.sender, _useSILV[i]);
             }
         }
 
-        emit LogClaimRewardsMultiple(msg.sender, _pools, _useSILV);
+        emit LogClaimYieldRewardsMultiple(msg.sender, _pools, _useSILV);
     }
 
     /**
