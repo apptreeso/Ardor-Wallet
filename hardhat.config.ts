@@ -1,6 +1,7 @@
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
+import "@openzeppelin/hardhat-upgrades";
 import "solidity-coverage";
 
 import "./tasks/accounts";

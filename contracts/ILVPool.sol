@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import { CorePool } from "./base/CorePool.sol";
+import { V2Migrator } from "./base/V2Migrator.sol";
 import { Stake } from "./libraries/Stake.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 
-contract ILVPool is CorePool {
-    event LogClaimRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
+contract ILVPool is V2Migrator {
+    event LogClaimYieldRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
+    event LogClaimVaultRewardsMultiple(address indexed from, address[] pool);
     event LogStakeAsPool(address indexed from, address indexed staker, uint256 value);
     event LogMigrateWeights(address indexed by, uint256 numberOfUsers, uint248 totalWeight);
 
@@ -25,7 +26,7 @@ contract ILVPool is CorePool {
 
     /**
      * @dev Executed by other core pools and flash pools
-     *      as part of yield rewards processing logic (`_claimRewards` function)
+     *      as part of yield rewards processing logic (`_claimYieldRewards` function)
      * @dev Executed when _useSILV is false and pool is not an ILV pool - see `IlluviumPoolBase._processRewards`
      *
      * @param _staker an address which stakes (the yield reward)
@@ -63,7 +64,7 @@ contract ILVPool is CorePool {
     }
 
     /**
-     * @dev calls multiple pools claimRewardsFromRouter() in order to claim yield
+     * @dev calls multiple pools claimYieldRewardsFromRouter() in order to claim yield
      * in 1 transaction.
      *
      * @notice ILV pool works as a router for claiming multiple pools registered
@@ -73,7 +74,7 @@ contract ILVPool is CorePool {
      * @param _useSILV array of bool values telling if the pool should claim reward
      *                 as ILV or sILV
      */
-    function claimRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV)
+    function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV)
         external
         updatePool
         whenNotPaused
@@ -84,13 +85,37 @@ contract ILVPool is CorePool {
             require(IFactory(factory).poolExists(pool), "invalid pool");
 
             if (ICorePool(pool).poolToken() == ilv) {
-                _claimRewards(msg.sender, _useSILV[i]);
+                _claimYieldRewards(msg.sender, _useSILV[i]);
             } else {
-                ICorePool(pool).claimRewardsFromRouter(msg.sender, _useSILV[i]);
+                ICorePool(pool).claimYieldRewardsFromRouter(msg.sender, _useSILV[i]);
             }
         }
 
-        emit LogClaimRewardsMultiple(msg.sender, _pools, _useSILV);
+        emit LogClaimYieldRewardsMultiple(msg.sender, _pools, _useSILV);
+    }
+
+    /**
+     * @dev calls multiple pools claimVaultRewardsFromRouter() in order to claim yield
+     * in 1 transaction.
+     *
+     * @notice ILV pool works as a router for claiming multiple pools registered
+     *         in the factory
+     *
+     * @param _pools array of pool addresses
+     */
+    function claimYieldRewardsMultiple(address[] calldata _pools) external updatePool whenNotPaused {
+        for (uint256 i = 0; i < _pools.length; i++) {
+            address pool = _pools[i];
+            require(IFactory(factory).poolExists(pool), "invalid pool");
+
+            if (ICorePool(pool).poolToken() == ilv) {
+                _claimVaultRewards(msg.sender);
+            } else {
+                ICorePool(pool).claimVaultRewardsFromRouter(msg.sender);
+            }
+        }
+
+        emit LogClaimVaultRewardsMultiple(msg.sender, _pools);
     }
 
     /**
@@ -133,6 +158,9 @@ contract ILVPool is CorePool {
         emit LogMigrateWeights(msg.sender, _users.length, totalWeight);
     }
 
-    /// @notice not necessary for ILV pool because we claim internally in claimRewardsMultiple()
-    function claimRewardsFromRouter(address _staker, bool _useSILV) external override {}
+    /// @notice not necessary for ILV pool because we claim internally in claimYieldRewardsMultiple()
+    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external override {}
+
+    /// @notice not necessary for ILV pool because we claim internally in claimVaultRewardsMultiple()
+    function claimVaultRewardsFromRouter(address _staker) external override {}
 }

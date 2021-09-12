@@ -56,7 +56,7 @@ abstract contract CorePool is
     uint64 public override lastYieldDistribution;
 
     /// @dev Used to calculate yield rewards
-    /// @dev This value is different from "reward per token" used in locked pool
+    /// @dev This value is different from "reward per token" used in flash pool
     /// @dev Note: stakes are different in duration and "weight" reflects that
     uint256 public override yieldRewardsPerWeight;
 
@@ -148,13 +148,21 @@ abstract contract CorePool is
     event LogSync(address indexed by, uint256 yieldRewardsPerWeight, uint64 lastYieldDistribution);
 
     /**
-     * @dev Fired in _claimRewards()
+     * @dev Fired in _claimYieldRewards()
      *
      * @param from an address which received the yield
      * @param sILV flag indicating if reward was paid (minted) in sILV
      * @param value value of yield paid
      */
-    event LogClaimRewards(address indexed from, bool sILV, uint256 value);
+    event LogClaimYieldRewards(address indexed from, bool sILV, uint256 value);
+
+    /**
+     * @dev Fired in _claimVaultRewards()
+     *
+     * @param from an address which received the yield
+     * @param value value of yield paid
+     */
+    event LogClaimVaultRewards(address indexed from, uint256 value);
 
     /**
      * @dev Fired in _processRewards()
@@ -242,7 +250,6 @@ abstract contract CorePool is
      * @dev see _pendingRewards() for further details
      *
      * @param _staker an address to calculate yield rewards value for
-     * @return (pendingYield, pendingRevDis) calculated yield and revenue distribution reward value for the given address
      */
     function pendingRewards(address _staker)
         external
@@ -570,12 +577,21 @@ abstract contract CorePool is
     }
 
     /**
-     * @dev calls internal _claimRewards() passing `msg.sender` as `_staker`
+     * @dev calls internal _claimYieldRewards() passing `msg.sender` as `_staker`
      *
      * @notice pool state is updated before calling the internal function
      */
-    function claimRewards(bool _useSILV) external updatePool whenNotPaused {
-        _claimRewards(msg.sender, _useSILV);
+    function claimYieldRewards(bool _useSILV) external updatePool whenNotPaused {
+        _claimYieldRewards(msg.sender, _useSILV);
+    }
+
+    /**
+     * @dev calls internal _claimVaultRewards() passing `msg.sender` as `_staker`
+     *
+     * @notice pool state is updated before calling the internal function
+     */
+    function claimVaultRewards() external updatePool whenNotPaused {
+        _claimVaultRewards(msg.sender);
     }
 
     /**
@@ -605,17 +621,39 @@ abstract contract CorePool is
      * @notice this function can be called only by ILV core pool
      *
      * @dev uses ILV pool as a router by receiving the _staker address and executing
-     *      the internal _claimRewards()
+     *      the internal _claimYieldRewards()
      * @dev its usage allows claiming multiple pool contracts in one transaction
      *
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
-    function claimRewardsFromRouter(address _staker, bool _useSILV) external virtual override updatePool whenNotPaused {
+    function claimYieldRewardsFromRouter(address _staker, bool _useSILV)
+        external
+        virtual
+        override
+        updatePool
+        whenNotPaused
+    {
         bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
         require(poolIsValid, "invalid caller");
 
-        _claimRewards(_staker, _useSILV);
+        _claimYieldRewards(_staker, _useSILV);
+    }
+
+    /**
+     * @notice this function can be called only by ILV core pool
+     *
+     * @dev uses ILV pool as a router by receiving the _staker address and executing
+     *      the internal _claimVaultRewards()
+     * @dev its usage allows claiming multiple pool contracts in one transaction
+     *
+     * @param _staker user address
+     */
+    function claimVaultRewardsFromRouter(address _staker) external virtual override updatePool whenNotPaused {
+        bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
+        require(poolIsValid, "invalid caller");
+
+        _claimVaultRewards(_staker);
     }
 
     /**
@@ -648,7 +686,6 @@ abstract contract CorePool is
      *         adopters.
      *
      * @param _staker an address to calculate yield rewards value for
-     * @return (pendingYield, pendingRevDis) calculated yield and revenue distribution reward value for the given address
      */
     function _pendingRewards(address _staker) internal view returns (uint256 pendingYield, uint256 pendingRevDis) {
         // links to _staker user struct in storage
@@ -975,7 +1012,7 @@ abstract contract CorePool is
      * @param _staker user address
      * @param _useSILV whether the user wants to claim ILV or sILV
      */
-    function _claimRewards(address _staker, bool _useSILV) internal {
+    function _claimYieldRewards(address _staker, bool _useSILV) internal {
         // update user state
         _processRewards(_staker);
 
@@ -1026,7 +1063,39 @@ abstract contract CorePool is
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // emit an event
-        emit LogClaimRewards(_staker, _useSILV, pendingYieldToClaim);
+        emit LogClaimYieldRewards(_staker, _useSILV, pendingYieldToClaim);
+    }
+
+    /**
+     * @dev claims all pendingRevDis from _staker using ILV
+     *
+     * @notice ILV is sent straight away to _staker address
+     *
+     * @param _staker user address
+     */
+    function _claimVaultRewards(address _staker) internal {
+        // update user state
+        _processRewards(_staker);
+
+        // get link to a user data structure, we will write into it later
+        User storage user = users[_staker];
+
+        // check pending yield rewards to claim and save to memory
+        uint256 pendingRevDis = uint256(user.pendingRevDis);
+
+        // if pending yield is zero - just return silently
+        if (pendingRevDis == 0) return;
+
+        // clears user pending revenue distribution
+        user.pendingRevDis = 0;
+
+        // subYieldRewards needs to be updated on every `_processRewards` call
+        user.subVaultRewards = _weightToReward(user.totalWeight, vaultRewardsPerWeight);
+
+        IERC20(ilv).safeTransfer(_staker, pendingRevDis);
+
+        // emit an event
+        emit LogClaimVaultRewards(_staker, pendingRevDis);
     }
 
     /**
