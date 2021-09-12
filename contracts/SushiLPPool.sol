@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import { CorePool } from "./base/CorePool.sol";
+import { V2Migrator } from "./base/V2Migrator.sol";
 
-contract SushiLPPool is CorePool {
+contract SushiLPPool is V2Migrator {
     /// @dev see __CorePool_init()
     function __SushiLPPool_init(
         address _ilv,

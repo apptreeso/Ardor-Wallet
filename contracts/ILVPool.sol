@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import { CorePool } from "./base/CorePool.sol";
+import { V2Migrator } from "./base/V2Migrator.sol";
 import { Stake } from "./libraries/Stake.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 
-contract ILVPool is CorePool {
+contract ILVPool is V2Migrator {
     event LogClaimYieldRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
     event LogClaimVaultRewardsMultiple(address indexed from, address[] pool);
     event LogStakeAsPool(address indexed from, address indexed staker, uint256 value);
