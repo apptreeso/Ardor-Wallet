@@ -79,7 +79,7 @@ contract ILVPool is V2Migrator {
      */
     function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external updatePool {
         _requireNotPaused();
-        require(_pools.length == _useSILV.length, "invalid parameters");
+        require(_pools.length == _useSILV.length);
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
             require(IFactory(factory).poolExists(pool));
@@ -139,7 +139,7 @@ contract ILVPool is V2Migrator {
         uint248 _totalWeight
     ) external onlyFactoryController {
         // checks if parameters are valid
-        require(_users.length == _yieldWeights.length, "invalid parameters");
+        require(_users.length == _yieldWeights.length);
 
         // will be used to check if weights were added as expected
         uint248 totalWeight;

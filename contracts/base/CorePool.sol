@@ -273,7 +273,7 @@ abstract contract CorePool is
      * @param _staker an address to calculate yield rewards value for
      */
     function pendingRewards(address _staker) external view returns (uint256 pendingYield, uint256 pendingRevDis) {
-        require(_staker != address(0), "invalid _staker");
+        require(_staker != address(0));
         // `newYieldRewardsPerWeight` will store stored or recalculated value for `yieldRewardsPerWeight`
         uint256 newYieldRewardsPerWeight;
 
@@ -488,12 +488,9 @@ abstract contract CorePool is
      * @param _to new user address
      */
     function migrateUser(address _to) external updatePool {
-        require(_to != address(0), "invalid _to");
+        require(_to != address(0));
         User storage newUser = users[_to];
-        require(
-            newUser.totalWeight == 0 && newUser.v1IdsLength == 0 && newUser.pendingYield == 0,
-            "invalid user, already exists"
-        );
+        require(newUser.totalWeight == 0 && newUser.v1IdsLength == 0 && newUser.pendingYield == 0);
 
         User storage previousUser = users[msg.sender];
         newUser.flexibleBalance = previousUser.flexibleBalance;
@@ -534,7 +531,7 @@ abstract contract CorePool is
         Stake.Data storage stake = user.stakes[_stakeId];
 
         // validate the input against stake structure
-        require(_lockedUntil > stake.lockedUntil, "invalid new lock");
+        require(_lockedUntil > stake.lockedUntil);
 
         // saves previous weight into memory
         uint256 previousWeight = stake.weight();
@@ -725,10 +722,7 @@ abstract contract CorePool is
     ) internal virtual updatePool {
         // validate the inputs
         require(_value > 0, "zero value");
-        require(
-            _lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 730 days),
-            "invalid lock interval"
-        );
+        require(_lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 730 days));
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
@@ -865,7 +859,7 @@ abstract contract CorePool is
 
     // TODO: improve variable names
     function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
-        require(_stakes.length > 0, "invalid array");
+        require(_stakes.length > 0);
         User storage user = users[msg.sender];
 
         _processRewards(msg.sender);
@@ -1126,7 +1120,7 @@ abstract contract CorePool is
 
     function _requirePoolIsValid() internal view {
         bool poolIsValid = address(factory.pools(ilv)) == msg.sender;
-        require(poolIsValid, "invalid caller");
+        require(poolIsValid);
     }
 
     /// @inheritdoc UUPSUpgradeable
