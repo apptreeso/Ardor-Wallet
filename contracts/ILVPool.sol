@@ -34,8 +34,9 @@ contract ILVPool is V2Migrator {
      * @param _staker an address which stakes (the yield reward)
      * @param _value amount to be staked (yield reward amount)
      */
-    function stakeAsPool(address _staker, uint256 _value) external updatePool whenNotPaused nonReentrant {
-        require(factory.poolExists(msg.sender), "access denied");
+    function stakeAsPool(address _staker, uint256 _value) external updatePool nonReentrant {
+        _requireNotPaused();
+        require(factory.poolExists(msg.sender));
         User storage user = users[_staker];
         if (user.totalWeight > 0) {
             _processRewards(_staker);
@@ -76,15 +77,12 @@ contract ILVPool is V2Migrator {
      * @param _useSILV array of bool values telling if the pool should claim reward
      *                 as ILV or sILV
      */
-    function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV)
-        external
-        updatePool
-        whenNotPaused
-    {
+    function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external updatePool {
+        _requireNotPaused();
         require(_pools.length == _useSILV.length, "invalid parameters");
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
-            require(IFactory(factory).poolExists(pool), "invalid pool");
+            require(IFactory(factory).poolExists(pool));
 
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimYieldRewards(msg.sender, _useSILV[i]);
@@ -105,10 +103,11 @@ contract ILVPool is V2Migrator {
      *
      * @param _pools array of pool addresses
      */
-    function claimYieldRewardsMultiple(address[] calldata _pools) external updatePool whenNotPaused {
+    function claimYieldRewardsMultiple(address[] calldata _pools) external updatePool {
+        _requireNotPaused();
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
-            require(IFactory(factory).poolExists(pool), "invalid pool");
+            require(IFactory(factory).poolExists(pool));
 
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimVaultRewards(msg.sender);

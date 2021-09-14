@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { Timestamp } from "./Timestamp.sol";
 import { VaultRecipient } from "./VaultRecipient.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IlluviumAware } from "../libraries/IlluviumAware.sol";
 import { Stake } from "../libraries/Stake.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC20Mintable } from "../interfaces/IERC20Mintable.sol";
-import { ICorePool } from "../interfaces/ICorePool.sol";
 import { IILVPool } from "../interfaces/IILVPool.sol";
 import { IFactory } from "../interfaces/IFactory.sol";
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
@@ -19,7 +17,6 @@ import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 import "hardhat/console.sol";
 
 abstract contract CorePool is
-    ICorePool,
     UUPSUpgradeable,
     VaultRecipient,
     ReentrancyGuardUpgradeable,
@@ -29,45 +26,67 @@ abstract contract CorePool is
     using SafeERC20 for IERC20;
     using Stake for Stake.Data;
 
+    /// @dev Data structure representing token holder using a pool
+    struct User {
+        /// @dev Total staked amount in flexible mode
+        uint128 flexibleBalance;
+        /// @dev pending yield rewards to be claimed
+        uint128 pendingYield;
+        /// @dev pending revenue distribution to be claimed
+        uint128 pendingRevDis;
+        /// @dev Total weight
+        uint248 totalWeight;
+        /// @dev number of v1StakesIds
+        uint8 v1IdsLength;
+        /// @dev Auxiliary variable for yield calculation
+        uint256 subYieldRewards;
+        /// @dev Auxiliary variable for vault rewards calculation
+        uint256 subVaultRewards;
+        /// @dev An array of holder's stakes
+        Stake.Data[] stakes;
+        /// @dev A mapping of holder's stakes ids in V1
+        mapping(uint256 => uint256) v1StakesIds;
+    }
+
     struct UnstakeParameter {
         uint256 stakeId;
         uint256 value;
     }
 
     /// @dev Token holder storage, maps token holder address to their data record
-    mapping(address => User) public override users;
+    mapping(address => User) public users;
 
     /// @dev Link to sILV ERC20 Token instance
-    address public override silv;
+    address public silv;
 
     /// @dev Link to ILV ERC20 Token instance
     address public ilv;
 
     /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair
-    address public override poolToken;
+    address public poolToken;
 
     /// @dev address of v1 core pool with same poolToken
     address public corePoolV1;
 
     /// @dev Pool weight, 200 for ILV pool or 800 for ILV/ETH
-    uint32 public override weight;
+    uint32 public weight;
 
     /// @dev Timestamp of the last yield distribution event
-    uint64 public override lastYieldDistribution;
+    uint64 public lastYieldDistribution;
 
     /// @dev Used to calculate yield rewards
     /// @dev This value is different from "reward per token" used in flash pool
     /// @dev Note: stakes are different in duration and "weight" reflects that
-    uint256 public override yieldRewardsPerWeight;
+    uint256 public yieldRewardsPerWeight;
 
     /// @dev Used to calculate yield rewards, keeps track of the tokens weight locked in staking
-    uint256 public override globalWeight;
+    uint256 public globalWeight;
 
     /// @dev Pool tokens value available in the pool;
     ///      pool token examples are ILV (ILV core pool) or ILV/ETH pair (LP core pool)
     /// @dev For LP core pool this value doesnt' count for ILV tokens received as Vault rewards
     ///      while for ILV core pool it does count for such tokens as well
-    uint256 public override poolTokenReserve;
+    uint256 public poolTokenReserve;
 
     /**
      * @dev When we know beforehand that staking is done for a year, and fraction of the year locked is one,
@@ -94,7 +113,7 @@ abstract contract CorePool is
     uint256 internal constant V1_WEIGHT_MULTIPLIER = 1500;
 
     /// @dev Flag indicating pool type, false means "core pool"
-    bool public constant override isFlashPool = false;
+    bool public constant isFlashPool = false;
 
     /**
      * @dev Fired in stakeFlexible()
@@ -253,12 +272,7 @@ abstract contract CorePool is
      *
      * @param _staker an address to calculate yield rewards value for
      */
-    function pendingRewards(address _staker)
-        external
-        view
-        override
-        returns (uint256 pendingYield, uint256 pendingRevDis)
-    {
+    function pendingRewards(address _staker) external view returns (uint256 pendingYield, uint256 pendingRevDis) {
         require(_staker != address(0), "invalid _staker");
         // `newYieldRewardsPerWeight` will store stored or recalculated value for `yieldRewardsPerWeight`
         uint256 newYieldRewardsPerWeight;
@@ -308,7 +322,7 @@ abstract contract CorePool is
      * @param _user an address to query balance for
      * @return balance total staked token balance
      */
-    function balanceOf(address _user) external view override returns (uint256 balance) {
+    function balanceOf(address _user) external view returns (uint256 balance) {
         User storage user = users[_user];
         uint256 balanceInStakes;
 
@@ -328,7 +342,7 @@ abstract contract CorePool is
      * @param _stakeId zero-indexed stake ID for the address specified
      * @return stake info as Stake structure
      */
-    function getStake(address _user, uint256 _stakeId) external view override returns (Stake.Data memory) {
+    function getStake(address _user, uint256 _stakeId) external view returns (Stake.Data memory) {
         // read stake at specified index and return
         return users[_user].stakes[_stakeId];
     }
@@ -359,10 +373,11 @@ abstract contract CorePool is
 
         for (uint256 i = 0; i < user.v1IdsLength; i++) {
             if (user.v1StakesIds[i] == _desiredId) {
-                position = i;
-                break;
+                return i;
             }
         }
+
+        return 0;
     }
 
     /**
@@ -373,7 +388,7 @@ abstract contract CorePool is
      * @param _user an address to query stake length for
      * @return number of stakes for the given address
      */
-    function getStakesLength(address _user) external view override returns (uint256) {
+    function getStakesLength(address _user) external view returns (uint256) {
         // read stakes array length and return
         return users[_user].stakes.length;
     }
@@ -387,7 +402,8 @@ abstract contract CorePool is
      * @param _value value of tokens to stake
      * @param _lockUntil stake period as unix timestamp; zero means no locking
      */
-    function stakeAndLock(uint256 _value, uint64 _lockUntil) external whenNotPaused nonReentrant {
+    function stakeAndLock(uint256 _value, uint64 _lockUntil) external nonReentrant {
+        _requireNotPaused();
         // delegate call to an internal function
         _stakeAndLock(msg.sender, _value, _lockUntil, false);
     }
@@ -399,7 +415,8 @@ abstract contract CorePool is
      *
      * @param _value number of tokens to stake
      */
-    function stakeFlexible(uint256 _value) external updatePool whenNotPaused nonReentrant {
+    function stakeFlexible(uint256 _value) external updatePool nonReentrant {
+        _requireNotPaused();
         // validates input
         require(_value > 0, "zero value");
 
@@ -410,35 +427,24 @@ abstract contract CorePool is
             _processRewards(msg.sender);
         }
 
-        // in most of the cases added value `addedValue` is simply `_value`
-        // however for deflationary tokens this can be different
-
-        // gas savings
-        address _poolToken = poolToken;
-        // read the current balance
-        uint256 previousBalance = IERC20(_poolToken).balanceOf(address(this));
-        // transfer `_value`; note: some tokens may get burnt here
-        IERC20(_poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
-        // read new balance, usually this is just the difference `previousBalance - _value`
-        uint256 newBalance = IERC20(_poolToken).balanceOf(address(this));
-        // calculate real value taking into account deflation
-        uint256 addedValue = newBalance - previousBalance;
+        // transfer `_value`
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         // no need to calculate locking weight, flexible stake never locks
-        uint256 stakeWeight = Stake.WEIGHT_MULTIPLIER * addedValue;
+        uint256 stakeWeight = Stake.WEIGHT_MULTIPLIER * _value;
 
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
 
         // update user record
-        user.flexibleBalance += uint128(addedValue);
+        user.flexibleBalance += uint128(_value);
         user.totalWeight += uint248(stakeWeight);
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
         // update reserve count
-        poolTokenReserve += addedValue;
+        poolTokenReserve += _value;
 
         // emit an event
         emit LogStakeFlexible(msg.sender, _value);
@@ -490,24 +496,17 @@ abstract contract CorePool is
         );
 
         User storage previousUser = users[msg.sender];
-        uint128 flexibleBalance = previousUser.flexibleBalance;
-        uint128 pendingYield = previousUser.pendingYield;
-        uint248 totalWeight = previousUser.totalWeight;
-        uint256 subYieldRewards = previousUser.subYieldRewards;
-        uint256 subVaultRewards = previousUser.subVaultRewards;
-        previousUser.flexibleBalance = 0;
-        previousUser.pendingYield = 0;
-        previousUser.totalWeight = 0;
-        previousUser.subYieldRewards = 0;
-        previousUser.subVaultRewards = 0;
-        for (uint256 i = 0; i < previousUser.stakes.length; i++) {
-            delete previousUser.stakes[i];
-        }
-        newUser.flexibleBalance = flexibleBalance;
-        newUser.pendingYield = pendingYield;
-        newUser.totalWeight = totalWeight;
-        newUser.subYieldRewards = subYieldRewards;
-        newUser.subVaultRewards = subVaultRewards;
+        newUser.flexibleBalance = previousUser.flexibleBalance;
+        newUser.pendingYield = previousUser.pendingYield;
+        newUser.totalWeight = previousUser.totalWeight;
+        newUser.subYieldRewards = previousUser.subYieldRewards;
+        newUser.subVaultRewards = previousUser.subVaultRewards;
+        delete previousUser.flexibleBalance;
+        delete previousUser.pendingYield;
+        delete previousUser.totalWeight;
+        delete previousUser.subYieldRewards;
+        delete previousUser.subVaultRewards;
+        delete previousUser.stakes;
 
         emit LogMigrateUser(msg.sender, _to);
     }
@@ -573,7 +572,7 @@ abstract contract CorePool is
      * @dev When timing conditions are not met (executed too frequently, or after factory
      *      end time), function doesn't throw and exits silently
      */
-    function sync() external override {
+    function sync() external {
         // delegate call to an internal function
         _sync();
     }
@@ -583,7 +582,8 @@ abstract contract CorePool is
      *
      * @notice pool state is updated before calling the internal function
      */
-    function claimYieldRewards(bool _useSILV) external updatePool whenNotPaused {
+    function claimYieldRewards(bool _useSILV) external updatePool {
+        _requireNotPaused();
         _claimYieldRewards(msg.sender, _useSILV);
     }
 
@@ -592,7 +592,8 @@ abstract contract CorePool is
      *
      * @notice pool state is updated before calling the internal function
      */
-    function claimVaultRewards() external updatePool whenNotPaused {
+    function claimVaultRewards() external updatePool {
+        _requireNotPaused();
         _claimVaultRewards(msg.sender);
     }
 
@@ -604,7 +605,7 @@ abstract contract CorePool is
      *
      * @param _value amount of ILV rewards to transfer into the pool
      */
-    function receiveVaultRewards(uint256 _value) external override updatePool {
+    function receiveVaultRewards(uint256 _value) external updatePool {
         require(msg.sender == vault, "access denied");
         // return silently if there is no reward to receive
         if (_value == 0) {
@@ -612,9 +613,9 @@ abstract contract CorePool is
         }
         require(globalWeight > 0, "zero weight in the pool");
 
-        IERC20(ilv).safeTransferFrom(msg.sender, address(this), _value);
-
         vaultRewardsPerWeight += _rewardPerWeight(_value, globalWeight);
+
+        IERC20(ilv).safeTransferFrom(msg.sender, address(this), _value);
 
         emit LogReceiveVaultRewards(msg.sender, _value);
     }
@@ -629,15 +630,9 @@ abstract contract CorePool is
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
-    function claimYieldRewardsFromRouter(address _staker, bool _useSILV)
-        external
-        virtual
-        override
-        updatePool
-        whenNotPaused
-    {
-        bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
-        require(poolIsValid, "invalid caller");
+    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external virtual updatePool {
+        _requireNotPaused();
+        _requirePoolIsValid();
 
         _claimYieldRewards(_staker, _useSILV);
     }
@@ -651,9 +646,9 @@ abstract contract CorePool is
      *
      * @param _staker user address
      */
-    function claimVaultRewardsFromRouter(address _staker) external virtual override updatePool whenNotPaused {
-        bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
-        require(poolIsValid, "invalid caller");
+    function claimVaultRewardsFromRouter(address _staker) external virtual updatePool {
+        _requireNotPaused();
+        _requirePoolIsValid();
 
         _claimVaultRewards(_staker);
     }
@@ -666,7 +661,7 @@ abstract contract CorePool is
      *
      * @param _weight new weight to set for the pool
      */
-    function setWeight(uint32 _weight) external override {
+    function setWeight(uint32 _weight) external {
         // verify function is executed by the factory
         require(msg.sender == address(factory), "access denied");
 
@@ -745,16 +740,8 @@ abstract contract CorePool is
         // in most of the cases added value `addedValue` is simply `_value`
         // however for deflationary tokens this can be different
 
-        // gas savings
-        address _poolToken = poolToken;
-        // read the current balance
-        uint256 previousBalance = IERC20(_poolToken).balanceOf(address(this));
-        // transfer `_value`; note: some tokens may get burnt here
-        IERC20(_poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
-        // read new balance, usually this is just the difference `previousBalance - _value`
-        uint256 newBalance = IERC20(_poolToken).balanceOf(address(this));
-        // calculate real value taking into account deflation
-        uint256 addedValue = newBalance - previousBalance;
+        // transfer `_value`
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         // set the `lockFrom` and `lockUntil` taking into account that
         // zero value for `_lockUntil` means "no locking" and leads to zero values
@@ -765,14 +752,14 @@ abstract contract CorePool is
         // stake weight formula rewards for locking
         uint256 stakeWeight = (((lockUntil - lockFrom) * Stake.WEIGHT_MULTIPLIER) /
             730 days +
-            Stake.WEIGHT_MULTIPLIER) * addedValue;
+            Stake.WEIGHT_MULTIPLIER) * _value;
 
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
 
         // create and save the stake (append it to stakes array)
         Stake.Data memory stake = Stake.Data({
-            value: uint120(addedValue),
+            value: uint120(_value),
             lockedFrom: lockFrom,
             lockedUntil: lockUntil,
             isYield: _isYield
@@ -787,19 +774,19 @@ abstract contract CorePool is
         // update global variable
         globalWeight += stakeWeight;
         // update reserve count
-        poolTokenReserve += addedValue;
+        poolTokenReserve += _value;
 
         // emit an event
         emit LogStakeAndLock(msg.sender, _value, _lockUntil);
     }
 
-    function unstakeFlexible(uint256 _value) external updatePool nonReentrant {
+    function unstakeFlexible(uint256 _value) external updatePool {
         // verify a value is set
         require(_value > 0, "zero value");
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
         // verify available balance
-        require(user.flexibleBalance >= _value, "value exceeds user balance");
+        require(user.flexibleBalance >= _value, "exceeds user balance");
         // and process current pending rewards if any
         _processRewards(msg.sender);
 
@@ -822,7 +809,7 @@ abstract contract CorePool is
      * @param _stakeId stake ID to unstake from, zero-indexed
      * @param _value value of tokens to unstake
      */
-    function unstakeLocked(uint256 _stakeId, uint256 _value) external updatePool nonReentrant {
+    function unstakeLocked(uint256 _stakeId, uint256 _value) external updatePool {
         // verify a value is set
         require(_value > 0, "zero value");
         // get a link to user data struct, we will write to it later
@@ -830,12 +817,12 @@ abstract contract CorePool is
         // get a link to the corresponding stake, we may write to it later
         Stake.Data storage stake = user.stakes[_stakeId];
         // checks if stake is unlocked already
-        require(_now256() > stake.lockedUntil, "deposit not yet unlocked");
+        require(_now256() > stake.lockedUntil, "not yet unlocked");
         // stake structure may get deleted, so we save isYield flag to be able to use it
         // we also save stakeValue for gasSavings
         (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
         // verify available balance
-        require(stakeValue >= _value, "value exceeds stake");
+        require(stakeValue >= _value, "exceeds stake");
         // and process current pending rewards if any
         _processRewards(msg.sender);
 
@@ -846,7 +833,7 @@ abstract contract CorePool is
 
         // update the stake, or delete it if its depleted
         if (stakeValue - _value == 0) {
-            // deles stake struct, no need to save new weight because it stays 0
+            // deletes stake struct, no need to save new weight because it stays 0
             delete user.stakes[_stakeId];
         } else {
             stake.value -= uint120(_value);
@@ -877,7 +864,7 @@ abstract contract CorePool is
     }
 
     // TODO: improve variable names
-    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external nonReentrant {
+    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
         require(_stakes.length > 0, "invalid array");
         User storage user = users[msg.sender];
 
@@ -890,11 +877,11 @@ abstract contract CorePool is
             (uint256 _stakeId, uint256 _value) = (_stakes[i].stakeId, _stakes[i].value);
             Stake.Data storage stake = user.stakes[_stakeId];
             // checks if stake is unlocked already
-            require(_now256() > stake.lockedUntil, "deposit not yet unlocked");
+            require(_now256() > stake.lockedUntil, "not yet unlocked");
             // stake structure may get deleted, so we save isYield flag to be able to use it
             // we also save stakeValue for gasSavings
             (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
-            require(isYield == _unstakingYield, "invalid yield parameter");
+            require(isYield == _unstakingYield, "not a yield");
 
             // store stake weight
             uint256 previousWeight = stake.weight();
@@ -1105,12 +1092,12 @@ abstract contract CorePool is
      *      ILV reward value, applying the 10^12 division on weight
      *
      * @param _weight stake weight
-     * @param _rewardPerWeight ILV reward per weight
+     * @param __rewardPerWeight ILV reward per weight
      * @return reward value normalized to 10^12
      */
-    function _weightToReward(uint256 _weight, uint256 _rewardPerWeight) internal pure returns (uint256) {
+    function _weightToReward(uint256 _weight, uint256 __rewardPerWeight) internal pure returns (uint256) {
         // apply the formula and return
-        return (_weight * _rewardPerWeight) / REWARD_PER_WEIGHT_MULTIPLIER;
+        return (_weight * __rewardPerWeight) / REWARD_PER_WEIGHT_MULTIPLIER;
     }
 
     /**
@@ -1131,6 +1118,15 @@ abstract contract CorePool is
 
     function _toV2Weight(uint256 _v1Weight) internal pure returns (uint256) {
         return (_v1Weight * V1_WEIGHT_BONUS * V1_WEIGHT_MULTIPLIER) / 1000;
+    }
+
+    function _requireNotPaused() internal view {
+        require(!paused(), "paused");
+    }
+
+    function _requirePoolIsValid() internal view {
+        bool poolIsValid = address(factory.pools(ilv)) == msg.sender;
+        require(poolIsValid, "invalid caller");
     }
 
     /// @inheritdoc UUPSUpgradeable
