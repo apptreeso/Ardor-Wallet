@@ -8,10 +8,10 @@ import { CorePool } from "./CorePool.sol";
 abstract contract V2Migrator is CorePool {
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     ///      if a v1 yield has already been minted by v2 contract
-    mapping(bytes32 => bool) public v1YieldMinted;
+    mapping(address => mapping(uint256 => bool)) public v1YieldMinted;
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     ///      if a v1 locked stake has already been migrated to v2
-    mapping(bytes32 => bool) public v1StakesMigrated;
+    mapping(address => mapping(uint256 => bool)) public v1StakesMigrated;
 
     /**
      * @dev logs mintV1Yield()
@@ -63,13 +63,12 @@ abstract contract V2Migrator is CorePool {
             msg.sender,
             _stakeId
         );
-        require(isYield, "not yield");
-        require(_now256() > lockedUntil, "yield not unlocked yet");
-        bytes32 stakeHash = keccak256(abi.encodePacked(msg.sender, _stakeId));
-        require(!v1YieldMinted[stakeHash], "yield already minted");
+        require(isYield, "not a yield");
+        require(_now256() > lockedUntil, "not yet unlocked");
+        require(!v1YieldMinted[msg.sender][_stakeId], "already minted");
 
         users[msg.sender].totalWeight -= uint248(weight);
-        v1YieldMinted[stakeHash] = true;
+        v1YieldMinted[msg.sender][_stakeId] = true;
         factory.mintYieldTo(msg.sender, tokenAmount, false);
 
         emit LogV1YieldMinted(msg.sender, _stakeId, tokenAmount);
@@ -84,12 +83,11 @@ abstract contract V2Migrator is CorePool {
                 msg.sender,
                 _stakeId
             );
-            require(isYield, "not yield");
-            require(_now256() > lockedUntil, "yield not unlocked yet");
-            bytes32 stakeHash = keccak256(abi.encodePacked(msg.sender, _stakeId));
-            require(!v1YieldMinted[stakeHash], "yield already minted");
+            require(isYield, "not a yield");
+            require(_now256() > lockedUntil, "not yet unlocked");
+            require(!v1YieldMinted[msg.sender][_stakeId], "already minted");
 
-            v1YieldMinted[stakeHash] = true;
+            v1YieldMinted[msg.sender][_stakeId] = true;
             amountToMint += tokenAmount;
         }
 
@@ -111,11 +109,10 @@ abstract contract V2Migrator is CorePool {
 
         for (uint256 i = 0; i < _stakeIds.length; i++) {
             (, uint256 lockedFrom, , , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
-            require(lockedFrom > 0 && isYield, "invalid stake to migrate");
-            bytes32 stakeHash = keccak256(abi.encodePacked(msg.sender, _stakeIds[i]));
-            require(!v1StakesMigrated[stakeHash], "stake id already migrated");
+            require(lockedFrom > 0 && isYield, "invalid stake");
+            require(!v1StakesMigrated[msg.sender][_stakeIds[i]], "already migrated");
 
-            v1StakesMigrated[stakeHash] = true;
+            v1StakesMigrated[msg.sender][_stakeIds[i]] = true;
             user.v1IdsLength++;
             user.v1StakesIds[i] = _stakeIds[i];
         }
