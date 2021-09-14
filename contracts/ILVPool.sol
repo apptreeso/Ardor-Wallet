@@ -12,8 +12,8 @@ contract ILVPool is V2Migrator {
     event LogStakeAsPool(address indexed from, address indexed staker, uint256 value);
     event LogMigrateWeights(address indexed by, uint256 numberOfUsers, uint248 totalWeight);
 
-    /// @dev see __ICorePool_init
-    function __ILVPool_init(
+    /// @dev see __V2Migrator_init
+    function initialize(
         address _ilv,
         address _silv,
         address _poolToken,

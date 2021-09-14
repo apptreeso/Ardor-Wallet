@@ -4,8 +4,8 @@ pragma solidity 0.8.4;
 import { V2Migrator } from "./base/V2Migrator.sol";
 
 contract SushiLPPool is V2Migrator {
-    /// @dev see __CorePool_init()
-    function __SushiLPPool_init(
+    /// @dev see __V2Migrator_init()
+    function initialize(
         address _ilv,
         address _silv,
         address _poolToken,

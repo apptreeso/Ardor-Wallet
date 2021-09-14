@@ -112,7 +112,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         uint32 _secondsPerUpdate,
         uint32 _initTime,
         uint32 _endTime
-    ) public payable initializer {
+    ) external initializer {
         // verify the inputs are set
         require(_silv != address(0), "sILV address not set");
         require(_ilvPerSecond > 0, "ILV/second not set");
@@ -123,6 +123,8 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         // verify ilv and silv instanes
         IlluviumAware.verifyILV(_ilv);
         IlluviumAware.verifySILV(_silv);
+
+        __Ownable_init();
 
         // save the inputs into internal state variables
         ilv = _ilv;

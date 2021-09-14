@@ -22,6 +22,7 @@ const { expect } = chai;
 let ILVPool: ILVPoolMock__factory;
 let SushiLPPool: SushiLPPoolMock__factory;
 let PoolFactory: PoolFactoryMock__factory;
+let ERC20: ERC20Mock__factory;
 
 describe("CorePools", () => {
   let deployer: Signer;
@@ -41,6 +42,9 @@ describe("CorePools", () => {
 
   beforeEach(async () => {
     [deployer, ...signers] = await ethers.getSigners();
+
+    ilv = await ERC20.connect(deployer).deploy("Illuvium", "ILV", ethers.utils.parseEther("10000000"));
+    silv = await ERC20.connect(deployer).deploy("Escrowed Illuvium", "sILV", "0");
 
     ilvPool = await upgrades.deployProxy(ILVPool);
     lpPool = await upgrades.deployProxy(SushiLPPool);

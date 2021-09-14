@@ -129,19 +129,21 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _weight number representing a weight of the pool, actual weight fraction
      *      is calculated as that number divided by the total pools weight and doesn't exceed one
      */
-    function __FlashPool_init(
+    function initializer(
         address _ilv,
         address _silv,
         address _poolToken,
         address _factory,
         uint64 _initTime,
         uint32 _weight
-    ) internal initializer {
+    ) external initializer {
         require(_poolToken != address(0), "pool token address not set");
         require(_initTime > 0, "init time not set");
         require(_weight > 0, "pool weight not set");
 
         __FactoryControlled_init(_factory);
+        __ReentrancyGuard_init();
+        __Pausable_init();
 
         // verify ilv and silv instanes
         IlluviumAware.verifyILV(_ilv);

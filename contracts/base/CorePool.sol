@@ -229,6 +229,8 @@ abstract contract CorePool is
         require(_weight > 0, "pool weight not set");
 
         __FactoryControlled_init(_factory);
+        __ReentrancyGuard_init();
+        __Pausable_init();
 
         // verify ilv and silv instanes
         IlluviumAware.verifyILV(_ilv);
