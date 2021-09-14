@@ -410,34 +410,24 @@ abstract contract CorePool is
             _processRewards(msg.sender);
         }
 
-        // in most of the cases added value `addedValue` is simply `_value`
-        // however for deflationary tokens this can be different
-
-        // gas savings
-        IERC20 _poolToken = IERC20(poolToken);
-        // read the current balance
-        uint256 previousBalance = _poolToken.balanceOf(address(this));
-        // transfer `_value`; note: some tokens may get burnt here
-        _poolToken.safeTransferFrom(address(msg.sender), address(this), _value);
-        // read new balance, usually this is just the difference `previousBalance - _value`
-        // calculate real value taking into account deflation
-        uint256 addedValue = _poolToken.balanceOf(address(this)) - previousBalance;
+        // transfer `_value`
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         // no need to calculate locking weight, flexible stake never locks
-        uint256 stakeWeight = Stake.WEIGHT_MULTIPLIER * addedValue;
+        uint256 stakeWeight = Stake.WEIGHT_MULTIPLIER * _value;
 
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
 
         // update user record
-        user.flexibleBalance += uint128(addedValue);
+        user.flexibleBalance += uint128(_value);
         user.totalWeight += uint248(stakeWeight);
         user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
         // update reserve count
-        poolTokenReserve += addedValue;
+        poolTokenReserve += _value;
 
         // emit an event
         emit LogStakeFlexible(msg.sender, _value);
@@ -733,15 +723,8 @@ abstract contract CorePool is
         // in most of the cases added value `addedValue` is simply `_value`
         // however for deflationary tokens this can be different
 
-        // gas savings
-        IERC20 _poolToken = IERC20(poolToken);
-        // read the current balance
-        uint256 previousBalance = _poolToken.balanceOf(address(this));
-        // transfer `_value`; note: some tokens may get burnt here
-        _poolToken.safeTransferFrom(address(msg.sender), address(this), _value);
-        // read new balance, usually this is just the difference `previousBalance - _value`
-        // calculate real value taking into account deflation
-        uint256 addedValue = _poolToken.balanceOf(address(this)) - previousBalance;
+        // transfer `_value`
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         // set the `lockFrom` and `lockUntil` taking into account that
         // zero value for `_lockUntil` means "no locking" and leads to zero values
@@ -752,14 +735,14 @@ abstract contract CorePool is
         // stake weight formula rewards for locking
         uint256 stakeWeight = (((lockUntil - lockFrom) * Stake.WEIGHT_MULTIPLIER) /
             730 days +
-            Stake.WEIGHT_MULTIPLIER) * addedValue;
+            Stake.WEIGHT_MULTIPLIER) * _value;
 
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
 
         // create and save the stake (append it to stakes array)
         Stake.Data memory stake = Stake.Data({
-            value: uint120(addedValue),
+            value: uint120(_value),
             lockedFrom: lockFrom,
             lockedUntil: lockUntil,
             isYield: _isYield
@@ -774,7 +757,7 @@ abstract contract CorePool is
         // update global variable
         globalWeight += stakeWeight;
         // update reserve count
-        poolTokenReserve += addedValue;
+        poolTokenReserve += _value;
 
         // emit an event
         emit LogStakeAndLock(msg.sender, _value, _lockUntil);
