@@ -734,7 +734,7 @@ abstract contract CorePool is
         // however for deflationary tokens this can be different
 
         // gas savings
-        IERC20 _poolToken = IERC20(_poolToken);
+        IERC20 _poolToken = IERC20(poolToken);
         // read the current balance
         uint256 previousBalance = _poolToken.balanceOf(address(this));
         // transfer `_value`; note: some tokens may get burnt here
