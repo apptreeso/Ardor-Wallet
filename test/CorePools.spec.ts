@@ -46,25 +46,25 @@ describe("CorePools", () => {
 
   before(async () => {
     ILVPool = <ILVPoolMock__factory>await ethers.getContractFactory("ILVPoolMock");
-    SushiLPPool = <SushiLPPoolMock>await ethers.getContractFactory("SushiLPPoolMock");
-    PoolFactory = <PoolFactoryMock>await ethers.getContractFactory("PoolFactoryMock");
+    SushiLPPool = <SushiLPPoolMock__factory>await ethers.getContractFactory("SushiLPPoolMock");
+    PoolFactory = <PoolFactoryMock__factory>await ethers.getContractFactory("PoolFactoryMock");
   });
 
   beforeEach(async () => {
-    [deployer, ...signers] = await ethers.getSigners();
+    [deployer, ...accounts] = await ethers.getSigners();
 
     ilv = await ERC20.connect(deployer).deploy("Illuvium", "ILV", ethers.utils.parseEther("10000000"));
     silv = await ERC20.connect(deployer).deploy("Escrowed Illuvium", "sILV", "0");
 
-    factory = await upgrades.deployProxy(PoolFactory, [
+    factory = (await upgrades.deployProxy(PoolFactory, [
       ilv.address,
       silv.address,
       ILV_PER_SECOND,
       SECONDS_PER_UPDATE,
       INIT_TIME,
       END_TIME,
-    ]);
-    ilvPool = await upgrades.deployProxy(ILVPool, [
+    ])) as PoolFactoryMock;
+    ilvPool = (await upgrades.deployProxy(ILVPool, [
       ilv.address,
       silv.address,
       ilv.address,
@@ -73,8 +73,8 @@ describe("CorePools", () => {
       ILV_POOL_WEIGHT,
       ethers.constants.AddressZero,
       V1_STAKE_MAX_PERIOD,
-    ]);
-    lpPool = await upgrades.deployProxy(SushiLPPool, [
+    ])) as ILVPoolMock;
+    lpPool = (await upgrades.deployProxy(SushiLPPool, [
       ilv.address,
       silv.address,
       ilv.address,
@@ -83,6 +83,8 @@ describe("CorePools", () => {
       ILV_POOL_WEIGHT,
       ethers.constants.AddressZero,
       V1_STAKE_MAX_PERIOD,
-    ]);
+    ])) as SushiLPPoolMock;
+
+    console.log(factory.address, ilvPool.address, lpPool.address);
   });
 });
