@@ -606,9 +606,9 @@ abstract contract CorePool is
         }
         require(globalWeight > 0, "zero weight in the pool");
 
-        IERC20(ilv).safeTransferFrom(msg.sender, address(this), _value);
-
         vaultRewardsPerWeight += _rewardPerWeight(_value, globalWeight);
+
+        IERC20(ilv).safeTransferFrom(msg.sender, address(this), _value);
 
         emit LogReceiveVaultRewards(msg.sender, _value);
     }
@@ -740,9 +740,8 @@ abstract contract CorePool is
         // transfer `_value`; note: some tokens may get burnt here
         IERC20(_poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
         // read new balance, usually this is just the difference `previousBalance - _value`
-        uint256 newBalance = IERC20(_poolToken).balanceOf(address(this));
         // calculate real value taking into account deflation
-        uint256 addedValue = newBalance - previousBalance;
+        uint256 addedValue = IERC20(_poolToken).balanceOf(address(this)) - previousBalance;
 
         // set the `lockFrom` and `lockUntil` taking into account that
         // zero value for `_lockUntil` means "no locking" and leads to zero values
