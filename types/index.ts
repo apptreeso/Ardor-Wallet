@@ -1,6 +1,15 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
-export { ILVPool__factory, SushiLPPool__factory, PoolFactory__factory, ERC20__factory } from "../typechain";
+export {
+  ILVPoolMock__factory,
+  ILVPoolMock,
+  SushiLPPoolMock__factory,
+  SushiLPPoolMock,
+  PoolFactoryMock__factory,
+  PoolFactoryMock,
+  ERC20Mock__factory,
+  ERC20Mock,
+} from "../typechain";
 
 export interface Signers {
   admin: SignerWithAddress;
