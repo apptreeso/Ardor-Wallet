@@ -734,14 +734,14 @@ abstract contract CorePool is
         // however for deflationary tokens this can be different
 
         // gas savings
-        address _poolToken = poolToken;
+        IERC20 _poolToken = IERC20(_poolToken);
         // read the current balance
-        uint256 previousBalance = IERC20(_poolToken).balanceOf(address(this));
+        uint256 previousBalance = _poolToken.balanceOf(address(this));
         // transfer `_value`; note: some tokens may get burnt here
-        IERC20(_poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
+        _poolToken.safeTransferFrom(address(msg.sender), address(this), _value);
         // read new balance, usually this is just the difference `previousBalance - _value`
         // calculate real value taking into account deflation
-        uint256 addedValue = IERC20(_poolToken).balanceOf(address(this)) - previousBalance;
+        uint256 addedValue = _poolToken.balanceOf(address(this)) - previousBalance;
 
         // set the `lockFrom` and `lockUntil` taking into account that
         // zero value for `_lockUntil` means "no locking" and leads to zero values
