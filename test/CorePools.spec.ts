@@ -2,16 +2,17 @@ import chai from "chai";
 import chaiSubset from "chai-subset";
 import { solidity } from "ethereum-waffle";
 import { ethers, upgrades } from "hardhat";
-import { ContractFactory, Signer, Contract } from "ethers";
+import { Signer, Contract } from "ethers";
+import { ILVPool__factory, SushiLPPool__factory, PoolFactory__factory } from "../types";
 
 chai.use(solidity);
 chai.use(chaiSubset);
 
 const { expect } = chai;
 
-let ILVPool: ContractFactory;
-let SushiLPPool: ContractFactory;
-let PoolFactory: ContractFactory;
+let ILVPool: ILVPool__factory;
+let SushiLPPool: SushiLPPool__factory;
+let PoolFactory: PoolFactory__factory;
 
 describe("CorePools", () => {
   let deployer: Signer;
@@ -24,9 +25,9 @@ describe("CorePools", () => {
   let lpPool: Contract;
 
   before(async () => {
-    ILVPool = await ethers.getContractFactory("ILVPool");
-    SushiLPPool = await ethers.getContractFactory("SushiLPPool");
-    PoolFactory = await ethers.getContractFactory("PoolFactory");
+    ILVPool = <ILVPool__factory>await ethers.getContractFactory("ILVPoolMock");
+    SushiLPPool = await ethers.getContractFactory("SushiLPPoolMock");
+    PoolFactory = await ethers.getContractFactory("PoolFactoryMock");
   });
 
   beforeEach(async () => {
