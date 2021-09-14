@@ -112,7 +112,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         uint32 _secondsPerUpdate,
         uint32 _initTime,
         uint32 _endTime
-    ) external initializer {
+    ) external virtual initializer {
         // verify the inputs are set
         require(_silv != address(0), "sILV address not set");
         require(_ilvPerSecond > 0, "ILV/second not set");

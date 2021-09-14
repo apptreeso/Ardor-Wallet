@@ -136,7 +136,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         address _factory,
         uint64 _initTime,
         uint32 _weight
-    ) external initializer {
+    ) external virtual initializer {
         require(_poolToken != address(0), "pool token address not set");
         require(_initTime > 0, "init time not set");
         require(_weight > 0, "pool weight not set");

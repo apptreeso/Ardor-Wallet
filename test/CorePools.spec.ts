@@ -48,6 +48,7 @@ describe("CorePools", () => {
     ILVPool = <ILVPoolMock__factory>await ethers.getContractFactory("ILVPoolMock");
     SushiLPPool = <SushiLPPoolMock__factory>await ethers.getContractFactory("SushiLPPoolMock");
     PoolFactory = <PoolFactoryMock__factory>await ethers.getContractFactory("PoolFactoryMock");
+    ERC20 = <ERC20Mock__factory>await ethers.getContractFactory("ERC20Mock");
   });
 
   beforeEach(async () => {
@@ -84,7 +85,9 @@ describe("CorePools", () => {
       ethers.constants.AddressZero,
       V1_STAKE_MAX_PERIOD,
     ])) as SushiLPPoolMock;
+  });
 
+  it("should work", () => {
     console.log(factory.address, ilvPool.address, lpPool.address);
   });
 });
