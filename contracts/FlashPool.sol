@@ -484,12 +484,12 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *      10^12 division on number of tokens (`_value`)
      *
      * @param _value stake value
-     * @param _rewardPerToken ILV reward per token
+     * @param __rewardPerToken ILV reward per token
      * @return reward value normalized to 10^12
      */
-    function _tokensToReward(uint256 _value, uint256 _rewardPerToken) internal pure returns (uint256) {
+    function _tokensToReward(uint256 _value, uint256 __rewardPerToken) internal pure returns (uint256) {
         // apply the formula and return
-        return (_value * _rewardPerToken) / REWARD_PER_TOKEN_MULTIPLIER;
+        return (_value * __rewardPerToken) / REWARD_PER_TOKEN_MULTIPLIER;
     }
 
     /**
