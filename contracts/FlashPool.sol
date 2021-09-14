@@ -129,7 +129,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _weight number representing a weight of the pool, actual weight fraction
      *      is calculated as that number divided by the total pools weight and doesn't exceed one
      */
-    function initializer(
+    function initialize(
         address _ilv,
         address _silv,
         address _poolToken,
