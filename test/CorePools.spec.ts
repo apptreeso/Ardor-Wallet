@@ -2,7 +2,7 @@ import chai from "chai";
 import chaiSubset from "chai-subset";
 import { solidity } from "ethereum-waffle";
 import { ethers, upgrades } from "hardhat";
-import { Signer, Contract } from "ethers";
+import { Signer } from "ethers";
 import {
   ILVPoolMock__factory,
   ILVPoolMock,
@@ -13,6 +13,16 @@ import {
   ERC20Mock__factory,
   ERC20Mock,
 } from "../types";
+
+import {
+  ILV_PER_SECOND,
+  SECONDS_PER_UPDATE,
+  INIT_TIME,
+  END_TIME,
+  ILV_POOL_WEIGHT,
+  LP_POOL_WEIGHT,
+  V1_STAKE_MAX_PERIOD,
+} from "./utils";
 
 chai.use(solidity);
 chai.use(chaiSubset);
@@ -46,8 +56,33 @@ describe("CorePools", () => {
     ilv = await ERC20.connect(deployer).deploy("Illuvium", "ILV", ethers.utils.parseEther("10000000"));
     silv = await ERC20.connect(deployer).deploy("Escrowed Illuvium", "sILV", "0");
 
-    ilvPool = await upgrades.deployProxy(ILVPool);
-    lpPool = await upgrades.deployProxy(SushiLPPool);
-    factory = await upgrades.deployProxy(PoolFactory);
+    factory = await upgrades.deployProxy(PoolFactory, [
+      ilv.address,
+      silv.address,
+      ILV_PER_SECOND,
+      SECONDS_PER_UPDATE,
+      INIT_TIME,
+      END_TIME,
+    ]);
+    ilvPool = await upgrades.deployProxy(ILVPool, [
+      ilv.address,
+      silv.address,
+      ilv.address,
+      factory.address,
+      INIT_TIME,
+      ILV_POOL_WEIGHT,
+      ethers.constants.AddressZero,
+      V1_STAKE_MAX_PERIOD,
+    ]);
+    lpPool = await upgrades.deployProxy(SushiLPPool, [
+      ilv.address,
+      silv.address,
+      ilv.address,
+      factory.address,
+      INIT_TIME,
+      ILV_POOL_WEIGHT,
+      ethers.constants.AddressZero,
+      V1_STAKE_MAX_PERIOD,
+    ]);
   });
 });
