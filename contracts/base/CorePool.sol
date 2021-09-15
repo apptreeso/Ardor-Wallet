@@ -876,6 +876,7 @@ abstract contract CorePool is
             // we also save stakeValue for gasSavings
             (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
             require(isYield == _unstakingYield, "not a yield");
+            require(stakeValue >= _value, "not enough funds");
 
             // store stake weight
             uint256 previousWeight = stake.weight();
