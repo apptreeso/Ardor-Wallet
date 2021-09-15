@@ -22,7 +22,11 @@ import {
   ILV_POOL_WEIGHT,
   LP_POOL_WEIGHT,
   V1_STAKE_MAX_PERIOD,
+  toWei,
+  toAddress,
 } from "./utils";
+
+const { AddressZero, MaxUint256 } = ethers.constants;
 
 chai.use(solidity);
 chai.use(chaiSubset);
@@ -72,7 +76,7 @@ describe("CorePools", () => {
       factory.address,
       INIT_TIME,
       ILV_POOL_WEIGHT,
-      ethers.constants.AddressZero,
+      AddressZero,
       V1_STAKE_MAX_PERIOD,
     ])) as ILVPoolMock;
     lpPool = (await upgrades.deployProxy(SushiLPPool, [
@@ -82,12 +86,26 @@ describe("CorePools", () => {
       factory.address,
       INIT_TIME,
       ILV_POOL_WEIGHT,
-      ethers.constants.AddressZero,
+      AddressZero,
       V1_STAKE_MAX_PERIOD,
     ])) as SushiLPPoolMock;
+
+    await ilv.connect(deployer).transfer(await toAddress(accounts[0]), toWei(100000));
+    await ilv.connect(deployer).transfer(await toAddress(accounts[1]), toWei(100000));
+    await ilv.connect(deployer).transfer(await toAddress(accounts[2]), toWei(100000));
   });
 
-  it("should work", () => {
-    console.log(factory.address, ilvPool.address, lpPool.address);
+  describe("stake flexible", () => {
+    it("should stake correctly", async () => {
+      await ilv.connect(accounts[0]).approve(ilvPool.address, MaxUint256);
+      await ilvPool.connect(accounts[0]).stakeFlexible(toWei(1000));
+
+      expect((await ilvPool.balanceOf(await toAddress(accounts[0]))).toString()).to.equal(toWei(1000));
+    });
+
+    it("should revert on _value 0", async () => {
+      await ilv.connect(accounts[0]).approve(ilvPool.address, MaxUint256);
+      await expect(ilvPool.connect(accounts[0]).stakeFlexible(toWei(0))).reverted;
+    });
   });
 });
