@@ -34,8 +34,6 @@ export function stakeFlexible(usingPool: string): () => void {
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.alice).stakeFlexible(toWei(1000));
 
-      this.ilv.address;
-
       expect((await pool.balanceOf(await toAddress(this.signers.alice))).toString()).to.equal(toWei(1000));
     });
 
@@ -55,7 +53,11 @@ export function stakeFlexible(usingPool: string): () => void {
 
       await pool.setNow256(INIT_TIME + 1);
       const rewards = await pool.pendingRewards(await toAddress(this.signers.alice));
-      expect(rewards.pendingYield).to.be.equal(ILV_PER_SECOND.mul(200).div(1000));
+
+      const poolWeight = await pool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      expect(rewards.pendingYield).to.be.equal(ILV_PER_SECOND.mul(poolWeight).div(totalWeight));
     });
   };
 }

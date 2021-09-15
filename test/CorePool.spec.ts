@@ -2,7 +2,6 @@ import chai from "chai";
 import chaiSubset from "chai-subset";
 import { solidity } from "ethereum-waffle";
 import { ethers, upgrades } from "hardhat";
-import { Signer } from "ethers";
 import {
   ILVPoolMock__factory,
   ILVPoolMock,
@@ -11,10 +10,8 @@ import {
   PoolFactoryMock__factory,
   PoolFactoryMock,
   ERC20Mock__factory,
-  ERC20Mock,
+  Signers,
 } from "../types";
-
-import "../types/augmentations";
 
 import {
   ILV_PER_SECOND,
@@ -27,18 +24,17 @@ import {
   toWei,
   toAddress,
 } from "./utils";
+import { stakeFlexible } from "./CorePool.behavior.spec";
 
-import { stakeFlexible } from "./CorePool.behavior";
-
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 
 chai.use(solidity);
 chai.use(chaiSubset);
 
-const { expect } = chai;
-
 describe("CorePools", function () {
   before(async function () {
+    this.signers = {} as Signers;
+
     this.ILVPool = <ILVPoolMock__factory>await ethers.getContractFactory("ILVPoolMock");
     this.SushiLPPool = <SushiLPPoolMock__factory>await ethers.getContractFactory("SushiLPPoolMock");
     this.PoolFactory = <PoolFactoryMock__factory>await ethers.getContractFactory("PoolFactoryMock");
@@ -95,12 +91,14 @@ describe("CorePools", function () {
     await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.alice), toWei(100000));
     await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(100000));
     await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(100000));
+
+    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.alice), toWei(10000));
+    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
+    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
 
-  describe("#stakeFlexible", async function () {
-    context("ILV Pool", function () {
-      it;
-    });
+  describe("#stakeFlexible", function () {
+    context("ILV Pool", stakeFlexible("ILV"));
     context("Sushi LP Pool", stakeFlexible("LP"));
   });
 });
