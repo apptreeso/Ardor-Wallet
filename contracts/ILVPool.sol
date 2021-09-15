@@ -12,16 +12,18 @@ contract ILVPool is V2Migrator {
     event LogStakeAsPool(address indexed from, address indexed staker, uint256 value);
     event LogMigrateWeights(address indexed by, uint256 numberOfUsers, uint248 totalWeight);
 
-    /// @dev see __ICorePool_init
-    function __ILVPool_init(
+    /// @dev see __V2Migrator_init
+    function initialize(
         address _ilv,
         address _silv,
         address _poolToken,
         address _factory,
         uint64 _initTime,
-        uint32 _weight
+        uint32 _weight,
+        address _corePoolV1,
+        uint256 _v1StakeMaxPeriod
     ) external initializer {
-        __CorePool_init(_ilv, _silv, _poolToken, _factory, _initTime, _weight);
+        __V2Migrator_init(_ilv, _silv, _poolToken, _factory, _initTime, _weight, _corePoolV1, _v1StakeMaxPeriod);
     }
 
     /**
@@ -34,7 +36,7 @@ contract ILVPool is V2Migrator {
      */
     function stakeAsPool(address _staker, uint256 _value) external updatePool nonReentrant {
         _requireNotPaused();
-        require(factory.poolExists(msg.sender), "access denied");
+        require(factory.poolExists(msg.sender));
         User storage user = users[_staker];
         if (user.totalWeight > 0) {
             _processRewards(_staker);
@@ -77,10 +79,10 @@ contract ILVPool is V2Migrator {
      */
     function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external updatePool {
         _requireNotPaused();
-        require(_pools.length == _useSILV.length, "invalid parameters");
+        require(_pools.length == _useSILV.length);
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
-            require(IFactory(factory).poolExists(pool), "invalid pool");
+            require(IFactory(factory).poolExists(pool));
 
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimYieldRewards(msg.sender, _useSILV[i]);
@@ -105,7 +107,7 @@ contract ILVPool is V2Migrator {
         _requireNotPaused();
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
-            require(IFactory(factory).poolExists(pool), "invalid pool");
+            require(IFactory(factory).poolExists(pool));
 
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimVaultRewards(msg.sender);
@@ -137,7 +139,7 @@ contract ILVPool is V2Migrator {
         uint248 _totalWeight
     ) external onlyFactoryController {
         // checks if parameters are valid
-        require(_users.length == _yieldWeights.length, "invalid parameters");
+        require(_users.length == _yieldWeights.length);
 
         // will be used to check if weights were added as expected
         uint248 totalWeight;

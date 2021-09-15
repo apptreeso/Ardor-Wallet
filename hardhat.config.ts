@@ -3,6 +3,7 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "@openzeppelin/hardhat-upgrades";
 import "solidity-coverage";
+import "hardhat-contract-sizer";
 
 import "./tasks/accounts";
 import "./tasks/clean";
@@ -94,6 +95,11 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: "typechain",
     target: "ethers-v5",
+  },
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: true,
+    disambiguatePaths: false,
   },
 };
 

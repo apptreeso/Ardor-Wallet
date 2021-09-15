@@ -13,6 +13,9 @@ abstract contract V2Migrator is CorePool {
     ///      if a v1 locked stake has already been migrated to v2
     mapping(address => mapping(uint256 => bool)) public v1StakesMigrated;
 
+    /// @dev stores maximum timestamp of a v1 stake accepted in v2
+    uint256 public v1StakeMaxPeriod;
+
     /**
      * @dev logs mintV1Yield()
      *
@@ -48,8 +51,20 @@ abstract contract V2Migrator is CorePool {
      * @param _corePoolV1 v1 core pool address
      *
      */
-    function __V2Migrator_init(address _corePoolV1) internal initializer {
+    function __V2Migrator_init(
+        address _ilv,
+        address _silv,
+        address _poolToken,
+        address _factory,
+        uint64 _initTime,
+        uint32 _weight,
+        address _corePoolV1,
+        uint256 _v1StakeMaxPeriod
+    ) internal initializer {
+        __CorePool_init(_ilv, _silv, _poolToken, _factory, _initTime, _weight);
+
         corePoolV1 = _corePoolV1;
+        v1StakeMaxPeriod = _v1StakeMaxPeriod;
     }
 
     /**
@@ -107,8 +122,12 @@ abstract contract V2Migrator is CorePool {
     function migrateLockedStake(uint256[] calldata _stakeIds) external {
         User storage user = users[msg.sender];
 
+        // gas savings
+        uint256 _v1StakeMaxPeriod = v1StakeMaxPeriod;
+
         for (uint256 i = 0; i < _stakeIds.length; i++) {
             (, uint256 lockedFrom, , , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
+            require(lockedFrom <= _v1StakeMaxPeriod, "stake created after max period");
             require(lockedFrom > 0 && isYield, "invalid stake");
             require(!v1StakesMigrated[msg.sender][_stakeIds[i]], "already migrated");
 
