@@ -1,6 +1,8 @@
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
+import { ERC20Mock, ILVPoolMock, SushiLPPoolMock } from "../../types";
+
 export const SECONDS_PER_UPDATE = 1209600;
 
 // TODO: use correct value
@@ -22,3 +24,12 @@ export const V1_STAKE_MAX_PERIOD = 20;
 export const toWei = (value: number): BigNumber => ethers.utils.parseEther(value.toString());
 
 export const toAddress = (signer: Signer): Promise<string> => signer.getAddress();
+
+export const getToken = (ilvInstance: ERC20Mock, lpInstance: ERC20Mock, usingPool: string): ERC20Mock =>
+  usingPool === "ILV" ? ilvInstance : lpInstance;
+
+export const getPool = (
+  ilvPoolInstance: ILVPoolMock,
+  lpPoolInstance: SushiLPPoolMock,
+  usingPool: string,
+): ILVPoolMock | SushiLPPoolMock => (usingPool === "ILV" ? ilvPoolInstance : lpPoolInstance);

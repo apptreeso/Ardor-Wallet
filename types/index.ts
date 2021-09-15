@@ -12,5 +12,8 @@ export {
 } from "../typechain";
 
 export interface Signers {
-  admin: SignerWithAddress;
+  deployer: SignerWithAddress;
+  alice: SignerWithAddress;
+  bob: SignerWithAddress;
+  carol: SignerWithAddress;
 }
