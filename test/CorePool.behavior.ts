@@ -25,9 +25,15 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
+export function stakeAndLock(usingPool: string): () => void {
+  return function () {
+    it("should ");
+  };
+}
+
 export function stakeFlexible(usingPool: string): () => void {
   return function () {
-    it("should stake correctly", async function () {
+    it("should stake flexible", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
