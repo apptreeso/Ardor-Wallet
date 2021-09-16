@@ -2,10 +2,13 @@
 pragma solidity 0.8.4;
 
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
+import { Errors } from "../libraries/Errors.sol";
 import { Stake } from "../libraries/Stake.sol";
 import { CorePool } from "./CorePool.sol";
 
 abstract contract V2Migrator is CorePool {
+    using Errors for bool;
+
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     ///      if a v1 yield has already been minted by v2 contract
     mapping(address => mapping(uint256 => bool)) public v1YieldMinted;
@@ -78,9 +81,9 @@ abstract contract V2Migrator is CorePool {
             msg.sender,
             _stakeId
         );
-        require(isYield, "not a yield");
-        require(_now256() > lockedUntil, "not yet unlocked");
-        require(!v1YieldMinted[msg.sender][_stakeId], "already minted");
+        isYield.invalid(0);
+        (_now256() > lockedUntil).invalid(1);
+        (!v1YieldMinted[msg.sender][_stakeId]).invalid(2);
 
         users[msg.sender].totalWeight -= uint248(weight);
         v1YieldMinted[msg.sender][_stakeId] = true;
@@ -98,9 +101,9 @@ abstract contract V2Migrator is CorePool {
                 msg.sender,
                 _stakeId
             );
-            require(isYield, "not a yield");
-            require(_now256() > lockedUntil, "not yet unlocked");
-            require(!v1YieldMinted[msg.sender][_stakeId], "already minted");
+            isYield.invalid(i * 3);
+            (_now256() > lockedUntil).invalid(i * 3 + 1);
+            (!v1YieldMinted[msg.sender][_stakeId]).invalid(i * 3 + 2);
 
             v1YieldMinted[msg.sender][_stakeId] = true;
             amountToMint += tokenAmount;
@@ -127,9 +130,9 @@ abstract contract V2Migrator is CorePool {
 
         for (uint256 i = 0; i < _stakeIds.length; i++) {
             (, uint256 lockedFrom, , , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
-            require(lockedFrom <= _v1StakeMaxPeriod, "stake created after max period");
-            require(lockedFrom > 0 && isYield, "invalid stake");
-            require(!v1StakesMigrated[msg.sender][_stakeIds[i]], "already migrated");
+            (lockedFrom <= _v1StakeMaxPeriod).invalid(i * 3);
+            (lockedFrom > 0 && isYield).invalid(i * 3 + 1);
+            (!v1StakesMigrated[msg.sender][_stakeIds[i]]).invalid(i * 3 + 2);
 
             v1StakesMigrated[msg.sender][_stakeIds[i]] = true;
             user.v1IdsLength++;
