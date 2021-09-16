@@ -405,7 +405,7 @@ abstract contract CorePool is
     function stakeAndLock(uint256 _value, uint64 _lockDuration) external nonReentrant {
         _requireNotPaused();
         // delegate call to an internal function
-        _stakeAndLock(msg.sender, _value, _lockDuration, false);
+        _stakeAndLock(msg.sender, _value, _lockDuration);
     }
 
     /**
@@ -711,14 +711,11 @@ abstract contract CorePool is
      * @param _staker an address which stakes tokens and which will receive them back
      * @param _value value of tokens to stake
      * @param _lockDuration stake period as unix timestamp; zero means no locking
-     * @param _isYield a flag indicating if that stake is created to store yield reward
-     *      from the previously unstaked stake
      */
     function _stakeAndLock(
         address _staker,
         uint256 _value,
-        uint64 _lockDuration,
-        bool _isYield
+        uint64 _lockDuration
     ) internal virtual updatePool {
         // validate the inputs
         require(_value > 0, "zero value");
@@ -730,12 +727,6 @@ abstract contract CorePool is
         if (user.totalWeight > 0) {
             _processRewards(_staker);
         }
-
-        // in most of the cases added value `addedValue` is simply `_value`
-        // however for deflationary tokens this can be different
-
-        // transfer `_value`
-        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         uint64 lockUntil = uint64(_now256()) + _lockDuration;
 
@@ -752,7 +743,7 @@ abstract contract CorePool is
             value: uint120(_value),
             lockedFrom: uint64(_now256()),
             lockedUntil: lockUntil,
-            isYield: _isYield
+            isYield: false
         });
         // stake ID is an index of the stake in `stakes` array
         user.stakes.push(stake);
@@ -765,6 +756,9 @@ abstract contract CorePool is
         globalWeight += stakeWeight;
         // update reserve count
         poolTokenReserve += _value;
+
+        // transfer `_value`
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         // emit an event
         emit LogStakeAndLock(msg.sender, _value, lockUntil);
