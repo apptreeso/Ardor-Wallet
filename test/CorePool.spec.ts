@@ -24,7 +24,7 @@ import {
   toWei,
   toAddress,
 } from "./utils";
-import { stakeFlexible } from "./CorePool.behavior.spec";
+import { stakeFlexible } from "./CorePool.behavior";
 
 const { AddressZero } = ethers.constants;
 
