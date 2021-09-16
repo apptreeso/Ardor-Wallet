@@ -12,6 +12,7 @@ import {
   ILV_POOL_WEIGHT,
   LP_POOL_WEIGHT,
   V1_STAKE_MAX_PERIOD,
+  ONE_YEAR,
   toWei,
   toAddress,
   getToken,
@@ -27,7 +28,13 @@ const { expect } = chai;
 
 export function stakeAndLock(usingPool: string): () => void {
   return function () {
-    it("should ");
+    it("should stake and lock", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+    });
   };
 }
 

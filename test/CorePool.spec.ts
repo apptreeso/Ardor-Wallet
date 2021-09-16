@@ -24,7 +24,7 @@ import {
   toWei,
   toAddress,
 } from "./utils";
-import { stakeFlexible } from "./CorePool.behavior";
+import { stakeAndLock, stakeFlexible } from "./CorePool.behavior";
 
 const { AddressZero } = ethers.constants;
 
@@ -98,6 +98,8 @@ describe("CorePools", function () {
   });
 
   describe("#stakeFlexible", function () {
+    context("ILV Pool", stakeAndLock("ILV"));
+    context("Sushi LP Pool", stakeAndLock("LP"));
     context("ILV Pool", stakeFlexible("ILV"));
     context("Sushi LP Pool", stakeFlexible("LP"));
   });
