@@ -96,13 +96,16 @@ describe("CorePools", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
-
-  describe("#stakeFlexible", function () {
+  describe("#stakeAndLock", function () {
     context("ILV Pool - stake and lock", stakeAndLock("ILV"));
     context("Sushi LP Pool- stake and lock", stakeAndLock("LP"));
-    context("ILV Pool - stake flexible", stakeFlexible("ILV"));
-    context("Sushi LP Pool - stake flexible", stakeFlexible("LP"));
-    context("ILV Pool - yield", pendingYield("ILV"));
-    context("Sushi LP Pool - yield", pendingYield("LP"));
+  });
+  describe("#stakeFlexible", function () {
+    context("ILV Pool", stakeFlexible("ILV"));
+    context("Sushi LP Pool", stakeFlexible("LP"));
+  });
+  describe("#pendingYield", function () {
+    context("ILV Pool", pendingYield("ILV"));
+    context("Sushi LP Pool", pendingYield("LP"));
   });
 });
