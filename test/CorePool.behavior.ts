@@ -59,7 +59,7 @@ export function pendingYield(usingPool?: string): () => void {
 
       const { pendingYield } = await pool.pendingRewards(this.signers.alice.address);
 
-      expect(expectedRewards).to.be.equal(pendingYield.toNumber());
+      expect(expectedRewards).to.be.equal(Number(pendingYield));
     });
   };
 }

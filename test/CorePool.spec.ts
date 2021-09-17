@@ -97,8 +97,8 @@ describe("CorePools", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
   describe("#stakeAndLock", function () {
-    context("ILV Pool - stake and lock", stakeAndLock("ILV"));
-    context("Sushi LP Pool- stake and lock", stakeAndLock("LP"));
+    context("ILV Pool", stakeAndLock("ILV"));
+    context("Sushi LP Pool", stakeAndLock("LP"));
   });
   describe("#stakeFlexible", function () {
     context("ILV Pool", stakeFlexible("ILV"));
