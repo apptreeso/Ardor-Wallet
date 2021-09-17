@@ -24,7 +24,7 @@ import {
   toWei,
   toAddress,
 } from "./utils";
-import { stakeFlexible } from "./CorePool.behavior";
+import { stakeAndLock, stakeFlexible, pendingYield } from "./CorePool.behavior";
 
 const { AddressZero } = ethers.constants;
 
@@ -96,9 +96,16 @@ describe("CorePools", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
-
+  describe("#stakeAndLock", function () {
+    context("ILV Pool", stakeAndLock("ILV"));
+    context("Sushi LP Pool", stakeAndLock("LP"));
+  });
   describe("#stakeFlexible", function () {
     context("ILV Pool", stakeFlexible("ILV"));
     context("Sushi LP Pool", stakeFlexible("LP"));
+  });
+  describe("#pendingYield", function () {
+    context("ILV Pool", pendingYield("ILV"));
+    context("Sushi LP Pool", pendingYield("LP"));
   });
 });
