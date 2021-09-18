@@ -41,7 +41,7 @@ contract ILVPool is V2Migrator {
         if (user.totalWeight > 0) {
             _processRewards(_staker);
         }
-        uint256 stakeWeight = _value * YEAR_STAKE_WEIGHT_MULTIPLIER;
+        uint256 stakeWeight = _value * Stake.YEAR_STAKE_WEIGHT_MULTIPLIER;
         Stake.Data memory newStake = Stake.Data({
             value: uint120(_value),
             lockedFrom: uint64(_now256()),
@@ -57,8 +57,8 @@ contract ILVPool is V2Migrator {
         // gas savings
         uint256 userTotalWeight = user.totalWeight;
 
-        user.subYieldRewards = _weightToReward(userTotalWeight, yieldRewardsPerWeight);
-        user.subVaultRewards = _weightToReward(userTotalWeight, vaultRewardsPerWeight);
+        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
 
         // update `poolTokenReserve` only if this is a LP Core Pool (stakeAsPool can be executed only for LP pool)
         poolTokenReserve += _value;
