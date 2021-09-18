@@ -249,9 +249,9 @@ abstract contract CorePool is
         // since function is not public we pre-calculate the selector
         bytes4 fnSelector = 0x243f7620;
         // verify the inputs
-        fnSelector.validateNonZeroInput(uint160(_poolToken), 2);
-        fnSelector.validateNonZeroInput(_initTime, 4);
-        fnSelector.validateNonZeroInput(_weight, 5);
+        fnSelector.verifyNonZeroInput(uint160(_poolToken), 2);
+        fnSelector.verifyNonZeroInput(_initTime, 4);
+        fnSelector.verifyNonZeroInput(_weight, 5);
 
         __FactoryControlled_init(_factory);
         __ReentrancyGuard_init();
@@ -279,7 +279,7 @@ abstract contract CorePool is
      * @param _staker an address to calculate yield rewards value for
      */
     function pendingRewards(address _staker) external view returns (uint256 pendingYield, uint256 pendingRevDis) {
-        CorePool(this).pendingRewards.selector.validateNonZeroInput(uint160(_staker), 0);
+        CorePool(this).pendingRewards.selector.verifyNonZeroInput(uint160(_staker), 0);
         // `newYieldRewardsPerWeight` will store stored or recalculated value for `yieldRewardsPerWeight`
         uint256 newYieldRewardsPerWeight;
 
@@ -425,7 +425,7 @@ abstract contract CorePool is
         _requireNotPaused();
 
         // validate input is set
-        CorePool(this).stakeFlexible.selector.validateNonZeroInput(_value, 0);
+        CorePool(this).stakeFlexible.selector.verifyNonZeroInput(_value, 0);
 
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
@@ -467,7 +467,7 @@ abstract contract CorePool is
         );
 
         // validate deposit is unlocked
-        CorePool(this).fillStakeId.selector.validateState(_now256() > lockedUntil, 0);
+        CorePool(this).fillStakeId.selector.verifyState(_now256() > lockedUntil, 0);
 
         delete user.v1StakesIds[_position];
         Stake.Data memory stake = Stake.Data({
@@ -501,11 +501,11 @@ abstract contract CorePool is
         bytes4 fnSelector = CorePool(this).migrateUser.selector;
 
         // validate input is set
-        fnSelector.validateNonZeroInput(uint160(_to), 0);
+        fnSelector.verifyNonZeroInput(uint160(_to), 0);
         User storage newUser = users[_to];
 
         // verify new user records are empty
-        fnSelector.validateState(newUser.totalWeight == 0 && newUser.v1IdsLength == 0 && newUser.pendingYield == 0, 0);
+        fnSelector.verifyState(newUser.totalWeight == 0 && newUser.v1IdsLength == 0 && newUser.pendingYield == 0, 0);
 
         User storage previousUser = users[msg.sender];
         newUser.flexibleBalance = previousUser.flexibleBalance;
@@ -541,7 +541,7 @@ abstract contract CorePool is
         bytes4 fnSelector = CorePool(this).updateStakeLock.selector;
 
         // validate the input time
-        fnSelector.validateInput(_lockedUntil > _now256(), 1);
+        fnSelector.verifyInput(_lockedUntil > _now256(), 1);
 
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
@@ -549,7 +549,7 @@ abstract contract CorePool is
         Stake.Data storage stake = user.stakes[_stakeId];
 
         // validate the input against stake structure
-        fnSelector.validateInput(_lockedUntil > stake.lockedUntil, 1);
+        fnSelector.verifyInput(_lockedUntil > stake.lockedUntil, 1);
 
         // saves previous weight into memory
         uint256 previousWeight = stake.weight();
@@ -558,11 +558,11 @@ abstract contract CorePool is
 
         // verify locked from and locked until values
         if (stakeLockedFrom == 0) {
-            fnSelector.validateInput(_lockedUntil - _now256() <= 730 days, 1);
+            fnSelector.verifyInput(_lockedUntil - _now256() <= 730 days, 1);
             stakeLockedFrom = uint64(_now256());
             stake.lockedFrom = stakeLockedFrom;
         } else {
-            fnSelector.validateInput(_lockedUntil - stakeLockedFrom <= 730 days, 1);
+            fnSelector.verifyInput(_lockedUntil - stakeLockedFrom <= 730 days, 1);
         }
 
         // update locked until value, calculate new weight
@@ -625,13 +625,13 @@ abstract contract CorePool is
         bytes4 fnSelector = CorePool(this).receiveVaultRewards.selector;
 
         // verify function is accessed by the vault only
-        fnSelector.validateAccess(msg.sender == vault);
+        fnSelector.verifyAccess(msg.sender == vault);
         // return silently if there is no reward to receive
         if (_value == 0) {
             return;
         }
         // verify weight is not zero
-        fnSelector.validateState(globalWeight > 0, 0);
+        fnSelector.verifyState(globalWeight > 0, 0);
 
         vaultRewardsPerWeight += _rewardPerWeight(_value, globalWeight);
 
@@ -683,7 +683,7 @@ abstract contract CorePool is
      */
     function setWeight(uint32 _weight) external {
         // verify function is executed by the factory
-        CorePool(this).setWeight.selector.validateAccess(msg.sender == address(factory));
+        CorePool(this).setWeight.selector.verifyAccess(msg.sender == address(factory));
 
         // set the new weight value
         weight = _weight;
@@ -748,8 +748,8 @@ abstract contract CorePool is
         bytes4 fnSelector = 0x867a0347;
 
         // validate the inputs
-        fnSelector.validateNonZeroInput(_value, 0);
-        fnSelector.validateInput(_lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 730 days), 2);
+        fnSelector.verifyNonZeroInput(_value, 0);
+        fnSelector.verifyInput(_lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 730 days), 2);
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
@@ -806,11 +806,11 @@ abstract contract CorePool is
         bytes4 fnSelector = CorePool(this).unstakeFlexible.selector;
 
         // verify a value is set
-        fnSelector.validateNonZeroInput(_value, 0);
+        fnSelector.verifyNonZeroInput(_value, 0);
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
         // verify available balance
-        fnSelector.validateInput(user.flexibleBalance >= _value, 0);
+        fnSelector.verifyInput(user.flexibleBalance >= _value, 0);
         // and process current pending rewards if any
         _processRewards(msg.sender);
 
@@ -838,18 +838,18 @@ abstract contract CorePool is
         bytes4 fnSelector = CorePool(this).unstakeLocked.selector;
 
         // verify a value is set
-        fnSelector.validateNonZeroInput(_value, 0);
+        fnSelector.verifyNonZeroInput(_value, 0);
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
         // get a link to the corresponding stake, we may write to it later
         Stake.Data storage stake = user.stakes[_stakeId];
         // checks if stake is unlocked already
-        fnSelector.validateState(_now256() > stake.lockedUntil, 0);
+        fnSelector.verifyState(_now256() > stake.lockedUntil, 0);
         // stake structure may get deleted, so we save isYield flag to be able to use it
         // we also save stakeValue for gasSavings
         (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
         // verify available balance
-        fnSelector.validateInput(stakeValue >= _value, 1);
+        fnSelector.verifyInput(stakeValue >= _value, 1);
         // and process current pending rewards if any
         _processRewards(msg.sender);
 
@@ -895,7 +895,7 @@ abstract contract CorePool is
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).unstakeLockedMultiple.selector;
 
-        fnSelector.validateNonZeroInput(_stakes.length, 0);
+        fnSelector.verifyNonZeroInput(_stakes.length, 0);
         User storage user = users[msg.sender];
 
         _processRewards(msg.sender);
@@ -907,12 +907,12 @@ abstract contract CorePool is
             (uint256 _stakeId, uint256 _value) = (_stakes[i].stakeId, _stakes[i].value);
             Stake.Data storage stake = user.stakes[_stakeId];
             // checks if stake is unlocked already
-            fnSelector.validateState(_now256() > stake.lockedUntil, i * 3);
+            fnSelector.verifyState(_now256() > stake.lockedUntil, i * 3);
             // stake structure may get deleted, so we save isYield flag to be able to use it
             // we also save stakeValue for gasSavings
             (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
-            fnSelector.validateState(isYield == _unstakingYield, i * 3 + 1);
-            fnSelector.validateState(stakeValue >= _value, i * 3 + 2);
+            fnSelector.verifyState(isYield == _unstakingYield, i * 3 + 1);
+            fnSelector.verifyState(stakeValue >= _value, i * 3 + 2);
 
             // store stake weight
             uint256 previousWeight = stake.weight();

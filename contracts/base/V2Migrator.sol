@@ -85,9 +85,9 @@ abstract contract V2Migrator is CorePool {
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = V2Migrator(this).mintV1Yield.selector;
 
-        fnSelector.validateState(isYield, 0);
-        fnSelector.validateState(_now256() > lockedUntil, 1);
-        fnSelector.validateState(!v1YieldMinted[msg.sender][_stakeId], 2);
+        fnSelector.verifyState(isYield, 0);
+        fnSelector.verifyState(_now256() > lockedUntil, 1);
+        fnSelector.verifyState(!v1YieldMinted[msg.sender][_stakeId], 2);
 
         users[msg.sender].totalWeight -= uint248(weight);
         v1YieldMinted[msg.sender][_stakeId] = true;
@@ -108,9 +108,9 @@ abstract contract V2Migrator is CorePool {
                 msg.sender,
                 _stakeId
             );
-            fnSelector.validateState(isYield, i * 3);
-            fnSelector.validateState(_now256() > lockedUntil, i * 3 + 1);
-            fnSelector.validateState(!v1YieldMinted[msg.sender][_stakeId], i * 3 + 2);
+            fnSelector.verifyState(isYield, i * 3);
+            fnSelector.verifyState(_now256() > lockedUntil, i * 3 + 1);
+            fnSelector.verifyState(!v1YieldMinted[msg.sender][_stakeId], i * 3 + 2);
 
             v1YieldMinted[msg.sender][_stakeId] = true;
             amountToMint += tokenAmount;
@@ -140,9 +140,9 @@ abstract contract V2Migrator is CorePool {
 
         for (uint256 i = 0; i < _stakeIds.length; i++) {
             (, uint256 lockedFrom, , , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
-            fnSelector.validateState(lockedFrom <= _v1StakeMaxPeriod, i * 3);
-            fnSelector.validateState(lockedFrom > 0 && isYield, i * 3 + 1);
-            fnSelector.validateState(!v1StakesMigrated[msg.sender][_stakeIds[i]], i * 3 + 2);
+            fnSelector.verifyState(lockedFrom <= _v1StakeMaxPeriod, i * 3);
+            fnSelector.verifyState(lockedFrom > 0 && isYield, i * 3 + 1);
+            fnSelector.verifyState(!v1StakesMigrated[msg.sender][_stakeIds[i]], i * 3 + 2);
 
             v1StakesMigrated[msg.sender][_stakeIds[i]] = true;
             user.v1IdsLength++;
