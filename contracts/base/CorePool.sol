@@ -406,12 +406,12 @@ abstract contract CorePool is
      * @dev Requires value to stake to be greater than zero
      *
      * @param _value value of tokens to stake
-     * @param _lockUntil stake period as unix timestamp; zero means no locking
+     * @param _lockDuration stake duration as unix timestamp
      */
-    function stakeAndLock(uint256 _value, uint64 _lockUntil) external nonReentrant {
+    function stakeAndLock(uint256 _value, uint64 _lockDuration) external nonReentrant {
         _requireNotPaused();
         // delegate call to an internal function
-        _stakeAndLock(msg.sender, _value, _lockUntil, false);
+        _stakeAndLock(msg.sender, _value, _lockDuration);
     }
 
     /**
@@ -733,15 +733,12 @@ abstract contract CorePool is
      *
      * @param _staker an address which stakes tokens and which will receive them back
      * @param _value value of tokens to stake
-     * @param _lockUntil stake period as unix timestamp; zero means no locking
-     * @param _isYield a flag indicating if that stake is created to store yield reward
-     *      from the previously unstaked stake
+     * @param _lockDuration stake period as unix timestamp; zero means no locking
      */
     function _stakeAndLock(
         address _staker,
         uint256 _value,
-        uint64 _lockUntil,
-        bool _isYield
+        uint64 _lockDuration
     ) internal virtual updatePool {
         // we're using selector to simplify input and state validation
         // since function is not public we pre-calculate the selector
@@ -749,7 +746,7 @@ abstract contract CorePool is
 
         // validate the inputs
         fnSelector.verifyNonZeroInput(_value, 0);
-        fnSelector.verifyInput(_lockUntil == 0 || (_lockUntil > _now256() && _lockUntil - _now256() <= 730 days), 2);
+        fnSelector.verifyInput(_lockDuration > 0 && _lockDuration <= 730 days, 2);
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
@@ -758,20 +755,10 @@ abstract contract CorePool is
             _processRewards(_staker);
         }
 
-        // in most of the cases added value `addedValue` is simply `_value`
-        // however for deflationary tokens this can be different
-
-        // transfer `_value`
-        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
-
-        // set the `lockFrom` and `lockUntil` taking into account that
-        // zero value for `_lockUntil` means "no locking" and leads to zero values
-        // for both `lockFrom` and `lockUntil`
-        uint64 lockFrom = _lockUntil > 0 ? uint64(_now256()) : 0;
-        uint64 lockUntil = _lockUntil;
+        uint64 lockUntil = uint64(_now256()) + _lockDuration;
 
         // stake weight formula rewards for locking
-        uint256 stakeWeight = (((lockUntil - lockFrom) * Stake.WEIGHT_MULTIPLIER) /
+        uint256 stakeWeight = (((lockUntil - _now256()) * Stake.WEIGHT_MULTIPLIER) /
             730 days +
             Stake.WEIGHT_MULTIPLIER) * _value;
 
@@ -781,9 +768,9 @@ abstract contract CorePool is
         // create and save the stake (append it to stakes array)
         Stake.Data memory stake = Stake.Data({
             value: uint120(_value),
-            lockedFrom: lockFrom,
+            lockedFrom: uint64(_now256()),
             lockedUntil: lockUntil,
-            isYield: _isYield
+            isYield: false
         });
         // stake ID is an index of the stake in `stakes` array
         user.stakes.push(stake);
@@ -797,8 +784,11 @@ abstract contract CorePool is
         // update reserve count
         poolTokenReserve += _value;
 
+        // transfer `_value`
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
+
         // emit an event
-        emit LogStakeAndLock(msg.sender, _value, _lockUntil);
+        emit LogStakeAndLock(msg.sender, _value, lockUntil);
     }
 
     function unstakeFlexible(uint256 _value) external updatePool {

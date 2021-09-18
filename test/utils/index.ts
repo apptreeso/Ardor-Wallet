@@ -33,3 +33,5 @@ export const getPool = (
   lpPoolInstance: SushiLPPoolMock,
   usingPool: string,
 ): ILVPoolMock | SushiLPPoolMock => (usingPool === "ILV" ? ilvPoolInstance : lpPoolInstance);
+
+export const ONE_YEAR = 31536000;
