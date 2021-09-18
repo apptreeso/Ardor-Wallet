@@ -2,32 +2,44 @@
 pragma solidity 0.8.4;
 
 library Errors {
-    error ZeroInput(uint8 index);
-    error InvalidInput(uint8 index);
-    error InvalidState(uint256 code);
-    error AccessDenied(address addr);
+    error ZeroInput(bytes4 fnSelector, uint8 paramIndex);
+    error InvalidInput(bytes4 fnSelector, uint8 paramIndex);
+    error InvalidState(bytes4 fnSelector, uint256 errorCode);
+    error AccessDenied(bytes4 fnSelector, address addr);
 
-    function nonZeroAt(uint256 value, uint8 index) internal pure {
+    function validateNonZeroInput(
+        bytes4 fnSelector,
+        uint256 value,
+        uint8 paramIndex
+    ) internal pure {
         if (value == 0) {
-            revert ZeroInput(index);
+            revert ZeroInput(fnSelector, paramIndex);
         }
     }
 
-    function invalidAt(bool expr, uint8 index) internal pure {
+    function validateInput(
+        bytes4 fnSelector,
+        bool expr,
+        uint8 paramIndex
+    ) internal pure {
         if (!expr) {
-            revert InvalidInput(index);
+            revert InvalidInput(fnSelector, paramIndex);
         }
     }
 
-    function invalid(bool expr, uint256 code) internal pure {
+    function validateState(
+        bytes4 fnSelector,
+        bool expr,
+        uint256 errorCode
+    ) internal pure {
         if (!expr) {
-            revert InvalidState(code);
+            revert InvalidState(fnSelector, errorCode);
         }
     }
 
-    function invalidAccess(bool expr) internal view {
+    function validateAccess(bytes4 fnSelector, bool expr) internal view {
         if (!expr) {
-            revert AccessDenied(msg.sender);
+            revert AccessDenied(fnSelector, msg.sender);
         }
     }
 }

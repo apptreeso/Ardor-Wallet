@@ -8,7 +8,7 @@ import { IFactory } from "./interfaces/IFactory.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 
 contract ILVPool is V2Migrator {
-    using Errors for bool;
+    using Errors for bytes4;
 
     event LogClaimYieldRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
     event LogClaimVaultRewardsMultiple(address indexed from, address[] pool);
@@ -39,7 +39,7 @@ contract ILVPool is V2Migrator {
      */
     function stakeAsPool(address _staker, uint256 _value) external updatePool nonReentrant {
         _requireNotPaused();
-        (factory.poolExists(msg.sender)).invalidAccess();
+        ILVPool(this).stakeAsPool.selector.validateAccess(factory.poolExists(msg.sender));
         User storage user = users[_staker];
         if (user.totalWeight > 0) {
             _processRewards(_staker);
@@ -82,10 +82,15 @@ contract ILVPool is V2Migrator {
      */
     function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external updatePool {
         _requireNotPaused();
-        (_pools.length == _useSILV.length).invalidAt(0);
+
+        // we're using selector to simplify input and state validation
+        // claimYieldRewardsMultiple is not unique, we pre-calculate the selector
+        bytes4 fnSelector = 0x5c7f74bb;
+
+        fnSelector.validateInput(_pools.length == _useSILV.length, 0);
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
-            (IFactory(factory).poolExists(pool)).invalidAccess();
+            fnSelector.validateAccess(IFactory(factory).poolExists(pool));
 
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimYieldRewards(msg.sender, _useSILV[i]);
@@ -110,7 +115,10 @@ contract ILVPool is V2Migrator {
         _requireNotPaused();
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
-            (IFactory(factory).poolExists(pool)).invalidAccess();
+
+            // we're using selector to simplify input and state validation
+            // claimYieldRewardsMultiple is not unique, we pre-calculate the selector
+            bytes4(0x28e120f8).validateAccess(IFactory(factory).poolExists(pool));
 
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimVaultRewards(msg.sender);
@@ -142,7 +150,7 @@ contract ILVPool is V2Migrator {
         uint248 _totalWeight
     ) external onlyFactoryController {
         // checks if parameters are valid
-        (_users.length == _yieldWeights.length).invalidAt(0);
+        ILVPool(this).migrateWeights.selector.validateInput(_users.length == _yieldWeights.length, 0);
 
         // will be used to check if weights were added as expected
         uint248 totalWeight;

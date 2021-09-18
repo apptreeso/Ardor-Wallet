@@ -7,7 +7,7 @@ import { Stake } from "../libraries/Stake.sol";
 import { CorePool } from "./CorePool.sol";
 
 abstract contract V2Migrator is CorePool {
-    using Errors for bool;
+    using Errors for bytes4;
 
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     ///      if a v1 yield has already been minted by v2 contract
@@ -81,9 +81,13 @@ abstract contract V2Migrator is CorePool {
             msg.sender,
             _stakeId
         );
-        isYield.invalid(0);
-        (_now256() > lockedUntil).invalid(1);
-        (!v1YieldMinted[msg.sender][_stakeId]).invalid(2);
+
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = V2Migrator(this).mintV1Yield.selector;
+
+        fnSelector.validateState(isYield, 0);
+        fnSelector.validateState(_now256() > lockedUntil, 1);
+        fnSelector.validateState(!v1YieldMinted[msg.sender][_stakeId], 2);
 
         users[msg.sender].totalWeight -= uint248(weight);
         v1YieldMinted[msg.sender][_stakeId] = true;
@@ -95,15 +99,18 @@ abstract contract V2Migrator is CorePool {
     function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
         uint256 amountToMint;
 
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = V2Migrator(this).mintV1YieldMultiple.selector;
+
         for (uint256 i = 0; i < _stakeIds.length; i++) {
             uint256 _stakeId = _stakeIds[i];
             (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
                 msg.sender,
                 _stakeId
             );
-            isYield.invalid(i * 3);
-            (_now256() > lockedUntil).invalid(i * 3 + 1);
-            (!v1YieldMinted[msg.sender][_stakeId]).invalid(i * 3 + 2);
+            fnSelector.validateState(isYield, i * 3);
+            fnSelector.validateState(_now256() > lockedUntil, i * 3 + 1);
+            fnSelector.validateState(!v1YieldMinted[msg.sender][_stakeId], i * 3 + 2);
 
             v1YieldMinted[msg.sender][_stakeId] = true;
             amountToMint += tokenAmount;
@@ -128,11 +135,14 @@ abstract contract V2Migrator is CorePool {
         // gas savings
         uint256 _v1StakeMaxPeriod = v1StakeMaxPeriod;
 
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = V2Migrator(this).migrateLockedStake.selector;
+
         for (uint256 i = 0; i < _stakeIds.length; i++) {
             (, uint256 lockedFrom, , , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
-            (lockedFrom <= _v1StakeMaxPeriod).invalid(i * 3);
-            (lockedFrom > 0 && isYield).invalid(i * 3 + 1);
-            (!v1StakesMigrated[msg.sender][_stakeIds[i]]).invalid(i * 3 + 2);
+            fnSelector.validateState(lockedFrom <= _v1StakeMaxPeriod, i * 3);
+            fnSelector.validateState(lockedFrom > 0 && isYield, i * 3 + 1);
+            fnSelector.validateState(!v1StakesMigrated[msg.sender][_stakeIds[i]], i * 3 + 2);
 
             v1StakesMigrated[msg.sender][_stakeIds[i]] = true;
             user.v1IdsLength++;
