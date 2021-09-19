@@ -427,9 +427,6 @@ abstract contract CorePool is
             _processRewards(msg.sender);
         }
 
-        // transfer `_value`
-        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
-
         // no need to calculate locking weight, flexible stake never locks
         uint256 stakeWeight = Stake.WEIGHT_MULTIPLIER * _value;
 
@@ -445,6 +442,9 @@ abstract contract CorePool is
         globalWeight += stakeWeight;
         // update reserve count
         poolTokenReserve += _value;
+
+        // transfer `_value`
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         // emit an event
         emit LogStakeFlexible(msg.sender, _value);
