@@ -7,6 +7,7 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { Timestamp } from "./Timestamp.sol";
 import { VaultRecipient } from "./VaultRecipient.sol";
+import { Errors } from "../libraries/Errors.sol";
 import { IlluviumAware } from "../libraries/IlluviumAware.sol";
 import { Stake } from "../libraries/Stake.sol";
 import { IERC20Mintable } from "../interfaces/IERC20Mintable.sol";
@@ -25,6 +26,7 @@ abstract contract CorePool is
 {
     using SafeERC20 for IERC20;
     using Stake for Stake.Data;
+    using Errors for bytes4;
     using Stake for uint256;
 
     /// @dev Data structure representing token holder using a pool
@@ -233,9 +235,13 @@ abstract contract CorePool is
         uint64 _initTime,
         uint32 _weight
     ) internal virtual initializer {
-        require(_poolToken != address(0), "pool token address not set");
-        require(_initTime > 0, "init time not set");
-        require(_weight > 0, "pool weight not set");
+        // we're using selector to simplify input and state validation
+        // since function is not public we pre-calculate the selector
+        bytes4 fnSelector = 0x243f7620;
+        // verify the inputs
+        fnSelector.verifyNonZeroInput(uint160(_poolToken), 2);
+        fnSelector.verifyNonZeroInput(_initTime, 4);
+        fnSelector.verifyNonZeroInput(_weight, 5);
 
         __FactoryControlled_init(_factory);
         __ReentrancyGuard_init();
@@ -263,7 +269,7 @@ abstract contract CorePool is
      * @param _staker an address to calculate yield rewards value for
      */
     function pendingRewards(address _staker) external view returns (uint256 pendingYield, uint256 pendingRevDis) {
-        require(_staker != address(0));
+        CorePool(this).pendingRewards.selector.verifyNonZeroInput(uint160(_staker), 0);
         // `newYieldRewardsPerWeight` will store stored or recalculated value for `yieldRewardsPerWeight`
         uint256 newYieldRewardsPerWeight;
 
@@ -407,8 +413,9 @@ abstract contract CorePool is
      */
     function stakeFlexible(uint256 _value) external updatePool nonReentrant {
         _requireNotPaused();
-        // validates input
-        require(_value > 0, "zero value");
+
+        // validate input is set
+        CorePool(this).stakeFlexible.selector.verifyNonZeroInput(_value, 0);
 
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
@@ -448,7 +455,9 @@ abstract contract CorePool is
             msg.sender,
             stakeId
         );
-        require(_now256() > lockedUntil, "v1 stake still locked");
+
+        // validate deposit is unlocked
+        CorePool(this).fillStakeId.selector.verifyState(_now256() > lockedUntil, 0);
 
         delete user.v1StakesIds[_position];
         Stake.Data memory stake = Stake.Data({
@@ -478,9 +487,15 @@ abstract contract CorePool is
      * @param _to new user address
      */
     function migrateUser(address _to) external updatePool {
-        require(_to != address(0));
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = CorePool(this).migrateUser.selector;
+
+        // validate input is set
+        fnSelector.verifyNonZeroInput(uint160(_to), 0);
         User storage newUser = users[_to];
-        require(newUser.totalWeight == 0 && newUser.v1IdsLength == 0 && newUser.pendingYield == 0);
+
+        // verify new user records are empty
+        fnSelector.verifyState(newUser.totalWeight == 0 && newUser.v1IdsLength == 0 && newUser.pendingYield == 0, 0);
 
         User storage previousUser = users[msg.sender];
         newUser.flexibleBalance = previousUser.flexibleBalance;
@@ -512,8 +527,11 @@ abstract contract CorePool is
     function updateStakeLock(uint256 _stakeId, uint64 _lockedUntil) external updatePool {
         _processRewards(msg.sender);
 
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = CorePool(this).updateStakeLock.selector;
+
         // validate the input time
-        require(_lockedUntil > _now256(), "lock should be in the future");
+        fnSelector.verifyInput(_lockedUntil > _now256(), 1);
 
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
@@ -521,7 +539,7 @@ abstract contract CorePool is
         Stake.Data storage stake = user.stakes[_stakeId];
 
         // validate the input against stake structure
-        require(_lockedUntil > stake.lockedUntil);
+        fnSelector.verifyInput(_lockedUntil > stake.lockedUntil, 1);
 
         // saves previous weight into memory
         uint256 previousWeight = stake.weight();
@@ -530,11 +548,11 @@ abstract contract CorePool is
 
         // verify locked from and locked until values
         if (stakeLockedFrom == 0) {
-            require(_lockedUntil - _now256() <= 730 days, "max lock period is 730 days");
+            fnSelector.verifyInput(_lockedUntil - _now256() <= 730 days, 1);
             stakeLockedFrom = uint64(_now256());
             stake.lockedFrom = stakeLockedFrom;
         } else {
-            require(_lockedUntil - stakeLockedFrom <= 730 days, "max lock period is 730 days");
+            fnSelector.verifyInput(_lockedUntil - stakeLockedFrom <= 730 days, 1);
         }
 
         // update locked until value, calculate new weight
@@ -593,12 +611,17 @@ abstract contract CorePool is
      * @param _value amount of ILV rewards to transfer into the pool
      */
     function receiveVaultRewards(uint256 _value) external updatePool {
-        require(msg.sender == vault, "access denied");
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = CorePool(this).receiveVaultRewards.selector;
+
+        // verify function is accessed by the vault only
+        fnSelector.verifyAccess(msg.sender == vault);
         // return silently if there is no reward to receive
         if (_value == 0) {
             return;
         }
-        require(globalWeight > 0, "zero weight in the pool");
+        // verify weight is not zero
+        fnSelector.verifyState(globalWeight > 0, 0);
 
         vaultRewardsPerWeight += _value.rewardPerWeight(globalWeight);
 
@@ -650,7 +673,7 @@ abstract contract CorePool is
      */
     function setWeight(uint32 _weight) external {
         // verify function is executed by the factory
-        require(msg.sender == address(factory), "access denied");
+        CorePool(this).setWeight.selector.verifyAccess(msg.sender == address(factory));
 
         // set the new weight value
         weight = _weight;
@@ -707,9 +730,13 @@ abstract contract CorePool is
         uint256 _value,
         uint64 _lockDuration
     ) internal virtual updatePool {
+        // we're using selector to simplify input and state validation
+        // since function is not public we pre-calculate the selector
+        bytes4 fnSelector = 0x867a0347;
+
         // validate the inputs
-        require(_value > 0, "zero value");
-        require(_lockDuration > 0 && _lockDuration <= 730 days);
+        fnSelector.verifyNonZeroInput(_value, 0);
+        fnSelector.verifyInput(_lockDuration > 0 && _lockDuration <= 730 days, 2);
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
@@ -755,12 +782,15 @@ abstract contract CorePool is
     }
 
     function unstakeFlexible(uint256 _value) external updatePool {
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = CorePool(this).unstakeFlexible.selector;
+
         // verify a value is set
-        require(_value > 0, "zero value");
+        fnSelector.verifyNonZeroInput(_value, 0);
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
         // verify available balance
-        require(user.flexibleBalance >= _value, "exceeds user balance");
+        fnSelector.verifyInput(user.flexibleBalance >= _value, 0);
         // and process current pending rewards if any
         _processRewards(msg.sender);
 
@@ -784,19 +814,22 @@ abstract contract CorePool is
      * @param _value value of tokens to unstake
      */
     function unstakeLocked(uint256 _stakeId, uint256 _value) external updatePool {
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = CorePool(this).unstakeLocked.selector;
+
         // verify a value is set
-        require(_value > 0, "zero value");
+        fnSelector.verifyNonZeroInput(_value, 0);
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
         // get a link to the corresponding stake, we may write to it later
         Stake.Data storage stake = user.stakes[_stakeId];
         // checks if stake is unlocked already
-        require(_now256() > stake.lockedUntil, "not yet unlocked");
+        fnSelector.verifyState(_now256() > stake.lockedUntil, 0);
         // stake structure may get deleted, so we save isYield flag to be able to use it
         // we also save stakeValue for gasSavings
         (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
         // verify available balance
-        require(stakeValue >= _value, "exceeds stake");
+        fnSelector.verifyInput(stakeValue >= _value, 1);
         // and process current pending rewards if any
         _processRewards(msg.sender);
 
@@ -839,7 +872,10 @@ abstract contract CorePool is
 
     // TODO: improve variable names
     function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
-        require(_stakes.length > 0);
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = CorePool(this).unstakeLockedMultiple.selector;
+
+        fnSelector.verifyNonZeroInput(_stakes.length, 0);
         User storage user = users[msg.sender];
 
         _processRewards(msg.sender);
@@ -851,12 +887,12 @@ abstract contract CorePool is
             (uint256 _stakeId, uint256 _value) = (_stakes[i].stakeId, _stakes[i].value);
             Stake.Data storage stake = user.stakes[_stakeId];
             // checks if stake is unlocked already
-            require(_now256() > stake.lockedUntil, "not yet unlocked");
+            fnSelector.verifyState(_now256() > stake.lockedUntil, i * 3);
             // stake structure may get deleted, so we save isYield flag to be able to use it
             // we also save stakeValue for gasSavings
             (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
-            require(isYield == _unstakingYield, "not a yield");
-            require(stakeValue >= _value, "not enough funds");
+            fnSelector.verifyState(isYield == _unstakingYield, i * 3 + 1);
+            fnSelector.verifyState(stakeValue >= _value, i * 3 + 2);
 
             // store stake weight
             uint256 previousWeight = stake.weight();
