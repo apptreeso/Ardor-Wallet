@@ -140,43 +140,38 @@ export function pendingYield(usingPool?: string): () => void {
       expect(expectedBobYield0).to.be.equal(bobYield0);
       expect(expectedBobYield1).to.be.equal(Number(ethers.utils.formatEther(bobYield1)).toFixed(3));
     });
-    // it("should not accumulate yield after yield farming ends", async () => {
-    //   await ilv.approve(ilvPool.address, MAX_UINT256, { from: bob });
-    //   await ilv.approve(ilvPool.address, MAX_UINT256, { from: carol });
+    it("should not accumulate yield after endTime", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool as string);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool as string);
 
-    //   await ilvPool.stake(500, 0, false, { from: bob });
-    //   await ilvPool.stake(500, 0, false, { from: carol });
+      const poolWeight = await pool.weight();
+      const totalWeight = await this.factory.totalWeight();
 
-    //   await ilvPool.setBlockNumber(1010);
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeFlexible(toWei(100));
 
-    //   const pendingYield0 = Number(await ilvPool.pendingYieldRewards(carol));
-    //   const expectedYield0 = 10000 / 2;
+      await pool.setNow256(INIT_TIME + 20);
 
-    //   await ilvPool.setBlockNumber(7117500);
+      const expectedYield0 = ILV_PER_SECOND.mul(20).mul(poolWeight).div(totalWeight);
 
-    //   const pendingYield1 = Number(await ilvPool.pendingYieldRewards(carol));
-    //   // calculates based on total ILV emitted / 2 (since we have 2 stakers with same weights)
-    //   const expectedYield1 = ((7117500 - 10) * 10) / 2;
+      const { pendingYield: aliceYield0 } = await pool.pendingRewards(this.signers.alice.address);
 
-    //   await ilvPool.setBlockNumber(99999999999);
+      await pool.setNow256(END_TIME);
 
-    //   const pendingYieldFinal0 = Number(await ilvPool.pendingYieldRewards(carol));
+      const expectedYield1 = ILV_PER_SECOND.mul(END_TIME - INIT_TIME)
+        .mul(poolWeight)
+        .div(totalWeight);
 
-    //   await ilvPool.sync();
+      const { pendingYield: aliceYield1 } = await pool.pendingRewards(this.signers.alice.address);
 
-    //   const pendingYieldFinal1 = Number(await ilvPool.pendingYieldRewards(carol));
+      await pool.setNow256(END_TIME + 100);
 
-    //   await ilvPool.processRewards(false, { from: carol });
-    //   const balance = Number(await ilvPool.balanceOf(carol));
-    //   // expected yield + original stake
-    //   const expectedBalance = expectedYield1 + 500;
+      const { pendingYield: aliceYield2 } = await pool.pendingRewards(this.signers.alice.address);
 
-    //   expect(pendingYield0).to.equal(expectedYield0);
-    //   expect(pendingYield1).to.equal(expectedYield1);
-    //   expect(pendingYieldFinal0).to.equal(expectedYield1);
-    //   expect(pendingYieldFinal1).to.equal(expectedYield1);
-    //   expect(balance).to.equal(expectedBalance);
-    // });
+      expect(expectedYield0).to.be.equal(aliceYield0);
+      expect(expectedYield1).to.be.equal(aliceYield1);
+      expect(expectedYield1).to.be.equal(aliceYield2);
+    });
   };
 }
 
