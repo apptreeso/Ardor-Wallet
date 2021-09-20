@@ -1016,7 +1016,7 @@ abstract contract CorePool is
             Stake.Data memory newStake = Stake.Data({
                 value: uint120(pendingYieldToClaim),
                 lockedFrom: uint64(_now256()),
-                lockedUntil: uint64(_now256() + 730 days), // staking yield for 1 year
+                lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
                 isYield: true
             });
 
