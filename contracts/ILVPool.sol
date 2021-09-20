@@ -2,11 +2,14 @@
 pragma solidity 0.8.4;
 
 import { V2Migrator } from "./base/V2Migrator.sol";
+import { Errors } from "./libraries/Errors.sol";
 import { Stake } from "./libraries/Stake.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 
 contract ILVPool is V2Migrator {
+    using Errors for bytes4;
+
     event LogClaimYieldRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
     event LogClaimVaultRewardsMultiple(address indexed from, address[] pool);
     event LogStakeAsPool(address indexed from, address indexed staker, uint256 value);
@@ -36,7 +39,7 @@ contract ILVPool is V2Migrator {
      */
     function stakeAsPool(address _staker, uint256 _value) external updatePool nonReentrant {
         _requireNotPaused();
-        require(factory.poolExists(msg.sender));
+        ILVPool(this).stakeAsPool.selector.verifyAccess(factory.poolExists(msg.sender));
         User storage user = users[_staker];
         if (user.totalWeight > 0) {
             _processRewards(_staker);
@@ -79,10 +82,15 @@ contract ILVPool is V2Migrator {
      */
     function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external updatePool {
         _requireNotPaused();
-        require(_pools.length == _useSILV.length);
+
+        // we're using selector to simplify input and state validation
+        // claimYieldRewardsMultiple is not unique, we pre-calculate the selector
+        bytes4 fnSelector = 0x5c7f74bb;
+
+        fnSelector.verifyInput(_pools.length == _useSILV.length, 0);
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
-            require(IFactory(factory).poolExists(pool));
+            fnSelector.verifyAccess(IFactory(factory).poolExists(pool));
 
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimYieldRewards(msg.sender, _useSILV[i]);
@@ -107,7 +115,10 @@ contract ILVPool is V2Migrator {
         _requireNotPaused();
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
-            require(IFactory(factory).poolExists(pool));
+
+            // we're using selector to simplify input and state validation
+            // claimYieldRewardsMultiple is not unique, we pre-calculate the selector
+            bytes4(0x28e120f8).verifyAccess(IFactory(factory).poolExists(pool));
 
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimVaultRewards(msg.sender);
@@ -139,7 +150,7 @@ contract ILVPool is V2Migrator {
         uint248 _totalWeight
     ) external onlyFactoryController {
         // checks if parameters are valid
-        require(_users.length == _yieldWeights.length);
+        ILVPool(this).migrateWeights.selector.verifyInput(_users.length == _yieldWeights.length, 0);
 
         // will be used to check if weights were added as expected
         uint248 totalWeight;

@@ -2,10 +2,13 @@
 pragma solidity 0.8.4;
 
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
+import { Errors } from "../libraries/Errors.sol";
 import { Stake } from "../libraries/Stake.sol";
 import { CorePool } from "./CorePool.sol";
 
 abstract contract V2Migrator is CorePool {
+    using Errors for bytes4;
+
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     ///      if a v1 yield has already been minted by v2 contract
     mapping(address => mapping(uint256 => bool)) public v1YieldMinted;
@@ -78,9 +81,13 @@ abstract contract V2Migrator is CorePool {
             msg.sender,
             _stakeId
         );
-        require(isYield, "not a yield");
-        require(_now256() > lockedUntil, "not yet unlocked");
-        require(!v1YieldMinted[msg.sender][_stakeId], "already minted");
+
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = V2Migrator(this).mintV1Yield.selector;
+
+        fnSelector.verifyState(isYield, 0);
+        fnSelector.verifyState(_now256() > lockedUntil, 1);
+        fnSelector.verifyState(!v1YieldMinted[msg.sender][_stakeId], 2);
 
         users[msg.sender].totalWeight -= uint248(weight);
         v1YieldMinted[msg.sender][_stakeId] = true;
@@ -92,15 +99,18 @@ abstract contract V2Migrator is CorePool {
     function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
         uint256 amountToMint;
 
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = V2Migrator(this).mintV1YieldMultiple.selector;
+
         for (uint256 i = 0; i < _stakeIds.length; i++) {
             uint256 _stakeId = _stakeIds[i];
             (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
                 msg.sender,
                 _stakeId
             );
-            require(isYield, "not a yield");
-            require(_now256() > lockedUntil, "not yet unlocked");
-            require(!v1YieldMinted[msg.sender][_stakeId], "already minted");
+            fnSelector.verifyState(isYield, i * 3);
+            fnSelector.verifyState(_now256() > lockedUntil, i * 3 + 1);
+            fnSelector.verifyState(!v1YieldMinted[msg.sender][_stakeId], i * 3 + 2);
 
             v1YieldMinted[msg.sender][_stakeId] = true;
             amountToMint += tokenAmount;
@@ -125,11 +135,14 @@ abstract contract V2Migrator is CorePool {
         // gas savings
         uint256 _v1StakeMaxPeriod = v1StakeMaxPeriod;
 
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = V2Migrator(this).migrateLockedStake.selector;
+
         for (uint256 i = 0; i < _stakeIds.length; i++) {
             (, uint256 lockedFrom, , , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
-            require(lockedFrom <= _v1StakeMaxPeriod, "stake created after max period");
-            require(lockedFrom > 0 && isYield, "invalid stake");
-            require(!v1StakesMigrated[msg.sender][_stakeIds[i]], "already migrated");
+            fnSelector.verifyState(lockedFrom <= _v1StakeMaxPeriod, i * 3);
+            fnSelector.verifyState(lockedFrom > 0 && isYield, i * 3 + 1);
+            fnSelector.verifyState(!v1StakesMigrated[msg.sender][_stakeIds[i]], i * 3 + 2);
 
             v1StakesMigrated[msg.sender][_stakeIds[i]] = true;
             user.v1IdsLength++;
