@@ -26,11 +26,13 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
-export function pendingYield(usingPool?: string): () => void {
+export function claimYieldRewards(usingPool: string) {}
+
+export function pendingYield(usingPool: string): () => void {
   return function () {
     it("should not accumulate rewards before init time", async function () {
-      const token = getToken(this.ilv, this.lp, usingPool as string);
-      const pool = getPool(this.ilvPool, this.lpPool, usingPool as string);
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await pool.setNow256(0);
 
@@ -44,8 +46,8 @@ export function pendingYield(usingPool?: string): () => void {
       expect(pendingYield.toNumber()).to.be.equal(0);
     });
     it("should accumulate ILV correctly", async function () {
-      const token = getToken(this.ilv, this.lp, usingPool as string);
-      const pool = getPool(this.ilvPool, this.lpPool, usingPool as string);
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
@@ -62,8 +64,8 @@ export function pendingYield(usingPool?: string): () => void {
       expect(expectedRewards).to.be.equal(Number(pendingYield));
     });
     it("should accumulate ILV correctly for multiple stakers", async function () {
-      const token = getToken(this.ilv, this.lp, usingPool as string);
-      const pool = getPool(this.ilvPool, this.lpPool, usingPool as string);
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
@@ -85,8 +87,8 @@ export function pendingYield(usingPool?: string): () => void {
       expect(Number(bobYield)).to.be.equal(expectedRewards / 2);
     });
     it("should calculate pending rewards correctly after bigger stakes", async function () {
-      const token = getToken(this.ilv, this.lp, usingPool as string);
-      const pool = getPool(this.ilvPool, this.lpPool, usingPool as string);
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       const poolWeight = await pool.weight();
       const totalWeight = await this.factory.totalWeight();
@@ -141,8 +143,8 @@ export function pendingYield(usingPool?: string): () => void {
       expect(expectedBobYield1).to.be.equal(Number(ethers.utils.formatEther(bobYield1)).toFixed(3));
     });
     it("should not accumulate yield after endTime", async function () {
-      const token = getToken(this.ilv, this.lp, usingPool as string);
-      const pool = getPool(this.ilvPool, this.lpPool, usingPool as string);
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       const poolWeight = await pool.weight();
       const totalWeight = await this.factory.totalWeight();
