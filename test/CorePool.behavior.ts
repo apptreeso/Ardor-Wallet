@@ -61,6 +61,29 @@ export function pendingYield(usingPool?: string): () => void {
 
       expect(expectedRewards).to.be.equal(Number(pendingYield));
     });
+    it("should accumulate ILV correctly for multiple stakers", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool as string);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool as string);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.bob).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(INIT_TIME + 10);
+
+      const totalWeight = await this.factory.totalWeight();
+      const poolWeight = await pool.weight();
+
+      const expectedRewards = 10 * Number(ILV_PER_SECOND) * (poolWeight / totalWeight);
+
+      const { pendingYield: aliceYield } = await pool.pendingRewards(this.signers.alice.address);
+      const { pendingYield: bobYield } = await pool.pendingRewards(this.signers.bob.address);
+
+      expect(Number(aliceYield)).to.be.equal(expectedRewards / 2);
+      expect(Number(bobYield)).to.be.equal(expectedRewards / 2);
+    });
   };
 }
 
