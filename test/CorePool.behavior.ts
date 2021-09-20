@@ -26,7 +26,36 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
-export function claimYieldRewards(usingPool: string) {}
+export function claimYieldRewards(usingPool: string): () => void {
+  return function () {
+    it("should create ILV stake correctly", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      const poolWeight = await pool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(INIT_TIME + 100);
+
+      await pool.connect(this.signers.alice).claimYieldRewards(false);
+
+      const expectedCompoundedYield = ILV_PER_SECOND.mul(100).mul(poolWeight).div(totalWeight);
+
+      let yieldStake;
+
+      if (usingPool === "ILV") {
+        yieldStake = await this.ilvPool.getStake(this.signers.alice.address, 1);
+      } else {
+        yieldStake = await this.ilvPool.getStake(this.signers.alice.address, 0);
+      }
+
+      expect(expectedCompoundedYield).to.be.equal(yieldStake.value);
+    });
+  };
+}
 
 export function pendingYield(usingPool: string): () => void {
   return function () {

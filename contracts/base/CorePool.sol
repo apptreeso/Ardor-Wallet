@@ -1106,7 +1106,7 @@ abstract contract CorePool is
     }
 
     function _requireNotPaused() internal view {
-        require(!paused(), "paused");
+        require(!paused());
     }
 
     function _requirePoolIsValid() internal view {
