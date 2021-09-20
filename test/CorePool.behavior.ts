@@ -84,6 +84,26 @@ export function claimYieldRewards(usingPool: string): () => void {
 
       expect(balanceAfterMint.sub(balanceBeforeMint)).to.be.equal(expectedMintedYield);
     });
+    it("should mint sILV correctly", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      const poolWeight = await pool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(INIT_TIME + 100);
+
+      await pool.connect(this.signers.alice).claimYieldRewards(true);
+
+      const expectedMintedYield = ILV_PER_SECOND.mul(100).mul(poolWeight).div(totalWeight);
+
+      const sILVBalance = await this.silv.balanceOf(this.signers.alice.address);
+
+      expect(sILVBalance).to.be.equal(expectedMintedYield);
+    });
   };
 }
 
