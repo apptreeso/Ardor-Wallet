@@ -9,6 +9,7 @@ import { ICorePool } from "./interfaces/ICorePool.sol";
 
 contract ILVPool is V2Migrator {
     using Errors for bytes4;
+    using Stake for uint256;
 
     event LogClaimYieldRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
     event LogClaimVaultRewardsMultiple(address indexed from, address[] pool);

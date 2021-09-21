@@ -91,19 +91,6 @@ abstract contract CorePool is
     ///      while for ILV core pool it does count for such tokens as well
     uint256 public poolTokenReserve;
 
-    /**
-     * @dev Multiplier used as a bonus reward for v1 stakes
-     */
-    uint256 internal constant V1_WEIGHT_BONUS = 2;
-
-    /**
-     * @dev Multiplier used for normalizing V1 weight to V2 weight
-     *
-     * @notice in v2 contracts, in order to achieve same proportions in v1
-     *         we need to multiply v1 weight by 1.5x
-     */
-    uint256 internal constant V1_WEIGHT_MULTIPLIER = 1500;
-
     /// @dev Flag indicating pool type, false means "core pool"
     bool public constant isFlashPool = false;
 
@@ -304,7 +291,7 @@ abstract contract CorePool is
             for (uint256 i = 0; i < v1StakesLength; i++) {
                 (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
 
-                weightToAdd += _toV2Weight(_weight);
+                weightToAdd += _weight.toV2Weight();
             }
         }
 
@@ -710,7 +697,7 @@ abstract contract CorePool is
             for (uint256 i = 0; i < v1StakesLength; i++) {
                 (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
 
-                weightToAdd += _toV2Weight(_weight);
+                weightToAdd += _weight.toV2Weight();
             }
         }
 
@@ -1060,7 +1047,7 @@ abstract contract CorePool is
         }
 
         // subYieldRewards needs to be updated on every `_processRewards` call
-        user.subYieldRewards = user.totalWeight.weightToReward(yieldRewardsPerWeight);
+        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
 
         // emit an event
         emit LogClaimYieldRewards(_staker, _useSILV, pendingYieldToClaim);
@@ -1090,16 +1077,12 @@ abstract contract CorePool is
         user.pendingRevDis = 0;
 
         // subYieldRewards needs to be updated on every `_processRewards` call
-        user.subVaultRewards = user.totalWeight.weightToReward(vaultRewardsPerWeight);
+        user.subVaultRewards = uint256(user.totalWeight).weightToReward(vaultRewardsPerWeight);
 
         IERC20(ilv).safeTransfer(_staker, pendingRevDis);
 
         // emit an event
         emit LogClaimVaultRewards(_staker, pendingRevDis);
-    }
-
-    function _toV2Weight(uint256 _v1Weight) internal pure returns (uint256) {
-        return (_v1Weight * V1_WEIGHT_BONUS * V1_WEIGHT_MULTIPLIER) / 1000;
     }
 
     function _requireNotPaused() internal view {

@@ -35,6 +35,19 @@ library Stake {
      */
     uint256 internal constant YEAR_STAKE_WEIGHT_MULTIPLIER = 2 * 1e6;
 
+    /**
+     * @dev Multiplier used as a bonus reward for v1 stakes
+     */
+    uint256 internal constant V1_WEIGHT_BONUS = 2;
+
+    /**
+     * @dev Multiplier used for normalizing V1 weight to V2 weight
+     *
+     * @notice in v2 contracts, in order to achieve same proportions in v1
+     *         we need to multiply v1 weight by 1.5x
+     */
+    uint256 internal constant V1_WEIGHT_MULTIPLIER = 1500;
+
     function weight(Data storage _self) internal view returns (uint256) {
         return
             uint256(
@@ -70,5 +83,9 @@ library Stake {
     function rewardPerWeight(uint256 _reward, uint256 _globalWeight) internal pure returns (uint256) {
         // apply the reverse formula and return
         return (_reward * REWARD_PER_WEIGHT_MULTIPLIER) / _globalWeight;
+    }
+
+    function toV2Weight(uint256 _v1Weight) internal pure returns (uint256 _v2Weight) {
+        return (_v1Weight * V1_WEIGHT_BONUS * V1_WEIGHT_MULTIPLIER) / 1000;
     }
 }
