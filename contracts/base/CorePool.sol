@@ -1012,8 +1012,6 @@ abstract contract CorePool is
         // if pending yield is zero - just return silently
         if (pendingYieldToClaim == 0) return;
 
-        console.log(pendingYieldToClaim);
-
         // clears user pending yield
         user.pendingYield = 0;
 
