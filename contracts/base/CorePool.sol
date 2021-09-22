@@ -27,6 +27,7 @@ abstract contract CorePool is
     using SafeERC20 for IERC20;
     using Stake for Stake.Data;
     using Errors for bytes4;
+    using Stake for uint256;
 
     /// @dev Data structure representing token holder using a pool
     struct User {
@@ -89,30 +90,6 @@ abstract contract CorePool is
     /// @dev For LP core pool this value doesnt' count for ILV tokens received as Vault rewards
     ///      while for ILV core pool it does count for such tokens as well
     uint256 public poolTokenReserve;
-
-    /**
-     * @dev When we know beforehand that staking is done for a year, and fraction of the year locked is one,
-     *      we use simplified calculation and use the following constant instead previos one
-     */
-    uint256 internal constant YEAR_STAKE_WEIGHT_MULTIPLIER = 2 * 1e6;
-
-    /**
-     * @dev Rewards per weight are stored multiplied by 1e12 as uint
-     */
-    uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e12;
-
-    /**
-     * @dev Multiplier used as a bonus reward for v1 stakes
-     */
-    uint256 internal constant V1_WEIGHT_BONUS = 2;
-
-    /**
-     * @dev Multiplier used for normalizing V1 weight to V2 weight
-     *
-     * @notice in v2 contracts, in order to achieve same proportions in v1
-     *         we need to multiply v1 weight by 1.5x
-     */
-    uint256 internal constant V1_WEIGHT_MULTIPLIER = 1500;
 
     /// @dev Flag indicating pool type, false means "core pool"
     bool public constant isFlashPool = false;
@@ -293,7 +270,7 @@ abstract contract CorePool is
             uint256 ilvRewards = (multiplier * weight * factory.ilvPerSecond()) / factory.totalWeight();
 
             // recalculated value for `yieldRewardsPerWeight`
-            newYieldRewardsPerWeight = _rewardPerWeight(ilvRewards, globalWeight) + yieldRewardsPerWeight;
+            newYieldRewardsPerWeight = ilvRewards.rewardPerWeight(globalWeight) + yieldRewardsPerWeight;
         } else {
             // if smart contract state is up to date, we don't recalculate
             newYieldRewardsPerWeight = yieldRewardsPerWeight;
@@ -318,8 +295,8 @@ abstract contract CorePool is
             }
         }
 
-        pendingYield = _weightToReward(userWeight, newYieldRewardsPerWeight) - user.subYieldRewards;
-        pendingRevDis = _weightToReward(userWeight, vaultRewardsPerWeight) - user.subVaultRewards;
+        pendingYield = userWeight.weightToReward(newYieldRewardsPerWeight) - user.subYieldRewards;
+        pendingRevDis = userWeight.weightToReward(vaultRewardsPerWeight) - user.subVaultRewards;
     }
 
     /**
@@ -443,7 +420,7 @@ abstract contract CorePool is
         // update user record
         user.flexibleBalance += uint128(_value);
         user.totalWeight += uint248(stakeWeight);
-        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
+        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
@@ -483,7 +460,7 @@ abstract contract CorePool is
         user.stakes.push(stake);
         // update user record
         user.totalWeight += uint248(stakeWeight);
-        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
+        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
         // update global variable
         globalWeight += stakeWeight;
     }
@@ -633,7 +610,7 @@ abstract contract CorePool is
         // verify weight is not zero
         fnSelector.verifyState(globalWeight > 0, 0);
 
-        vaultRewardsPerWeight += _rewardPerWeight(_value, globalWeight);
+        vaultRewardsPerWeight += _value.rewardPerWeight(globalWeight);
 
         IERC20(ilv).safeTransferFrom(msg.sender, address(this), _value);
 
@@ -724,8 +701,8 @@ abstract contract CorePool is
             }
         }
 
-        pendingYield = _weightToReward((userWeight + weightToAdd), yieldRewardsPerWeight) - user.subYieldRewards;
-        pendingRevDis = _weightToReward((userWeight + weightToAdd), vaultRewardsPerWeight) - user.subVaultRewards;
+        pendingYield = (userWeight + weightToAdd).weightToReward(yieldRewardsPerWeight) - user.subYieldRewards;
+        pendingRevDis = (userWeight + weightToAdd).weightToReward(vaultRewardsPerWeight) - user.subVaultRewards;
     }
 
     /**
@@ -777,7 +754,7 @@ abstract contract CorePool is
 
         // update user record
         user.totalWeight += uint248(stakeWeight);
-        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
+        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
@@ -860,7 +837,7 @@ abstract contract CorePool is
 
         // update user record
         user.totalWeight = uint248(user.totalWeight - previousWeight + newWeight);
-        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
+        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
 
         // update global variable
         globalWeight = globalWeight - previousWeight + newWeight;
@@ -927,7 +904,7 @@ abstract contract CorePool is
         }
 
         user.totalWeight -= uint248(weightToRemove);
-        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
+        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
 
         // update global variable
         globalWeight -= weightToRemove;
@@ -980,7 +957,7 @@ abstract contract CorePool is
         uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory.totalWeight();
 
         // update rewards per weight and `lastYieldDistribution`
-        yieldRewardsPerWeight += _rewardPerWeight(ilvReward, globalWeight);
+        yieldRewardsPerWeight += ilvReward.rewardPerWeight(globalWeight);
         lastYieldDistribution = uint64(currentTimestamp);
 
         // emit an event
@@ -1045,7 +1022,7 @@ abstract contract CorePool is
         } else if (poolToken == ilv) {
             // calculate pending yield weight,
             // 2e6 is the bonus weight when staking for 1 year
-            uint256 stakeWeight = pendingYieldToClaim * YEAR_STAKE_WEIGHT_MULTIPLIER;
+            uint256 stakeWeight = pendingYieldToClaim * Stake.YEAR_STAKE_WEIGHT_MULTIPLIER;
 
             // if the pool is ILV Pool - create new ILV stake
             // and save it - push it into stakes array
@@ -1070,7 +1047,7 @@ abstract contract CorePool is
         }
 
         // subYieldRewards needs to be updated on every `_processRewards` call
-        user.subYieldRewards = _weightToReward(user.totalWeight, yieldRewardsPerWeight);
+        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
 
         // emit an event
         emit LogClaimYieldRewards(_staker, _useSILV, pendingYieldToClaim);
@@ -1100,41 +1077,12 @@ abstract contract CorePool is
         user.pendingRevDis = 0;
 
         // subYieldRewards needs to be updated on every `_processRewards` call
-        user.subVaultRewards = _weightToReward(user.totalWeight, vaultRewardsPerWeight);
+        user.subVaultRewards = uint256(user.totalWeight).weightToReward(vaultRewardsPerWeight);
 
         IERC20(ilv).safeTransfer(_staker, pendingRevDis);
 
         // emit an event
         emit LogClaimVaultRewards(_staker, pendingRevDis);
-    }
-
-    /**
-     * @dev Converts stake weight (not to be mixed with the pool weight) to
-     *      ILV reward value, applying the 10^12 division on weight
-     *
-     * @param _weight stake weight
-     * @param __rewardPerWeight ILV reward per weight
-     * @return reward value normalized to 10^12
-     */
-    function _weightToReward(uint256 _weight, uint256 __rewardPerWeight) internal pure returns (uint256) {
-        // apply the formula and return
-        return (_weight * __rewardPerWeight) / REWARD_PER_WEIGHT_MULTIPLIER;
-    }
-
-    /**
-     * @dev Converts reward ILV value to stake weight (not to be mixed with the pool weight),
-     *      applying the 10^12 multiplication on the reward
-     *      - OR -
-     * @dev Converts reward ILV value to reward/weight if stake weight is supplied as second
-     *      function parameter instead of reward/weight
-     *
-     * @param _reward yield reward
-     * @param _globalWeight total weight in the pool
-     * @return reward per weight value
-     */
-    function _rewardPerWeight(uint256 _reward, uint256 _globalWeight) internal pure returns (uint256) {
-        // apply the reverse formula and return
-        return (_reward * REWARD_PER_WEIGHT_MULTIPLIER) / _globalWeight;
     }
 
     function _requireNotPaused() internal view {
