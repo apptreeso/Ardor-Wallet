@@ -84,8 +84,4 @@ library Stake {
         // apply the reverse formula and return
         return (_reward * REWARD_PER_WEIGHT_MULTIPLIER) / _globalWeight;
     }
-
-    function toV2Weight(uint256 _v1Weight) internal pure returns (uint256 _v2Weight) {
-        return (_v1Weight * V1_WEIGHT_BONUS * V1_WEIGHT_MULTIPLIER) / 1000;
-    }
 }
