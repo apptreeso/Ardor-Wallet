@@ -222,6 +222,8 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         if (!_useSILV) {
             IERC20Mintable(ilv).mint(_to, _value);
         } else {
+            console.log("minting sILV");
+            console.log(_to, _value);
             IERC20Mintable(silv).mint(_to, _value);
         }
     }

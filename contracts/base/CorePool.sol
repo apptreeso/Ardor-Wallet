@@ -1012,13 +1012,15 @@ abstract contract CorePool is
         // if pending yield is zero - just return silently
         if (pendingYieldToClaim == 0) return;
 
+        console.log(pendingYieldToClaim);
+
         // clears user pending yield
         user.pendingYield = 0;
 
         // if sILV is requested
         if (_useSILV) {
             // - mint sILV
-            factory.mintYieldTo(msg.sender, pendingYieldToClaim, true);
+            factory.mintYieldTo(_staker, pendingYieldToClaim, true);
         } else if (poolToken == ilv) {
             // calculate pending yield weight,
             // 2e6 is the bonus weight when staking for 1 year
