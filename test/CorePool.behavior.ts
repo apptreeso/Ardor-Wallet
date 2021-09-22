@@ -26,6 +26,33 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
+export function unstakeLocked(usingPool: string): () => void {
+  return function () {
+    it("should unstake locked tokens", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR * 2 + 1);
+
+      const balance0 = await pool.balanceOf(this.signers.alice.address);
+      const { value: value0 } = await pool.getStake(this.signers.alice.address, 0);
+
+      await pool.connect(this.signers.alice).unstakeLocked(0, toWei(100));
+
+      const balance1 = await pool.balanceOf(this.signers.alice.address);
+      const { value: value1 } = await pool.getStake(this.signers.alice.address, 0);
+
+      expect(balance0).to.be.equal(toWei(100));
+      expect(value0).to.be.equal(toWei(100));
+      expect(balance1).to.be.equal(0);
+      expect(value1).to.be.equal(0);
+    });
+  };
+}
+
 export function unstakeFlexible(usingPool: string): () => void {
   return function () {
     it("should unstake flexible", async function () {
@@ -405,6 +432,10 @@ export function stakeAndLock(usingPool: string): () => void {
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      const balance = await pool.balanceOf(this.signers.alice.address);
+
+      expect(balance).to.be.equal(toWei(100));
     });
     it("should revert when staking longer than 2 years", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);

@@ -10,7 +10,6 @@ import {
   PoolFactoryMock__factory,
   PoolFactoryMock,
   CorePoolV1Mock__factory,
-  CorePoolV1Mock,
   ERC20Mock__factory,
   Signers,
 } from "../types";
@@ -33,6 +32,7 @@ import {
   claimYieldRewards,
   claimYieldRewardsMultiple,
   unstakeFlexible,
+  unstakeLocked,
 } from "./CorePool.behavior";
 
 chai.use(solidity);
@@ -122,6 +122,10 @@ describe("CorePools", function () {
     context("Sushi LP Pool", claimYieldRewards("LP"));
   });
   describe("#claimYieldRewardsMultiple", claimYieldRewardsMultiple());
+  describe("#unstakeLocked", function () {
+    context("ILV Pool", unstakeLocked("ILV"));
+    context("Sushi LP Pool", unstakeLocked("LP"));
+  });
   describe("#unstakeFlexible", function () {
     context("ILV Pool", unstakeFlexible("ILV"));
     context("Sushi LP Pool", unstakeFlexible("LP"));
