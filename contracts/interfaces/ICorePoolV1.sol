@@ -25,4 +25,6 @@ interface ICorePoolV1 {
             uint64,
             bool
         );
+
+    function usersLockingWeight() external view returns (uint256);
 }

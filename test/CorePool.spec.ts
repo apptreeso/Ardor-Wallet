@@ -9,6 +9,8 @@ import {
   SushiLPPoolMock,
   PoolFactoryMock__factory,
   PoolFactoryMock,
+  CorePoolV1Mock__factory,
+  CorePoolV1Mock,
   ERC20Mock__factory,
   Signers,
 } from "../types";
@@ -44,6 +46,7 @@ describe("CorePools", function () {
     this.ILVPool = <ILVPoolMock__factory>await ethers.getContractFactory("ILVPoolMock");
     this.SushiLPPool = <SushiLPPoolMock__factory>await ethers.getContractFactory("SushiLPPoolMock");
     this.PoolFactory = <PoolFactoryMock__factory>await ethers.getContractFactory("PoolFactoryMock");
+    this.CorePoolV1 = <CorePoolV1Mock__factory>await ethers.getContractFactory("CorePoolV1Mock");
     this.ERC20 = <ERC20Mock__factory>await ethers.getContractFactory("ERC20Mock");
   });
 
@@ -70,6 +73,7 @@ describe("CorePools", function () {
       INIT_TIME,
       END_TIME,
     ])) as PoolFactoryMock;
+    this.corePoolV1 = await this.CorePoolV1.deploy();
     this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
       this.ilv.address,
       this.silv.address,
@@ -77,7 +81,7 @@ describe("CorePools", function () {
       this.factory.address,
       INIT_TIME,
       ILV_POOL_WEIGHT,
-      AddressZero,
+      this.corePoolV1.address,
       V1_STAKE_MAX_PERIOD,
     ])) as ILVPoolMock;
     this.lpPool = (await upgrades.deployProxy(this.SushiLPPool, [
@@ -87,7 +91,7 @@ describe("CorePools", function () {
       this.factory.address,
       INIT_TIME,
       LP_POOL_WEIGHT,
-      AddressZero,
+      this.corePoolV1.address,
       V1_STAKE_MAX_PERIOD,
     ])) as SushiLPPoolMock;
 

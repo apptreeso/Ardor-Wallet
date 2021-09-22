@@ -9,6 +9,8 @@ export {
   PoolFactoryMock,
   ERC20Mock__factory,
   ERC20Mock,
+  CorePoolV1Mock__factory,
+  CorePoolV1Mock,
 } from "../typechain";
 
 export interface Signers {

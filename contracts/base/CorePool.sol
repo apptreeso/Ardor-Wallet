@@ -956,8 +956,11 @@ abstract contract CorePool is
         // calculate the reward
         uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory.totalWeight();
 
+        // reads total weight staked in v1
+        uint256 v1GlobalWeight = ICorePoolV1(corePoolV1).usersLockingWeight();
+
         // update rewards per weight and `lastYieldDistribution`
-        yieldRewardsPerWeight += ilvReward.rewardPerWeight(globalWeight);
+        yieldRewardsPerWeight += ilvReward.rewardPerWeight((globalWeight + v1GlobalWeight));
         lastYieldDistribution = uint64(currentTimestamp);
 
         // emit an event

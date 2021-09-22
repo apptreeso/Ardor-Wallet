@@ -6,6 +6,8 @@ import {
   SushiLPPoolMock,
   PoolFactoryMock__factory,
   PoolFactoryMock,
+  CorePoolV1Mock__factory,
+  CorePoolV1Mock,
   ERC20Mock__factory,
   ERC20Mock,
 } from ".";
@@ -15,10 +17,12 @@ declare module "mocha" {
     ILVPool: ILVPoolMock__factory;
     SushiLPPool: SushiLPPoolMock__factory;
     PoolFactory: PoolFactoryMock__factory;
+    CorePoolV1: CorePoolV1Mock__factory;
     ERC20: ERC20Mock__factory;
     ilvPool: ILVPoolMock;
     lpPool: SushiLPPoolMock;
     factory: PoolFactoryMock;
+    corePoolV1: CorePoolV1Mock;
     ilv: ERC20Mock;
     silv: ERC20Mock;
     lp: ERC20Mock;
