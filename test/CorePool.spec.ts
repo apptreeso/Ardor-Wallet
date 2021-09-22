@@ -24,7 +24,13 @@ import {
   toWei,
   toAddress,
 } from "./utils";
-import { stakeAndLock, stakeFlexible, pendingYield, claimYieldRewards } from "./CorePool.behavior";
+import {
+  stakeAndLock,
+  stakeFlexible,
+  pendingYield,
+  claimYieldRewards,
+  claimYieldRewardsMultiple,
+} from "./CorePool.behavior";
 
 const { AddressZero } = ethers.constants;
 
@@ -112,4 +118,5 @@ describe("CorePools", function () {
     context("ILV Pool", claimYieldRewards("ILV"));
     context("Sushi LP Pool", claimYieldRewards("LP"));
   });
+  describe("#claimYieldRewardsMultiple", claimYieldRewardsMultiple());
 });

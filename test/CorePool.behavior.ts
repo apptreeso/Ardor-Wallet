@@ -26,6 +26,34 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
+export function claimYieldRewardsMultiple() {
+  return function () {
+    it("should correctly claim multiple pools", async function () {
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.ilvPool.setNow256(INIT_TIME + 1000);
+      await this.lpPool.setNow256(INIT_TIME + 1000);
+
+      const { pendingYield: ilvPoolPendingYield } = await this.ilvPool.pendingRewards(this.signers.alice.address);
+      const { pendingYield: lpPoolPendingYield } = await this.lpPool.pendingRewards(this.signers.alice.address);
+
+      await this.ilvPool
+        .connect(this.signers.alice)
+        .claimYieldRewardsMultiple([this.ilvPool.address, this.lpPool.address], [false, false]);
+
+      const { value: ilvPoolYield } = await this.ilvPool.getStake(this.signers.alice.address, 1);
+      const { value: lpPoolYield } = await this.ilvPool.getStake(this.signers.alice.address, 2);
+
+      expect(ilvPoolYield).to.be.equal(ilvPoolPendingYield);
+      expect(lpPoolYield).to.be.equal(lpPoolPendingYield);
+    });
+  };
+}
+
 export function claimYieldRewards(usingPool: string): () => void {
   return function () {
     it("should create ILV stake correctly", async function () {
