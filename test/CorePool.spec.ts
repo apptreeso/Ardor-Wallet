@@ -32,9 +32,8 @@ import {
   pendingYield,
   claimYieldRewards,
   claimYieldRewardsMultiple,
+  unstakeFlexible,
 } from "./CorePool.behavior";
-
-const { AddressZero } = ethers.constants;
 
 chai.use(solidity);
 chai.use(chaiSubset);
@@ -123,4 +122,8 @@ describe("CorePools", function () {
     context("Sushi LP Pool", claimYieldRewards("LP"));
   });
   describe("#claimYieldRewardsMultiple", claimYieldRewardsMultiple());
+  describe("#unstakeFlexible", function () {
+    context("ILV Pool", unstakeFlexible("ILV"));
+    context("Sushi LP Pool", unstakeFlexible("LP"));
+  });
 });
