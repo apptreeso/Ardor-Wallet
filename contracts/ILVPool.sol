@@ -117,8 +117,9 @@ contract ILVPool is V2Migrator {
             address pool = _pools[i];
 
             // we're using selector to simplify input and state validation
-            // claimYieldRewardsMultiple is not unique, we pre-calculate the selector
-            bytes4(0x28e120f8).verifyAccess(IFactory(factory).poolExists(pool));
+            bytes4(ILVPool(address(this)).claimVaultRewardsMultiple.selector).verifyAccess(
+                IFactory(factory).poolExists(pool)
+            );
 
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimVaultRewards(msg.sender);
