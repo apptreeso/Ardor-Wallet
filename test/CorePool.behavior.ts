@@ -50,6 +50,50 @@ export function unstakeLocked(usingPool: string): () => void {
       expect(balance1).to.be.equal(0);
       expect(value1).to.be.equal(0);
     });
+    it("should revert when _stakeId is invalid", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR * 2 + 1);
+
+      await expect(pool.connect(this.signers.alice).unstakeLocked(1, toWei(100))).reverted;
+    });
+    it("should revert when _value is 0", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR * 2 + 1);
+
+      await expect(pool.connect(this.signers.alice).unstakeLocked(0, 0)).reverted;
+    });
+    it("should revert when _value is higher than stake", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR * 2 + 1);
+
+      await expect(pool.connect(this.signers.alice).unstakeLocked(0, toWei(101))).reverted;
+    });
+    it("should revert when tokens are still locked", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR);
+
+      await expect(pool.connect(this.signers.alice).unstakeLocked(0, toWei(100))).reverted;
+    });
   };
 }
 
