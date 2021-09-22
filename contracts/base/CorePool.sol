@@ -314,7 +314,7 @@ abstract contract CorePool is
             for (uint256 i = 0; i < v1StakesLength; i++) {
                 (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
 
-                weightToAdd += _toV2Weight(_weight);
+                weightToAdd += _weight;
             }
         }
 
@@ -434,9 +434,6 @@ abstract contract CorePool is
             _processRewards(msg.sender);
         }
 
-        // transfer `_value`
-        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
-
         // no need to calculate locking weight, flexible stake never locks
         uint256 stakeWeight = Stake.WEIGHT_MULTIPLIER * _value;
 
@@ -452,6 +449,9 @@ abstract contract CorePool is
         globalWeight += stakeWeight;
         // update reserve count
         poolTokenReserve += _value;
+
+        // transfer `_value`
+        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         // emit an event
         emit LogStakeFlexible(msg.sender, _value);
@@ -720,7 +720,7 @@ abstract contract CorePool is
             for (uint256 i = 0; i < v1StakesLength; i++) {
                 (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
 
-                weightToAdd += _toV2Weight(_weight);
+                weightToAdd += _weight;
             }
         }
 
@@ -1052,7 +1052,7 @@ abstract contract CorePool is
             Stake.Data memory newStake = Stake.Data({
                 value: uint120(pendingYieldToClaim),
                 lockedFrom: uint64(_now256()),
-                lockedUntil: uint64(_now256() + 730 days), // staking yield for 1 year
+                lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
                 isYield: true
             });
 
@@ -1137,12 +1137,8 @@ abstract contract CorePool is
         return (_reward * REWARD_PER_WEIGHT_MULTIPLIER) / _globalWeight;
     }
 
-    function _toV2Weight(uint256 _v1Weight) internal pure returns (uint256) {
-        return (_v1Weight * V1_WEIGHT_BONUS * V1_WEIGHT_MULTIPLIER) / 1000;
-    }
-
     function _requireNotPaused() internal view {
-        require(!paused(), "paused");
+        require(!paused());
     }
 
     function _requirePoolIsValid() internal view {
