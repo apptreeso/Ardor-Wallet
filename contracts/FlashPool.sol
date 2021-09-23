@@ -191,7 +191,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
 
         // based on the rewards per token value, calculate pending rewards;
         User memory user = users[_staker];
-        pending = _tokensToReward(user.balance, yieldRewardsPerToken) - user.subYieldRewards;
+        pending = (_tokensToReward(user.balance, newYieldRewardsPerToken) - user.subYieldRewards) + user.pendingYield;
     }
 
     /**
