@@ -253,6 +253,9 @@ abstract contract CorePool is
      *
      * @dev see _pendingRewards() for further details
      *
+     * @notice external pendingRewards() returns pendingYield and pendingRevDis
+     *         accumulated with already stored user.pendingYield and user.pendingRevDis
+     *
      * @param _staker an address to calculate yield rewards value for
      */
     function pendingRewards(address _staker) external view returns (uint256 pendingYield, uint256 pendingRevDis) {
@@ -295,8 +298,8 @@ abstract contract CorePool is
             }
         }
 
-        pendingYield = userWeight.weightToReward(newYieldRewardsPerWeight) - user.subYieldRewards;
-        pendingRevDis = userWeight.weightToReward(vaultRewardsPerWeight) - user.subVaultRewards;
+        pendingYield = (userWeight.weightToReward(newYieldRewardsPerWeight) - user.subYieldRewards) + user.pendingYield;
+        pendingRevDis = (userWeight.weightToReward(vaultRewardsPerWeight) - user.subVaultRewards) + user.pendingRevDis;
     }
 
     /**
@@ -676,8 +679,10 @@ abstract contract CorePool is
      * @dev It performs a check on v1StakesIds and calls the corresponding V1 core pool
      *      in order to add v1 weight into v2 yield calculations.
      *
-     * @notice v1 weight is multiplied by V1_WEIGHT_BONUS as a reward to staking early
-     *         adopters.
+     * @notice v1 weight is kept the same used in v1, as a bonus to V1 stakers
+     *
+     * @notice pending values retured are used by _processRewards() calls, which means
+     *         we aren't counting user.pendingYield and user.pendingRevDis here
      *
      * @param _staker an address to calculate yield rewards value for
      */
