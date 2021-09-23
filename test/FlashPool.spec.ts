@@ -24,28 +24,21 @@ import {
   ILV_POOL_WEIGHT,
   V1_STAKE_MAX_PERIOD,
   toWei,
-  toAddress,
 } from "./utils";
-import {
-  stakeAndLock,
-  stakeFlexible,
-  pendingYield,
-  claimYieldRewards,
-  claimYieldRewardsMultiple,
-  unstakeFlexible,
-  unstakeLocked,
-} from "./CorePool.behavior";
-import { FlashPool__factory } from "../typechain";
+
+const { MaxUint256 } = ethers.constants;
 
 chai.use(solidity);
 chai.use(chaiSubset);
+
+const { expect } = chai;
 
 describe("FlashPool", function () {
   before(async function () {
     this.signers = {} as Signers;
 
     this.ILVPool = <ILVPoolMock__factory>await ethers.getContractFactory("ILVPoolMock");
-    this.FlashPool = <FlashPoolMock__factory>await ethers.getContractFactory("FlashPool");
+    this.FlashPool = <FlashPoolMock__factory>await ethers.getContractFactory("FlashPoolMock");
     this.PoolFactory = <PoolFactoryMock__factory>await ethers.getContractFactory("PoolFactoryMock");
     this.CorePoolV1 = <CorePoolV1Mock__factory>await ethers.getContractFactory("CorePoolV1Mock");
     this.ERC20 = <ERC20Mock__factory>await ethers.getContractFactory("ERC20Mock");
@@ -95,39 +88,44 @@ describe("FlashPool", function () {
     ])) as FlashPoolMock;
 
     await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
-    await this.factory.connect(this.signers.deployer).registerPool(this.lpPool.address);
+    await this.factory.connect(this.signers.deployer).registerPool(this.flashPool.address);
 
-    await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.alice), toWei(100000));
-    await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(100000));
-    await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(100000));
+    // await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.alice), toWei(100000));
+    // await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(100000));
+    // await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(100000));
 
-    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.alice), toWei(10000));
-    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
-    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
+    await this.flashToken.connect(this.signers.deployer).transfer(this.signers.alice.address, toWei(10000));
+    await this.flashToken.connect(this.signers.deployer).transfer(this.signers.bob.address, toWei(10000));
+    await this.flashToken.connect(this.signers.deployer).transfer(this.signers.carol.address, toWei(10000));
   });
-  describe("#stakeAndLock", function () {
-    context("ILV Pool", stakeAndLock("ILV"));
-    context("Sushi LP Pool", stakeAndLock("LP"));
-  });
-  describe("#stakeFlexible", function () {
-    context("ILV Pool", stakeFlexible("ILV"));
-    context("Sushi LP Pool", stakeFlexible("LP"));
-  });
-  describe("#pendingYield", function () {
-    context("ILV Pool", pendingYield("ILV"));
-    context("Sushi LP Pool", pendingYield("LP"));
-  });
-  describe("#claimYieldRewards", function () {
-    context("ILV Pool", claimYieldRewards("ILV"));
-    context("Sushi LP Pool", claimYieldRewards("LP"));
-  });
-  describe("#claimYieldRewardsMultiple", claimYieldRewardsMultiple());
-  describe("#unstakeLocked", function () {
-    context("ILV Pool", unstakeLocked("ILV"));
-    context("Sushi LP Pool", unstakeLocked("LP"));
-  });
-  describe("#unstakeFlexible", function () {
-    context("ILV Pool", unstakeFlexible("ILV"));
-    context("Sushi LP Pool", unstakeFlexible("LP"));
+  describe("#stake", function () {
+    it("should stake", async function () {
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(1000));
+
+      const balance = await this.flashPool.balanceOf(this.signers.alice.address);
+
+      expect(balance).to.be.equal(toWei(1000));
+    });
+
+    it("should revert on _value 0", async function () {
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await expect(this.flashPool.connect(this.signers.alice).stake(toWei(0))).reverted;
+    });
+    it("should process rewards on stake", async function () {
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(1000));
+
+      await this.flashPool.setNow256(FLASH_INIT_TIME + 1);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(1));
+      const { pendingYield } = await this.flashPool.users(this.signers.alice.address);
+
+      const poolWeight = await this.flashPool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      expect(ethers.utils.formatEther(pendingYield).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(ILV_PER_SECOND.mul(poolWeight).div(totalWeight)).slice(0, 6),
+      );
+    });
   });
 });
