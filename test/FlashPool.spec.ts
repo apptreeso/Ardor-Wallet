@@ -152,7 +152,9 @@ describe("FlashPool", function () {
 
       const pendingYield = await this.flashPool.pendingYieldRewards(this.signers.alice.address);
 
-      expect(expectedRewards).to.be.equal(Number(pendingYield));
+      expect(ethers.utils.formatEther(expectedRewards.toString()).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(pendingYield).slice(0, 6),
+      );
     });
     it("should accumulate ILV correctly for multiple stakers", async function () {
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
@@ -171,8 +173,12 @@ describe("FlashPool", function () {
       const aliceYield = await this.flashPool.pendingYieldRewards(this.signers.alice.address);
       const bobYield = await this.flashPool.pendingYieldRewards(this.signers.bob.address);
 
-      expect(Number(aliceYield)).to.be.equal(expectedRewards / 2);
-      expect(Number(bobYield)).to.be.equal(expectedRewards / 2);
+      expect(ethers.utils.formatEther(aliceYield).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther((expectedRewards / 2).toString()).slice(0, 6),
+      );
+      expect(ethers.utils.formatEther(bobYield).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther((expectedRewards / 2).toString()).slice(0, 6),
+      );
     });
     it("should calculate pending rewards correctly after bigger stakes", async function () {
       const poolWeight = await this.flashPool.weight();
@@ -190,7 +196,7 @@ describe("FlashPool", function () {
       await this.flashToken.connect(this.signers.bob).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.bob).stake(toWei(5000));
 
-      const totalInPool = toWei(10 * 1e6).add(toWei(5000 * 2e6));
+      const totalInPool = toWei(10).add(toWei(5000));
 
       const bobYield0 = await this.flashPool.pendingYieldRewards(this.signers.bob.address);
 
@@ -201,31 +207,31 @@ describe("FlashPool", function () {
       const aliceYield1 = await this.flashPool.pendingYieldRewards(this.signers.alice.address);
       const bobYield1 = await this.flashPool.pendingYieldRewards(this.signers.bob.address);
 
-      const expectedAliceYield1 = Number(
-        ethers.utils.formatEther(
-          ILV_PER_SECOND.mul(150)
-            .mul(toWei(10 * 1e6))
-            .div(totalInPool)
-            .mul(poolWeight)
-            .div(totalWeight)
-            .add(expectedAliceYield0),
-        ),
-      ).toFixed(3);
+      const expectedAliceYield1 = ILV_PER_SECOND.mul(150)
+        .mul(toWei(10))
+        .div(totalInPool)
+        .mul(poolWeight)
+        .div(totalWeight)
+        .add(expectedAliceYield0);
 
-      const expectedBobYield1 = Number(
-        ethers.utils.formatEther(
-          ILV_PER_SECOND.mul(150)
-            .mul(toWei(5000 * 2e6))
-            .div(totalInPool)
-            .mul(poolWeight)
-            .div(totalWeight),
-        ),
-      ).toFixed(3);
+      const expectedBobYield1 = ILV_PER_SECOND.mul(150)
+        .mul(toWei(5000))
+        .div(totalInPool)
+        .mul(poolWeight)
+        .div(totalWeight);
 
-      expect(expectedAliceYield0).to.be.equal(aliceYield0);
-      expect(expectedAliceYield1).to.be.equal(Number(ethers.utils.formatEther(aliceYield1)).toFixed(3));
-      expect(expectedBobYield0).to.be.equal(bobYield0);
-      expect(expectedBobYield1).to.be.equal(Number(ethers.utils.formatEther(bobYield1)).toFixed(3));
+      expect(ethers.utils.formatEther(expectedAliceYield0).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(aliceYield0).slice(0, 6),
+      );
+      expect(ethers.utils.formatEther(expectedAliceYield1).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(aliceYield1).slice(0, 6),
+      );
+      expect(ethers.utils.formatEther(expectedBobYield0).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(bobYield0).slice(0, 6),
+      );
+      expect(ethers.utils.formatEther(expectedBobYield1).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(bobYield1).slice(0, 6),
+      );
     });
     it("should not accumulate yield after endTime", async function () {
       const poolWeight = await this.flashPool.weight();
@@ -252,9 +258,15 @@ describe("FlashPool", function () {
 
       const aliceYield2 = await this.flashPool.pendingYieldRewards(this.signers.alice.address);
 
-      expect(expectedYield0).to.be.equal(aliceYield0);
-      expect(expectedYield1).to.be.equal(aliceYield1);
-      expect(expectedYield1).to.be.equal(aliceYield2);
+      expect(ethers.utils.formatEther(expectedYield0).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(aliceYield0).slice(0, 6),
+      );
+      expect(ethers.utils.formatEther(expectedYield1).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(aliceYield1).slice(0, 6),
+      );
+      expect(ethers.utils.formatEther(expectedYield1).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(aliceYield2).slice(0, 6),
+      );
     });
   });
 });
