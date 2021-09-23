@@ -4,6 +4,8 @@ import {
   ILVPoolMock,
   SushiLPPoolMock__factory,
   SushiLPPoolMock,
+  FlashPoolMock__factory,
+  FlashPoolMock,
   PoolFactoryMock__factory,
   PoolFactoryMock,
   CorePoolV1Mock__factory,
@@ -16,16 +18,19 @@ declare module "mocha" {
   export interface Context {
     ILVPool: ILVPoolMock__factory;
     SushiLPPool: SushiLPPoolMock__factory;
+    FlashPool: FlashPoolMock__factory;
     PoolFactory: PoolFactoryMock__factory;
     CorePoolV1: CorePoolV1Mock__factory;
     ERC20: ERC20Mock__factory;
     ilvPool: ILVPoolMock;
     lpPool: SushiLPPoolMock;
+    flashPool: FlashPoolMock;
     factory: PoolFactoryMock;
     corePoolV1: CorePoolV1Mock;
     ilv: ERC20Mock;
     silv: ERC20Mock;
     lp: ERC20Mock;
+    flashToken: ERC20Mock;
     signers: Signers;
   }
 }

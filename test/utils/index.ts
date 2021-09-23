@@ -6,10 +6,14 @@ import { ERC20Mock, ILVPoolMock, SushiLPPoolMock } from "../../types";
 export const SECONDS_PER_UPDATE = 1209600;
 
 // TODO: use correct value
-export const ILV_PER_SECOND = ethers.utils.parseEther("1");
+export const ILV_PER_SECOND: BigNumber = ethers.utils.parseEther("1");
 
 // TODO: use correct value
 export const INIT_TIME = 10;
+
+export const FLASH_INIT_TIME = 20;
+
+export const FLASH_POOL_WEIGHT = 25;
 
 // TODO: use correct value
 export const END_TIME = 63072000;

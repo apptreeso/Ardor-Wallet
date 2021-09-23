@@ -5,6 +5,8 @@ export {
   ILVPoolMock,
   SushiLPPoolMock__factory,
   SushiLPPoolMock,
+  FlashPoolMock__factory,
+  FlashPoolMock,
   PoolFactoryMock__factory,
   PoolFactoryMock,
   ERC20Mock__factory,
