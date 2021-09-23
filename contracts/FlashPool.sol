@@ -408,7 +408,6 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
 
         // update rewards per weight and `lastYieldDistribution`
         yieldRewardsPerToken += _rewardPerToken(ilvReward, totalStaked);
-        console.log("yieldRewardsPerToken: ", yieldRewardsPerToken);
         lastYieldDistribution = uint64(currentTimestamp);
 
         // emit an event
