@@ -308,7 +308,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
-    function claimRewardsFromRouter(address _staker, bool _useSILV) external updatePool whenNotPaused {
+    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external updatePool whenNotPaused {
         bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
         require(poolIsValid, "invalid caller");
 
@@ -467,7 +467,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // if sILV is requested
         if (_useSILV) {
             // - mint sILV
-            factory.mintYieldTo(msg.sender, pendingYieldToClaim, true);
+            factory.mintYieldTo(_staker, pendingYieldToClaim, true);
         } else {
             // for other pools - stake as pool
             address ilvPool = factory.getPoolAddress(ilv);
