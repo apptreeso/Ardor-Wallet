@@ -24,6 +24,7 @@ import {
   ILV_POOL_WEIGHT,
   V1_STAKE_MAX_PERIOD,
   toWei,
+  ONE_YEAR,
 } from "./utils";
 
 const { MaxUint256 } = ethers.constants;
@@ -266,6 +267,46 @@ describe("FlashPool", function () {
       );
       expect(ethers.utils.formatEther(expectedYield1).slice(0, 6)).to.be.equal(
         ethers.utils.formatEther(aliceYield2).slice(0, 6),
+      );
+    });
+  });
+  describe("#claimYieldRewards", async function () {
+    it("should create ILV stake correctly", async function () {
+      const poolWeight = await this.flashPool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(100));
+
+      await this.flashPool.setNow256(FLASH_INIT_TIME + 100);
+
+      await this.flashPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      const expectedCompoundedYield = ILV_PER_SECOND.mul(100).mul(poolWeight).div(totalWeight);
+
+      const yieldStake = await this.ilvPool.getStake(this.signers.alice.address, 0);
+
+      expect(ethers.utils.formatEther(expectedCompoundedYield).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(yieldStake.value).slice(0, 6),
+      );
+    });
+    it("should mint sILV correctly", async function () {
+      const poolWeight = await this.flashPool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(100));
+
+      await this.flashPool.setNow256(FLASH_INIT_TIME + 100);
+
+      await this.flashPool.connect(this.signers.alice).claimYieldRewards(true);
+
+      const expectedMintedYield = ILV_PER_SECOND.mul(100).mul(poolWeight).div(totalWeight);
+
+      const sILVBalance = await this.silv.balanceOf(this.signers.alice.address);
+
+      expect(ethers.utils.formatEther(sILVBalance).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(expectedMintedYield).slice(0, 6),
       );
     });
   });
