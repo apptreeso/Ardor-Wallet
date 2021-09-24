@@ -26,6 +26,218 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
+export function unstakeLocked(usingPool: string): () => void {
+  return function () {
+    it("should unstake locked tokens", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR * 2 + 1);
+
+      const balance0 = await pool.balanceOf(this.signers.alice.address);
+      const { value: value0 } = await pool.getStake(this.signers.alice.address, 0);
+
+      await pool.connect(this.signers.alice).unstakeLocked(0, toWei(100));
+
+      const balance1 = await pool.balanceOf(this.signers.alice.address);
+      const { value: value1 } = await pool.getStake(this.signers.alice.address, 0);
+
+      expect(balance0).to.be.equal(toWei(100));
+      expect(value0).to.be.equal(toWei(100));
+      expect(balance1).to.be.equal(0);
+      expect(value1).to.be.equal(0);
+    });
+    it("should revert when _stakeId is invalid", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR * 2 + 1);
+
+      await expect(pool.connect(this.signers.alice).unstakeLocked(1, toWei(100))).reverted;
+    });
+    it("should revert when _value is 0", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR * 2 + 1);
+
+      await expect(pool.connect(this.signers.alice).unstakeLocked(0, 0)).reverted;
+    });
+    it("should revert when _value is higher than stake", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR * 2 + 1);
+
+      await expect(pool.connect(this.signers.alice).unstakeLocked(0, toWei(101))).reverted;
+    });
+    it("should revert when tokens are still locked", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR);
+
+      await expect(pool.connect(this.signers.alice).unstakeLocked(0, toWei(100))).reverted;
+    });
+  };
+}
+
+export function unstakeFlexible(usingPool: string): () => void {
+  return function () {
+    it("should unstake flexible", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeFlexible(toWei(1000));
+
+      await pool.connect(this.signers.alice).unstakeFlexible(toWei(1000));
+
+      const poolBalance = await pool.balanceOf(this.signers.alice.address);
+
+      expect(poolBalance.toNumber()).to.be.equal(0);
+    });
+    it("should revert unstaking 0", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeFlexible(toWei(1000));
+
+      await expect(pool.connect(this.signers.alice).unstakeFlexible(0)).reverted;
+    });
+    it("should revert unstaking more than allowed", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeFlexible(toWei(1000));
+
+      await expect(pool.connect(this.signers.alice).unstakeFlexible(toWei(1001))).reverted;
+    });
+    it("should process rewards on unstake", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeFlexible(toWei(1000));
+
+      await pool.setNow256(INIT_TIME + 1);
+      await pool.connect(this.signers.alice).unstakeFlexible(toWei(1));
+      const { pendingYield } = await pool.users(this.signers.alice.address);
+
+      const poolWeight = await pool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      expect(pendingYield).to.be.equal(ILV_PER_SECOND.mul(poolWeight).div(totalWeight));
+    });
+  };
+}
+
+export function claimYieldRewardsMultiple(): () => void {
+  return function () {
+    it("should correctly claim multiple pools as ILV", async function () {
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.ilvPool.setNow256(INIT_TIME + 1000);
+      await this.lpPool.setNow256(INIT_TIME + 1000);
+
+      const { pendingYield: ilvPoolPendingYield } = await this.ilvPool.pendingRewards(this.signers.alice.address);
+      const { pendingYield: lpPoolPendingYield } = await this.lpPool.pendingRewards(this.signers.alice.address);
+
+      await this.ilvPool
+        .connect(this.signers.alice)
+        .claimYieldRewardsMultiple([this.ilvPool.address, this.lpPool.address], [false, false]);
+
+      const { value: ilvPoolYield } = await this.ilvPool.getStake(this.signers.alice.address, 1);
+      const { value: lpPoolYield } = await this.ilvPool.getStake(this.signers.alice.address, 2);
+
+      expect(ilvPoolYield).to.be.equal(ilvPoolPendingYield);
+      expect(lpPoolYield).to.be.equal(lpPoolPendingYield);
+    });
+    it("should correctly claim multiple pools as sILV", async function () {
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.ilvPool.setNow256(INIT_TIME + 1000);
+      await this.lpPool.setNow256(INIT_TIME + 1000);
+
+      const { pendingYield: ilvPoolPendingYield } = await this.ilvPool.pendingRewards(this.signers.alice.address);
+      const { pendingYield: lpPoolPendingYield } = await this.lpPool.pendingRewards(this.signers.alice.address);
+
+      await this.ilvPool
+        .connect(this.signers.alice)
+        .claimYieldRewardsMultiple([this.ilvPool.address, this.lpPool.address], [true, true]);
+
+      const sILVBalance = await this.silv.balanceOf(this.signers.alice.address);
+      const totalYield = ilvPoolPendingYield.add(lpPoolPendingYield);
+
+      expect(sILVBalance).to.be.equal(totalYield);
+    });
+    it("should correctly claim multiple pools as ILV and sILV", async function () {
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.ilvPool.setNow256(INIT_TIME + 1000);
+      await this.lpPool.setNow256(INIT_TIME + 1000);
+
+      const { pendingYield: ilvPoolPendingYield } = await this.ilvPool.pendingRewards(this.signers.alice.address);
+      const { pendingYield: lpPoolPendingYield } = await this.lpPool.pendingRewards(this.signers.alice.address);
+
+      await this.ilvPool
+        .connect(this.signers.alice)
+        .claimYieldRewardsMultiple([this.ilvPool.address, this.lpPool.address], [false, true]);
+
+      const { value: compoundedIlvYield } = await this.ilvPool.getStake(this.signers.alice.address, 1);
+      const sILVBalance = await this.silv.balanceOf(this.signers.alice.address);
+
+      expect(compoundedIlvYield).to.be.equal(ilvPoolPendingYield);
+      expect(sILVBalance).to.be.equal(lpPoolPendingYield);
+    });
+    it("should revert if claiming from invalid pool", async function () {
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.ilvPool.setNow256(INIT_TIME + 1000);
+      await this.lpPool.setNow256(INIT_TIME + 1000);
+
+      await expect(
+        this.ilvPool
+          .connect(this.signers.alice)
+          .claimYieldRewardsMultiple([this.ilvPool.address, this.signers.bob.address], [false, true]),
+      ).reverted;
+    });
+  };
+}
+
 export function claimYieldRewards(usingPool: string): () => void {
   return function () {
     it("should create ILV stake correctly", async function () {
@@ -112,8 +324,6 @@ export function pendingYield(usingPool: string): () => void {
     it("should not accumulate rewards before init time", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
-
-      await pool.setNow256(0);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
@@ -264,6 +474,10 @@ export function stakeAndLock(usingPool: string): () => void {
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      const balance = await pool.balanceOf(this.signers.alice.address);
+
+      expect(balance).to.be.equal(toWei(100));
     });
     it("should revert when staking longer than 2 years", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
@@ -308,7 +522,7 @@ export function stakeFlexible(usingPool: string): () => void {
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
       await expect(pool.connect(this.signers.alice).stakeFlexible(toWei(0))).reverted;
     });
-    it("should processRewards on stake", async function () {
+    it("should process rewards on stake", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
@@ -316,12 +530,13 @@ export function stakeFlexible(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeFlexible(toWei(1000));
 
       await pool.setNow256(INIT_TIME + 1);
-      const rewards = await pool.pendingRewards(await toAddress(this.signers.alice));
+      await pool.connect(this.signers.alice).stakeFlexible(toWei(1));
+      const { pendingYield } = await pool.users(this.signers.alice.address);
 
       const poolWeight = await pool.weight();
       const totalWeight = await this.factory.totalWeight();
 
-      expect(rewards.pendingYield).to.be.equal(ILV_PER_SECOND.mul(poolWeight).div(totalWeight));
+      expect(pendingYield).to.be.equal(ILV_PER_SECOND.mul(poolWeight).div(totalWeight));
     });
   };
 }

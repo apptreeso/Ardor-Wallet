@@ -66,6 +66,8 @@ abstract contract V2Migrator is CorePool {
     ) internal initializer {
         __CorePool_init(_ilv, _silv, _poolToken, _factory, _initTime, _weight);
 
+        // TODO: add input validation here
+
         corePoolV1 = _corePoolV1;
         v1StakeMaxPeriod = _v1StakeMaxPeriod;
     }

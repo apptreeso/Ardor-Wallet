@@ -78,13 +78,13 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     event LogSync(address indexed by, uint256 yieldRewardsPerToken, uint64 lastYieldDistribution);
 
     /**
-     * @dev Fired in _claimRewards()
+     * @dev Fired in _claimYieldRewards()
      *
      * @param from an address which received the yield
      * @param sILV flag indicating if reward was paid (minted) in sILV
      * @param value value of yield paid
      */
-    event LogClaimRewards(address indexed from, bool sILV, uint256 value);
+    event LogClaimYieldRewards(address indexed from, bool sILV, uint256 value);
 
     /**
      * @dev Fired in _processRewards()
@@ -191,7 +191,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
 
         // based on the rewards per token value, calculate pending rewards;
         User memory user = users[_staker];
-        pending = _tokensToReward(user.balance, yieldRewardsPerToken) - user.subYieldRewards;
+        pending = (_tokensToReward(user.balance, newYieldRewardsPerToken) - user.subYieldRewards) + user.pendingYield;
     }
 
     /**
@@ -290,29 +290,29 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     }
 
     /**
-     * @dev calls internal _claimRewards() passing `msg.sender` as `_staker`
+     * @dev calls internal _claimYieldRewards() passing `msg.sender` as `_staker`
      *
      * @notice pool state is updated before calling the internal function
      */
-    function claimRewards(bool _useSILV) external updatePool whenNotPaused {
-        _claimRewards(msg.sender, _useSILV);
+    function claimYieldRewards(bool _useSILV) external updatePool whenNotPaused {
+        _claimYieldRewards(msg.sender, _useSILV);
     }
 
     /**
      * @notice this function can be called only by ILV core pool
      *
      * @dev uses ILV pool as a router by receiving the _staker address and executing
-     *      the internal _claimRewards()
+     *      the internal _claimYieldRewards()
      * @dev its usage allows claiming multiple pool contracts in one transaction
      *
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
-    function claimRewardsFromRouter(address _staker, bool _useSILV) external updatePool whenNotPaused {
+    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external updatePool whenNotPaused {
         bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
         require(poolIsValid, "invalid caller");
 
-        _claimRewards(_staker, _useSILV);
+        _claimYieldRewards(_staker, _useSILV);
     }
 
     /**
@@ -448,7 +448,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _staker user address
      * @param _useSILV whether the user wants to claim ILV or sILV
      */
-    function _claimRewards(address _staker, bool _useSILV) internal {
+    function _claimYieldRewards(address _staker, bool _useSILV) internal {
         // update user state
         _processRewards(_staker);
 
@@ -467,7 +467,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // if sILV is requested
         if (_useSILV) {
             // - mint sILV
-            factory.mintYieldTo(msg.sender, pendingYieldToClaim, true);
+            factory.mintYieldTo(_staker, pendingYieldToClaim, true);
         } else {
             // for other pools - stake as pool
             address ilvPool = factory.getPoolAddress(ilv);
@@ -478,7 +478,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         user.subYieldRewards = _tokensToReward(user.balance, yieldRewardsPerToken);
 
         // emit an event
-        emit LogClaimRewards(_staker, _useSILV, pendingYieldToClaim);
+        emit LogClaimYieldRewards(_staker, _useSILV, pendingYieldToClaim);
     }
 
     /**

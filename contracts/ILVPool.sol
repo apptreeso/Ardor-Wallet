@@ -84,9 +84,8 @@ contract ILVPool is V2Migrator {
     function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external updatePool {
         _requireNotPaused();
 
-        // we're using selector to simplify input and state validation
-        // claimYieldRewardsMultiple is not unique, we pre-calculate the selector
-        bytes4 fnSelector = 0x5c7f74bb;
+        // we're using selector to simplify input and access validation
+        bytes4 fnSelector = ILVPool(address(this)).claimYieldRewardsMultiple.selector;
 
         fnSelector.verifyInput(_pools.length == _useSILV.length, 0);
         for (uint256 i = 0; i < _pools.length; i++) {
@@ -112,14 +111,15 @@ contract ILVPool is V2Migrator {
      *
      * @param _pools array of pool addresses
      */
-    function claimYieldRewardsMultiple(address[] calldata _pools) external updatePool {
+    function claimVaultRewardsMultiple(address[] calldata _pools) external updatePool {
         _requireNotPaused();
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
 
             // we're using selector to simplify input and state validation
-            // claimYieldRewardsMultiple is not unique, we pre-calculate the selector
-            bytes4(0x28e120f8).verifyAccess(IFactory(factory).poolExists(pool));
+            bytes4(ILVPool(address(this)).claimVaultRewardsMultiple.selector).verifyAccess(
+                IFactory(factory).poolExists(pool)
+            );
 
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimVaultRewards(msg.sender);
