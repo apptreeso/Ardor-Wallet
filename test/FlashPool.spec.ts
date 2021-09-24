@@ -129,7 +129,7 @@ describe("FlashPool", function () {
       );
     });
   });
-  describe("#pendingYield", async function () {
+  describe("#pendingYield", function () {
     it("should not accumulate rewards before init time", async function () {
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
@@ -270,7 +270,7 @@ describe("FlashPool", function () {
       );
     });
   });
-  describe("#claimYieldRewards", async function () {
+  describe("#claimYieldRewards", function () {
     it("should create ILV stake correctly", async function () {
       const poolWeight = await this.flashPool.weight();
       const totalWeight = await this.factory.totalWeight();
@@ -310,7 +310,7 @@ describe("FlashPool", function () {
       );
     });
   });
-  describe("#claimYieldRewardsMultiple", async function () {
+  describe("#claimYieldRewardsMultiple", function () {
     it("should correctly claim multiple pools as ILV", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
@@ -396,7 +396,7 @@ describe("FlashPool", function () {
       ).reverted;
     });
   });
-  describe("#unstake", async function () {
+  describe("#unstake", function () {
     it("should unstake", async function () {
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(1000));
@@ -433,6 +433,14 @@ describe("FlashPool", function () {
       expect(ethers.utils.formatEther(pendingYield).slice(0, 6)).to.be.equal(
         ethers.utils.formatEther(ILV_PER_SECOND.mul(poolWeight).div(totalWeight)).slice(0, 6),
       );
+    });
+  });
+  describe("#setWeight", function () {
+    it("should change pool weight", async function () {
+      await this.factory.changePoolWeight(this.flashPool.address, ethers.BigNumber.from(50));
+    });
+    it("should revert on invalid setWeight caller", async function () {
+      await expect(this.flashPool.setWeight(ethers.BigNumber.from(50))).reverted;
     });
   });
 });
