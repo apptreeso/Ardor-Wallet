@@ -443,4 +443,29 @@ describe("FlashPool", function () {
       await expect(this.flashPool.setWeight(ethers.BigNumber.from(50))).reverted;
     });
   });
+  describe("#sync", function () {
+    it("should sync pool state", async function () {
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(100));
+
+      await this.flashPool.setNow256(FLASH_INIT_TIME + 10);
+      await this.flashPool.sync();
+
+      const poolWeight = await this.flashPool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      const lastYieldDistribution = await this.flashPool.lastYieldDistribution();
+      const yieldRewardsPerToken = await this.flashPool.yieldRewardsPerToken();
+
+      const expectedLastYieldDistribution = ethers.BigNumber.from(FLASH_INIT_TIME + 10);
+      const expectedYieldRewardsPerToken = ILV_PER_SECOND.mul(10)
+        .mul(poolWeight)
+        .mul(1e12)
+        .div(totalWeight)
+        .div(toWei(100));
+
+      expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
+      expect(expectedYieldRewardsPerToken).to.be.equal(yieldRewardsPerToken);
+    });
+  });
 });
