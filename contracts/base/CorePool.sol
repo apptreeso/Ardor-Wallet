@@ -8,7 +8,6 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/securit
 import { Timestamp } from "./Timestamp.sol";
 import { VaultRecipient } from "./VaultRecipient.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { IlluviumAware } from "../libraries/IlluviumAware.sol";
 import { Stake } from "../libraries/Stake.sol";
 import { IERC20Mintable } from "../interfaces/IERC20Mintable.sol";
 import { IILVPool } from "../interfaces/IILVPool.sol";
@@ -233,10 +232,6 @@ abstract contract CorePool is
         __FactoryControlled_init(_factory);
         __ReentrancyGuard_init();
         __Pausable_init();
-
-        // verify ilv and silv instanes
-        IlluviumAware.verifyILV(_ilv);
-        IlluviumAware.verifySILV(_silv);
 
         // save the inputs into internal state variables
         ilv = _ilv;
