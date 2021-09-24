@@ -220,7 +220,7 @@ abstract contract CorePool is
         address _factory,
         uint64 _initTime,
         uint32 _weight
-    ) internal virtual initializer {
+    ) internal initializer {
         // we're using selector to simplify input and state validation
         // since function is not public we pre-calculate the selector
         bytes4 fnSelector = 0x243f7620;
