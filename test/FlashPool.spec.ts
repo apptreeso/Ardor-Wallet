@@ -467,5 +467,64 @@ describe("FlashPool", function () {
       expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
       expect(expectedYieldRewardsPerToken).to.be.equal(yieldRewardsPerToken);
     });
+    it("should sync pool state with totalStaked = 0", async function () {
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+
+      await this.flashPool.setNow256(FLASH_INIT_TIME + 10);
+      await this.flashPool.sync();
+
+      const lastYieldDistribution = await this.flashPool.lastYieldDistribution();
+      const yieldRewardsPerToken = await this.flashPool.yieldRewardsPerToken();
+
+      const expectedLastYieldDistribution = ethers.BigNumber.from(FLASH_INIT_TIME + 10);
+      const expectedYieldRewardsPerToken = 0;
+
+      expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
+      expect(expectedYieldRewardsPerToken).to.be.equal(yieldRewardsPerToken);
+    });
+    it("should stop sync after endTime", async function () {
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(100));
+
+      await this.flashPool.setNow256(END_TIME + 100);
+      await this.flashPool.sync();
+      await this.flashPool.setNow256(END_TIME + 200);
+      await this.flashPool.sync();
+
+      const poolWeight = await this.flashPool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      const lastYieldDistribution = await this.flashPool.lastYieldDistribution();
+      const yieldRewardsPerToken = await this.flashPool.yieldRewardsPerToken();
+
+      const expectedLastYieldDistribution = ethers.BigNumber.from(END_TIME);
+      const expectedYieldRewardsPerToken = ILV_PER_SECOND.mul(END_TIME - FLASH_INIT_TIME)
+        .mul(poolWeight)
+        .mul(1e12)
+        .div(totalWeight)
+        .div(toWei(100));
+
+      expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
+      expect(expectedYieldRewardsPerToken).to.be.equal(yieldRewardsPerToken);
+    });
+    it("should update ilv per second after secondsPerUpdate", async function () {
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(100));
+
+      await this.flashPool.setNow256(END_TIME - 100);
+      await this.factory.setNow256(END_TIME - 100);
+
+      const ilvPerSecond = await this.factory.ilvPerSecond();
+
+      await this.flashPool.sync();
+
+      const newIlvPerSecond = await this.factory.ilvPerSecond();
+      const lastRatioUpdate = await this.factory.lastRatioUpdate();
+      const expectedIlvPerSecond = ilvPerSecond.mul(97).div(100);
+      const expectedLastRatioUpdate = END_TIME - 100;
+
+      expect(expectedIlvPerSecond).to.be.equal(newIlvPerSecond);
+      expect(expectedLastRatioUpdate).to.be.equal(lastRatioUpdate);
+    });
   });
 });
