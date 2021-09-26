@@ -616,39 +616,6 @@ abstract contract CorePool is
     }
 
     /**
-     * @notice this function can be called only by ILV core pool
-     *
-     * @dev uses ILV pool as a router by receiving the _staker address and executing
-     *      the internal _claimYieldRewards()
-     * @dev its usage allows claiming multiple pool contracts in one transaction
-     *
-     * @param _staker user address
-     * @param _useSILV whether it should claim pendingYield as ILV or sILV
-     */
-    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external virtual updatePool {
-        _requireNotPaused();
-        _requirePoolIsValid();
-
-        _claimYieldRewards(_staker, _useSILV);
-    }
-
-    /**
-     * @notice this function can be called only by ILV core pool
-     *
-     * @dev uses ILV pool as a router by receiving the _staker address and executing
-     *      the internal _claimVaultRewards()
-     * @dev its usage allows claiming multiple pool contracts in one transaction
-     *
-     * @param _staker user address
-     */
-    function claimVaultRewardsFromRouter(address _staker) external virtual updatePool {
-        _requireNotPaused();
-        _requirePoolIsValid();
-
-        _claimVaultRewards(_staker);
-    }
-
-    /**
      * @dev Executed by the factory to modify pool weight; the factory is expected
      *      to keep track of the total pools weight when updating
      *
