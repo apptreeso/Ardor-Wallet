@@ -2,6 +2,19 @@
 pragma solidity 0.8.4;
 
 interface ICorePoolV1 {
+    struct V1User {
+        // @dev Total staked amount
+        uint256 tokenAmount;
+        // @dev Total weight
+        uint256 totalWeight;
+        // @dev Auxiliary variable for yield calculation
+        uint256 subYieldRewards;
+        // @dev Auxiliary variable for vault rewards calculation
+        uint256 subVaultRewards;
+        // @dev An array of holder's deposits
+        V1Stake[] deposits;
+    }
+
     struct V1Stake {
         // @dev token amount staked
         uint256 tokenAmount;
