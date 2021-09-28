@@ -45,14 +45,14 @@ export function sync(usingPool: string): () => void {
       const yieldRewardsPerWeight = await pool.yieldRewardsPerWeight();
 
       const expectedLastYieldDistribution = ethers.BigNumber.from(INIT_TIME + 10);
-      const expectedyieldRewardsPerWeight = ILV_PER_SECOND.mul(10)
+      const expectedYieldRewardsPerWeight = ILV_PER_SECOND.mul(10)
         .mul(poolWeight)
-        .mul(1e12)
+        .mul(1e6)
         .div(totalWeight)
         .div(toWei(100));
 
       expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
-      expect(expectedyieldRewardsPerWeight).to.be.equal(yieldRewardsPerWeight);
+      expect(expectedYieldRewardsPerWeight).to.be.equal(yieldRewardsPerWeight);
     });
     it("should sync pool state with totalStaked = 0", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
@@ -67,10 +67,10 @@ export function sync(usingPool: string): () => void {
       const yieldRewardsPerWeight = await pool.yieldRewardsPerWeight();
 
       const expectedLastYieldDistribution = ethers.BigNumber.from(INIT_TIME + 10);
-      const expectedyieldRewardsPerWeight = 0;
+      const expectedYieldRewardsPerWeight = 0;
 
       expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
-      expect(expectedyieldRewardsPerWeight).to.be.equal(yieldRewardsPerWeight);
+      expect(expectedYieldRewardsPerWeight).to.be.equal(yieldRewardsPerWeight);
     });
     it("should stop sync after endTime", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
@@ -91,14 +91,14 @@ export function sync(usingPool: string): () => void {
       const yieldRewardsPerWeight = await pool.yieldRewardsPerWeight();
 
       const expectedLastYieldDistribution = ethers.BigNumber.from(END_TIME);
-      const expectedyieldRewardsPerWeight = ILV_PER_SECOND.mul(END_TIME - INIT_TIME)
+      const expectedYieldRewardsPerWeight = ILV_PER_SECOND.mul(END_TIME - INIT_TIME)
         .mul(poolWeight)
-        .mul(1e12)
+        .mul(1e6)
         .div(totalWeight)
         .div(toWei(100));
 
       expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
-      expect(expectedyieldRewardsPerWeight).to.be.equal(yieldRewardsPerWeight);
+      expect(expectedYieldRewardsPerWeight).to.be.equal(yieldRewardsPerWeight);
     });
     it("should update ilv per second after secondsPerUpdate", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
