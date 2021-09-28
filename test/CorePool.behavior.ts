@@ -101,9 +101,7 @@ export function migrationTests(usingPool: string): () => void {
 
       await v1Pool.setUsers(users);
     });
-    it("should migrate locked stakes", async function () {
-      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
-      // const token = getToken(this.ilv, this.lp, usingPool);
+    it("should migrate locked stakes - alice", async function () {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await pool.connect(this.signers.alice).migrateLockedStake([0, 2]);
@@ -119,6 +117,23 @@ export function migrationTests(usingPool: string): () => void {
 
       expect(aliceV1StakeIds[0]).to.be.equal(0);
       expect(aliceV1StakeIds[1]).to.be.equal(2);
+    });
+    it("should migrate locked stakes - carol", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await pool.connect(this.signers.carol).migrateLockedStake([0, 2]);
+
+      const carolV1StakePositions = await Promise.all([
+        pool.getV1StakePosition(this.signers.carol.address, 0),
+        pool.getV1StakePosition(this.signers.carol.address, 2),
+      ]);
+      const carolV1StakeIds = await Promise.all([
+        pool.getV1StakeId(this.signers.carol.address, carolV1StakePositions[0]),
+        pool.getV1StakeId(this.signers.carol.address, carolV1StakePositions[1]),
+      ]);
+
+      expect(carolV1StakeIds[0]).to.be.equal(0);
+      expect(carolV1StakeIds[1]).to.be.equal(2);
     });
   };
 }
