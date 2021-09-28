@@ -141,9 +141,9 @@ abstract contract V2Migrator is CorePool {
         bytes4 fnSelector = V2Migrator(this).migrateLockedStake.selector;
 
         for (uint256 i = 0; i < _stakeIds.length; i++) {
-            (, uint256 lockedFrom, , , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
+            (, , uint64 lockedFrom, , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
             fnSelector.verifyState(lockedFrom <= _v1StakeMaxPeriod, i * 3);
-            fnSelector.verifyState(lockedFrom > 0 && isYield, i * 3 + 1);
+            fnSelector.verifyState(lockedFrom > 0 && !isYield, i * 3 + 1);
             fnSelector.verifyState(!v1StakesMigrated[msg.sender][_stakeIds[i]], i * 3 + 2);
 
             v1StakesMigrated[msg.sender][_stakeIds[i]] = true;

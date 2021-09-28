@@ -101,8 +101,24 @@ export function migrationTests(usingPool: string): () => void {
 
       await v1Pool.setUsers(users);
     });
-    it("should work", async function () {
-      console.log("worked");
+    it("should migrate locked stakes", async function () {
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+      // const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await pool.connect(this.signers.alice).migrateLockedStake([0, 2]);
+
+      const aliceV1StakePositions = await Promise.all([
+        pool.getV1StakePosition(this.signers.alice.address, 0),
+        pool.getV1StakePosition(this.signers.alice.address, 2),
+      ]);
+      const aliceV1StakeIds = await Promise.all([
+        pool.getV1StakeId(this.signers.alice.address, aliceV1StakePositions[0]),
+        pool.getV1StakeId(this.signers.alice.address, aliceV1StakePositions[1]),
+      ]);
+
+      expect(aliceV1StakeIds[0]).to.be.equal(0);
+      expect(aliceV1StakeIds[1]).to.be.equal(2);
     });
   };
 }
