@@ -26,6 +26,7 @@ import {
   toAddress,
 } from "./utils";
 import {
+  updateStakeLock,
   stakeAndLock,
   sync,
   stakeFlexible,
@@ -134,5 +135,9 @@ describe("CorePools", function () {
   describe("#sync", function () {
     context("ILV Pool", sync("ILV"));
     context("Sushi LP Pool", sync("LP"));
+  });
+  describe("#updateStakeLock", function () {
+    context("ILV Pool", updateStakeLock("ILV"));
+    context("Sushi LP Pool", updateStakeLock("LP"));
   });
 });
