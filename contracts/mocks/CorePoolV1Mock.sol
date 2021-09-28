@@ -5,21 +5,21 @@ pragma solidity 0.8.4;
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 
 contract CorePoolV1Mock is ICorePoolV1 {
+    struct UserParameter {
+        address userAddress;
+        V1Stake[] deposits;
+    }
+
     uint256 public override usersLockingWeight;
 
-    mapping(address => V1User) public users;
+    mapping(address => V1Stake[]) public users;
 
-    // constructor(address[] memory _userAddresses, V1Stake[] memory _stakeData) {
-    //     require(_userAddresses.length == _stakeData.length, "invalid parameters");
-    //     for (uint256 i = 0; i < _userAddresses.length; i++) {
-    //         users[_userAddresses[i]].deposits.push(_stakeData[i]);
-    //     }
-    // }
-
-    function setUsers(address[] memory _userAddresses, V1Stake[] memory _stakeData) external {
-        require(_userAddresses.length == _stakeData.length, "invalid parameters");
-        for (uint256 i = 0; i < _userAddresses.length; i++) {
-            users[_userAddresses[i]].deposits.push(_stakeData[i]);
+    function setUsers(UserParameter[] calldata _userParameter) external {
+        for (uint256 i = 0; i < _userParameter.length; i++) {
+            address user = _userParameter[i].userAddress;
+            for (uint256 j = 0; i < _userParameter[i].deposits.length; i++) {
+                users[user].push(_userParameter[i].deposits[j]);
+            }
         }
     }
 
@@ -35,7 +35,7 @@ contract CorePoolV1Mock is ICorePoolV1 {
             bool
         )
     {
-        V1Stake storage deposit = users[_from].deposits[_stakeId];
+        V1Stake storage deposit = users[_from][_stakeId];
 
         return (deposit.tokenAmount, deposit.weight, deposit.lockedFrom, deposit.lockedUntil, deposit.isYield);
     }
