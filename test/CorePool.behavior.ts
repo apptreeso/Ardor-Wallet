@@ -647,7 +647,9 @@ export function stakeAndLock(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR);
 
       const balance = await pool.balanceOf(this.signers.alice.address);
 

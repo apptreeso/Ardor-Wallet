@@ -24,6 +24,7 @@ import {
   V1_STAKE_MAX_PERIOD,
   toWei,
   toAddress,
+  ONE_YEAR,
 } from "./utils";
 import {
   updateStakeLock,
@@ -95,6 +96,73 @@ describe("CorePools", function () {
       this.corePoolV1.address,
       V1_STAKE_MAX_PERIOD,
     ])) as SushiLPPoolMock;
+
+    const users = [
+      {
+        userAddress: this.signers.alice.address,
+        deposits: [
+          {
+            tokenAmount: toWei(200),
+            weight: toWei(200).mul(2e6),
+            lockedFrom: INIT_TIME,
+            lockedUntil: INIT_TIME + ONE_YEAR,
+            isYield: false,
+          },
+          {
+            tokenAmount: toWei(500),
+            weight: toWei(500).mul(2e6),
+            lockedFrom: INIT_TIME,
+            lockedUntil: INIT_TIME + ONE_YEAR,
+            isYield: true,
+          },
+          {
+            tokenAmount: toWei(300),
+            weight: toWei(300).mul(2e6),
+            lockedFrom: INIT_TIME,
+            lockedUntil: INIT_TIME + ONE_YEAR,
+            isYield: false,
+          },
+        ],
+      },
+      {
+        userAddress: this.signers.bob.address,
+        deposits: [
+          {
+            tokenAmount: toWei(100),
+            weight: toWei(100).mul(1e6),
+            lockedFrom: 0,
+            lockedUntil: 0,
+            isYield: false,
+          },
+        ],
+      },
+      {
+        userAddress: this.signers.carol.address,
+        deposits: [
+          {
+            tokenAmount: toWei(500),
+            weight: toWei(500).mul(1.5e6),
+            lockedFrom: INIT_TIME,
+            lockedUntil: INIT_TIME + ONE_YEAR / 2,
+            isYield: false,
+          },
+          {
+            tokenAmount: toWei(400),
+            weight: toWei(400).mul(2e6),
+            lockedFrom: INIT_TIME,
+            lockedUntil: INIT_TIME + ONE_YEAR,
+            isYield: true,
+          },
+          {
+            tokenAmount: toWei(100),
+            weight: toWei(100).mul(2e6),
+            lockedFrom: INIT_TIME,
+            lockedUntil: INIT_TIME + ONE_YEAR,
+            isYield: false,
+          },
+        ],
+      },
+    ];
 
     await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
     await this.factory.connect(this.signers.deployer).registerPool(this.lpPool.address);
