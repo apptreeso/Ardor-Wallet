@@ -9,17 +9,17 @@ contract CorePoolV1Mock is ICorePoolV1 {
 
     mapping(address => V1User) public users;
 
-    constructor(address[] memory _userAddresses, V1User[] memory _userData) {
-        require(_userAddresses.length == _userData.length, "invalid parameters");
-        for (uint256 i = 0; i < _userAddresses.length; i++) {
-            users[_userAddresses[i]] = _userData[i];
-        }
-    }
+    // constructor(address[] memory _userAddresses, V1Stake[] memory _stakeData) {
+    //     require(_userAddresses.length == _stakeData.length, "invalid parameters");
+    //     for (uint256 i = 0; i < _userAddresses.length; i++) {
+    //         users[_userAddresses[i]].deposits.push(_stakeData[i]);
+    //     }
+    // }
 
-    function setUsers(address[] memory _userAddresses, V1User[] memory _userData) external {
-        require(_userAddresses.length == _userData.length, "invalid parameters");
+    function setUsers(address[] memory _userAddresses, V1Stake[] memory _stakeData) external {
+        require(_userAddresses.length == _stakeData.length, "invalid parameters");
         for (uint256 i = 0; i < _userAddresses.length; i++) {
-            users[_userAddresses[i]] = _userData[i];
+            users[_userAddresses[i]].deposits.push(_stakeData[i]);
         }
     }
 
