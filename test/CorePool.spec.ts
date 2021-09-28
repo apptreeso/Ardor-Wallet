@@ -24,9 +24,9 @@ import {
   V1_STAKE_MAX_PERIOD,
   toWei,
   toAddress,
-  ONE_YEAR,
 } from "./utils";
 import {
+  migrationTests,
   updateStakeLock,
   stakeAndLock,
   sync,
@@ -75,7 +75,8 @@ describe("CorePools", function () {
       INIT_TIME,
       END_TIME,
     ])) as PoolFactoryMock;
-    this.corePoolV1 = await this.CorePoolV1.deploy();
+    this.ilvPoolV1 = await this.CorePoolV1.deploy();
+    this.lpPoolV1 = await this.CorePoolV1.deploy();
     this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
       this.ilv.address,
       this.silv.address,
@@ -83,7 +84,7 @@ describe("CorePools", function () {
       this.factory.address,
       INIT_TIME,
       ILV_POOL_WEIGHT,
-      this.corePoolV1.address,
+      this.ilvPoolV1.address,
       V1_STAKE_MAX_PERIOD,
     ])) as ILVPoolMock;
     this.lpPool = (await upgrades.deployProxy(this.SushiLPPool, [
@@ -93,7 +94,7 @@ describe("CorePools", function () {
       this.factory.address,
       INIT_TIME,
       LP_POOL_WEIGHT,
-      this.corePoolV1.address,
+      this.lpPoolV1.address,
       V1_STAKE_MAX_PERIOD,
     ])) as SushiLPPoolMock;
 
@@ -140,5 +141,9 @@ describe("CorePools", function () {
   describe("#updateStakeLock", function () {
     context("ILV Pool", updateStakeLock("ILV"));
     context("Sushi LP Pool", updateStakeLock("LP"));
+  });
+  describe("Migration tests", function () {
+    context("ILV Pool", migrationTests("ILV"));
+    context("Sushi LP Pool", migrationTests("LP"));
   });
 });

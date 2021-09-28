@@ -1,7 +1,7 @@
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
-import { ERC20Mock, ILVPoolMock, SushiLPPoolMock } from "../../types";
+import { ERC20Mock, ILVPoolMock, SushiLPPoolMock, CorePoolV1Mock } from "../../types";
 
 export const SECONDS_PER_UPDATE = 1209600;
 
@@ -37,5 +37,11 @@ export const getPool = (
   lpPoolInstance: SushiLPPoolMock,
   usingPool: string,
 ): ILVPoolMock | SushiLPPoolMock => (usingPool === "ILV" ? ilvPoolInstance : lpPoolInstance);
+
+export const getV1Pool = (
+  ilvPoolInstance: CorePoolV1Mock,
+  lpPoolInstance: CorePoolV1Mock,
+  usingPool: string,
+): CorePoolV1Mock => (usingPool === "ILV" ? ilvPoolInstance : lpPoolInstance);
 
 export const ONE_YEAR = 31536000;

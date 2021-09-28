@@ -17,6 +17,7 @@ import {
   toAddress,
   getToken,
   getPool,
+  getV1Pool,
 } from "./utils";
 
 const { MaxUint256 } = ethers.constants;
@@ -29,6 +30,8 @@ const { expect } = chai;
 export function migrationTests(usingPool: string): () => void {
   return function () {
     beforeEach(async function () {
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+
       const users = [
         {
           userAddress: this.signers.alice.address,
@@ -95,6 +98,11 @@ export function migrationTests(usingPool: string): () => void {
           ],
         },
       ];
+
+      await v1Pool.setUsers(users);
+    });
+    it("should work", async function () {
+      console.log("worked");
     });
   };
 }
