@@ -8,7 +8,6 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/securit
 import { Timestamp } from "./Timestamp.sol";
 import { VaultRecipient } from "./VaultRecipient.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { IlluviumAware } from "../libraries/IlluviumAware.sol";
 import { Stake } from "../libraries/Stake.sol";
 import { IERC20Mintable } from "../interfaces/IERC20Mintable.sol";
 import { IILVPool } from "../interfaces/IILVPool.sol";
@@ -221,7 +220,7 @@ abstract contract CorePool is
         address _factory,
         uint64 _initTime,
         uint32 _weight
-    ) internal virtual initializer {
+    ) internal initializer {
         // we're using selector to simplify input and state validation
         // since function is not public we pre-calculate the selector
         bytes4 fnSelector = 0x243f7620;
@@ -233,10 +232,6 @@ abstract contract CorePool is
         __FactoryControlled_init(_factory);
         __ReentrancyGuard_init();
         __Pausable_init();
-
-        // verify ilv and silv instanes
-        IlluviumAware.verifyILV(_ilv);
-        IlluviumAware.verifySILV(_silv);
 
         // save the inputs into internal state variables
         ilv = _ilv;
@@ -618,39 +613,6 @@ abstract contract CorePool is
         IERC20(ilv).safeTransferFrom(msg.sender, address(this), _value);
 
         emit LogReceiveVaultRewards(msg.sender, _value);
-    }
-
-    /**
-     * @notice this function can be called only by ILV core pool
-     *
-     * @dev uses ILV pool as a router by receiving the _staker address and executing
-     *      the internal _claimYieldRewards()
-     * @dev its usage allows claiming multiple pool contracts in one transaction
-     *
-     * @param _staker user address
-     * @param _useSILV whether it should claim pendingYield as ILV or sILV
-     */
-    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external virtual updatePool {
-        _requireNotPaused();
-        _requirePoolIsValid();
-
-        _claimYieldRewards(_staker, _useSILV);
-    }
-
-    /**
-     * @notice this function can be called only by ILV core pool
-     *
-     * @dev uses ILV pool as a router by receiving the _staker address and executing
-     *      the internal _claimVaultRewards()
-     * @dev its usage allows claiming multiple pool contracts in one transaction
-     *
-     * @param _staker user address
-     */
-    function claimVaultRewardsFromRouter(address _staker) external virtual updatePool {
-        _requireNotPaused();
-        _requirePoolIsValid();
-
-        _claimVaultRewards(_staker);
     }
 
     /**

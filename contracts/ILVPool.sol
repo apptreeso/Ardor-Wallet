@@ -170,10 +170,4 @@ contract ILVPool is V2Migrator {
         // emits an event
         emit LogMigrateWeights(msg.sender, _users.length, totalWeight);
     }
-
-    /// @notice not necessary for ILV pool because we claim internally in claimYieldRewardsMultiple()
-    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external override {}
-
-    /// @notice not necessary for ILV pool because we claim internally in claimVaultRewardsMultiple()
-    function claimVaultRewardsFromRouter(address _staker) external override {}
 }

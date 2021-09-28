@@ -7,7 +7,6 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/securit
 import { Timestamp } from "./base/Timestamp.sol";
 import { FactoryControlled } from "./base/FactoryControlled.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IlluviumAware } from "./libraries/IlluviumAware.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IILVPool } from "./interfaces/IILVPool.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
@@ -136,7 +135,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         address _factory,
         uint64 _initTime,
         uint32 _weight
-    ) external virtual initializer {
+    ) external initializer {
         require(_poolToken != address(0), "pool token address not set");
         require(_initTime > 0, "init time not set");
         require(_weight > 0, "pool weight not set");
@@ -144,10 +143,6 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         __FactoryControlled_init(_factory);
         __ReentrancyGuard_init();
         __Pausable_init();
-
-        // verify ilv and silv instanes
-        IlluviumAware.verifyILV(_ilv);
-        IlluviumAware.verifySILV(_silv);
 
         // save the inputs into internal state variables
         ilv = _ilv;

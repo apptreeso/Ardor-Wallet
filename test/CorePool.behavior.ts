@@ -26,6 +26,105 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
+export function sync(usingPool: string): () => void {
+  return function () {
+    it("should sync pool state", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeFlexible(toWei(100));
+
+      await pool.setNow256(INIT_TIME + 10);
+      await pool.sync();
+
+      const poolWeight = await pool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      const lastYieldDistribution = await pool.lastYieldDistribution();
+      const yieldRewardsPerWeight = await pool.yieldRewardsPerWeight();
+
+      const expectedLastYieldDistribution = ethers.BigNumber.from(INIT_TIME + 10);
+      const expectedYieldRewardsPerWeight = ILV_PER_SECOND.mul(10)
+        .mul(poolWeight)
+        .mul(1e6)
+        .div(totalWeight)
+        .div(toWei(100));
+
+      expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
+      expect(expectedYieldRewardsPerWeight).to.be.equal(yieldRewardsPerWeight);
+    });
+    it("should sync pool state with totalStaked = 0", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+
+      await pool.setNow256(INIT_TIME + 10);
+      await pool.sync();
+
+      const lastYieldDistribution = await pool.lastYieldDistribution();
+      const yieldRewardsPerWeight = await pool.yieldRewardsPerWeight();
+
+      const expectedLastYieldDistribution = ethers.BigNumber.from(INIT_TIME + 10);
+      const expectedYieldRewardsPerWeight = 0;
+
+      expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
+      expect(expectedYieldRewardsPerWeight).to.be.equal(yieldRewardsPerWeight);
+    });
+    it("should stop sync after endTime", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeFlexible(toWei(100));
+
+      await pool.setNow256(END_TIME + 100);
+      await pool.sync();
+      await pool.setNow256(END_TIME + 200);
+      await pool.sync();
+
+      const poolWeight = await pool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      const lastYieldDistribution = await pool.lastYieldDistribution();
+      const yieldRewardsPerWeight = await pool.yieldRewardsPerWeight();
+
+      const expectedLastYieldDistribution = ethers.BigNumber.from(END_TIME);
+      const expectedYieldRewardsPerWeight = ILV_PER_SECOND.mul(END_TIME - INIT_TIME)
+        .mul(poolWeight)
+        .mul(1e6)
+        .div(totalWeight)
+        .div(toWei(100));
+
+      expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
+      expect(expectedYieldRewardsPerWeight).to.be.equal(yieldRewardsPerWeight);
+    });
+    it("should update ilv per second after secondsPerUpdate", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeFlexible(toWei(100));
+
+      await pool.setNow256(END_TIME - 100);
+      await this.factory.setNow256(END_TIME - 100);
+
+      const ilvPerSecond = await this.factory.ilvPerSecond();
+
+      await pool.sync();
+
+      const newIlvPerSecond = await this.factory.ilvPerSecond();
+      const lastRatioUpdate = await this.factory.lastRatioUpdate();
+      const expectedIlvPerSecond = ilvPerSecond.mul(97).div(100);
+      const expectedLastRatioUpdate = END_TIME - 100;
+
+      expect(expectedIlvPerSecond).to.be.equal(newIlvPerSecond);
+      expect(expectedLastRatioUpdate).to.be.equal(lastRatioUpdate);
+    });
+  };
+}
+
 export function unstakeLocked(usingPool: string): () => void {
   return function () {
     it("should unstake locked tokens", async function () {

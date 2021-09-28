@@ -27,6 +27,7 @@ import {
 } from "./utils";
 import {
   stakeAndLock,
+  sync,
   stakeFlexible,
   pendingYield,
   claimYieldRewards,
@@ -129,5 +130,9 @@ describe("CorePools", function () {
   describe("#unstakeFlexible", function () {
     context("ILV Pool", unstakeFlexible("ILV"));
     context("Sushi LP Pool", unstakeFlexible("LP"));
+  });
+  describe("#sync", function () {
+    context("ILV Pool", sync("ILV"));
+    context("Sushi LP Pool", sync("LP"));
   });
 });

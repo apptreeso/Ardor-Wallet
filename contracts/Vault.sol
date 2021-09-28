@@ -5,7 +5,7 @@ import { ICorePool } from "./interfaces/ICorePool.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { IUniswapV2Router02 } from "./interfaces/IUniswapV2Router02.sol";
-import { AccessControl } from "./base/AccessControl.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title Illuvium Vault
@@ -15,7 +15,7 @@ import { AccessControl } from "./base/AccessControl.sol";
  *      (although technically it could receive ETH from anywhere)
  *
  */
-contract Vault is AccessControl {
+contract Vault is Ownable {
     /**
      * @dev Auxiliary data structure to store ILV, LP and Locked pools,
      *      linked to this smart contract and receiving vault rewards
@@ -43,23 +43,7 @@ contract Vault is AccessControl {
     IERC20 public ilv;
 
     /**
-     * @notice Vault manager is responsible for converting ETH into ILV via Uniswap
-     *      and sending that ILV into Illuvium Yield Pool
-     *
-     * @dev Role ROLE_VAULT_MANAGER allows executing `sendIlvRewards` function
-     */
-    uint32 public constant ROLE_VAULT_MANAGER = 0x0001_0000;
-
-    /**
-     * @notice Pool manager is responsible for setting the pools
-     *      which eventually receive the rewards distributed via `sendIlvRewards` function
-     *
-     * @dev Role ROLE_POOL_MANAGER allows executing `setCorePools` function
-     */
-    uint32 public constant ROLE_POOL_MANAGER = 0x0002_0000;
-
-    /**
-     * @dev Fired in swapEthForIlv() and sendIlvRewards() (via swapEthForIlv)
+     * @dev Fired in _swapEthForIlv() and sendIlvRewards() (via swapEthForIlv)
      *
      * @param by an address which executed the function
      * @param ethSpent ETH amount sent to Uniswap
@@ -86,7 +70,7 @@ contract Vault is AccessControl {
     /**
      * @dev Fired in setCorePools()
      *
-     * @param by ROLE_VAULT_MANAGER who executed the setup
+     * @param by address who executed the setup
      * @param ilvPool deployed ILV core pool address
      * @param pairPool deployed ILV/ETH pair (LP) pool address
      * @param lockedPoolV1 deployed locked pool V1 address
@@ -118,7 +102,7 @@ contract Vault is AccessControl {
 
     /**
      * @dev Auxiliary function used as part of the contract setup process to setup core pools,
-     *      executed by `ROLE_VAULT_MANAGER` after deployment
+     *      executed by `owner()` after deployment
      *
      * @param _ilvPool deployed ILV core pool address
      * @param _pairPool deployed ILV/ETH pair (LP) pool address
@@ -130,10 +114,7 @@ contract Vault is AccessControl {
         ICorePool _pairPool,
         ICorePool _lockedPoolV1,
         ICorePool _lockedPoolV2
-    ) external {
-        // verify access permissions
-        require(isSenderInRole(ROLE_POOL_MANAGER), "access denied");
-
+    ) external onlyOwner {
         // verify all the pools are set/supplied
         require(address(_ilvPool) != address(0), "ILV pool is not set");
         require(address(_pairPool) != address(0), "LP pool is not set");
@@ -164,41 +145,12 @@ contract Vault is AccessControl {
      * @param _ilvOut expected ILV amount to be received from Uniswap swap
      * @param _deadline maximum timestamp to wait for Uniswap swap (inclusive)
      */
-    function swapEthForIlv(
+    function swapETHForILV(
         uint256 _ethIn,
         uint256 _ilvOut,
         uint256 _deadline
-    ) public {
-        // verify access permissions
-        require(isSenderInRole(ROLE_VAULT_MANAGER), "access denied");
-
-        // verify the inputs
-        require(_ilvOut > 0, "zero input (ilvOut)");
-        require(_deadline >= block.timestamp, "deadline expired");
-
-        // checks if there's enough balance
-
-        require(address(this).balance > _ethIn, "zero ETH balance");
-
-        // create and initialize path array to be used in Uniswap
-        // first element of the path determines an input token (what we send to Uniswap),
-        // last element determines output token (what we receive from uniwsap)
-        address[] memory path = new address[](2);
-        // we send ETH wrapped as WETH into Uniswap
-        path[0] = sushi.WETH();
-        // we receive ILV from Uniswap
-        path[1] = address(ilv);
-
-        // exchange ETH -> ILV via Uniswap
-        uint256[] memory amounts = sushi.swapExactETHForTokens{ value: _ethIn }(
-            _ilvOut,
-            path,
-            address(this),
-            _deadline
-        );
-
-        // emit an event logging the operation
-        emit LogSwapEthForILV(msg.sender, amounts[0], amounts[1]);
+    ) external onlyOwner {
+        _swapETHForILV(_ethIn, _ilvOut, _deadline);
     }
 
     /**
@@ -218,15 +170,12 @@ contract Vault is AccessControl {
         uint256 _ethIn,
         uint256 _ilvOut,
         uint256 _deadline
-    ) external {
-        // check if caller has sufficient permissions to send tokens into the pool
-        require(isSenderInRole(ROLE_VAULT_MANAGER), "access denied");
-
+    ) external onlyOwner {
         // we treat set `ilvOut` and `deadline` as a flag to execute `swapEthForIlv`
         // in the same time we won't execute the swap if contract balance is zero
         if (_ilvOut > 0 && _deadline > 0 && address(this).balance > 0) {
             // exchange ETH on the contract's balance into ILV via Uniswap - delegate to `swapEthForIlv`
-            swapEthForIlv(_ethIn, _ilvOut, _deadline);
+            _swapETHForILV(_ethIn, _ilvOut, _deadline);
         }
 
         // reads core pools
@@ -337,6 +286,40 @@ contract Vault is AccessControl {
         uint256 _totalReserve
     ) private pure returns (uint256) {
         return (_ilvBalance * ((_poolReserve * 1e7) / _totalReserve)) / 1e7;
+    }
+
+    function _swapETHForILV(
+        uint256 _ethIn,
+        uint256 _ilvOut,
+        uint256 _deadline
+    ) private {
+        // verify the inputs
+        require(_ilvOut > 0, "zero input (ilvOut)");
+        require(_deadline >= block.timestamp, "deadline expired");
+
+        // checks if there's enough balance
+
+        require(address(this).balance > _ethIn, "zero ETH balance");
+
+        // create and initialize path array to be used in Uniswap
+        // first element of the path determines an input token (what we send to Uniswap),
+        // last element determines output token (what we receive from uniwsap)
+        address[] memory path = new address[](2);
+        // we send ETH wrapped as WETH into Uniswap
+        path[0] = sushi.WETH();
+        // we receive ILV from Uniswap
+        path[1] = address(ilv);
+
+        // exchange ETH -> ILV via Uniswap
+        uint256[] memory amounts = sushi.swapExactETHForTokens{ value: _ethIn }(
+            _ilvOut,
+            path,
+            address(this),
+            _deadline
+        );
+
+        // emit an event logging the operation
+        emit LogSwapEthForILV(msg.sender, amounts[0], amounts[1]);
     }
 
     /**

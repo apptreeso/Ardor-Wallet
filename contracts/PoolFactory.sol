@@ -5,7 +5,6 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Timestamp } from "./base/Timestamp.sol";
 // import { CorePool } from "./CorePool.sol";
-import { IlluviumAware } from "./libraries/IlluviumAware.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 import { IERC20Mintable } from "./interfaces/IERC20Mintable.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
@@ -112,17 +111,13 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         uint32 _secondsPerUpdate,
         uint32 _initTime,
         uint32 _endTime
-    ) external virtual initializer {
+    ) external initializer {
         // verify the inputs are set
         require(_silv != address(0), "sILV address not set");
         require(_ilvPerSecond > 0, "ILV/second not set");
         require(_secondsPerUpdate > 0, "seconds/update not set");
         require(_initTime > 0, "init seconds not set");
         require(_endTime > _initTime, "invalid end time: must be greater than init time");
-
-        // verify ilv and silv instanes
-        IlluviumAware.verifyILV(_ilv);
-        IlluviumAware.verifySILV(_silv);
 
         __Ownable_init();
 
