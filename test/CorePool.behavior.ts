@@ -26,6 +26,79 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
+export function migrationTests(usingPool: string): () => void {
+  return function () {
+    beforeEach(async function () {
+      const users = [
+        {
+          userAddress: this.signers.alice.address,
+          deposits: [
+            {
+              tokenAmount: toWei(200),
+              weight: toWei(200).mul(2e6),
+              lockedFrom: INIT_TIME,
+              lockedUntil: INIT_TIME + ONE_YEAR,
+              isYield: false,
+            },
+            {
+              tokenAmount: toWei(500),
+              weight: toWei(500).mul(2e6),
+              lockedFrom: INIT_TIME,
+              lockedUntil: INIT_TIME + ONE_YEAR,
+              isYield: true,
+            },
+            {
+              tokenAmount: toWei(300),
+              weight: toWei(300).mul(2e6),
+              lockedFrom: INIT_TIME,
+              lockedUntil: INIT_TIME + ONE_YEAR,
+              isYield: false,
+            },
+          ],
+        },
+        {
+          userAddress: this.signers.bob.address,
+          deposits: [
+            {
+              tokenAmount: toWei(100),
+              weight: toWei(100).mul(1e6),
+              lockedFrom: 0,
+              lockedUntil: 0,
+              isYield: false,
+            },
+          ],
+        },
+        {
+          userAddress: this.signers.carol.address,
+          deposits: [
+            {
+              tokenAmount: toWei(500),
+              weight: toWei(500).mul(1.5e6),
+              lockedFrom: INIT_TIME,
+              lockedUntil: INIT_TIME + ONE_YEAR / 2,
+              isYield: false,
+            },
+            {
+              tokenAmount: toWei(400),
+              weight: toWei(400).mul(2e6),
+              lockedFrom: INIT_TIME,
+              lockedUntil: INIT_TIME + ONE_YEAR,
+              isYield: true,
+            },
+            {
+              tokenAmount: toWei(100),
+              weight: toWei(100).mul(2e6),
+              lockedFrom: INIT_TIME,
+              lockedUntil: INIT_TIME + ONE_YEAR,
+              isYield: false,
+            },
+          ],
+        },
+      ];
+    });
+  };
+}
+
 export function updateStakeLock(usingPool: string): () => void {
   return function () {
     it("should update stake lock to two years", async function () {
