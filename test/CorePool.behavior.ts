@@ -18,6 +18,8 @@ import {
   getToken,
   getPool,
   getV1Pool,
+  getUsers0,
+  getUsers1,
 } from "./utils";
 
 const { MaxUint256 } = ethers.constants;
@@ -32,79 +34,7 @@ export function migrationTests(usingPool: string): () => void {
     beforeEach(async function () {
       const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
 
-      const users = [
-        {
-          userAddress: this.signers.alice.address,
-          deposits: [
-            {
-              tokenAmount: toWei(200),
-              weight: toWei(200).mul(2e6),
-              lockedFrom: INIT_TIME,
-              lockedUntil: INIT_TIME + ONE_YEAR,
-              isYield: false,
-            },
-            {
-              tokenAmount: toWei(500),
-              weight: toWei(500).mul(2e6),
-              lockedFrom: INIT_TIME,
-              lockedUntil: INIT_TIME + ONE_YEAR,
-              isYield: true,
-            },
-            {
-              tokenAmount: toWei(300),
-              weight: toWei(300).mul(2e6),
-              lockedFrom: INIT_TIME,
-              lockedUntil: INIT_TIME + ONE_YEAR,
-              isYield: false,
-            },
-          ],
-        },
-        {
-          userAddress: this.signers.bob.address,
-          deposits: [
-            {
-              tokenAmount: toWei(100),
-              weight: toWei(100).mul(1e6),
-              lockedFrom: 0,
-              lockedUntil: 0,
-              isYield: false,
-            },
-            {
-              tokenAmount: toWei(100),
-              weight: toWei(100).mul(2e6),
-              lockedFrom: INIT_TIME + 25,
-              lockedUntil: INIT_TIME + 25 + ONE_YEAR,
-              isYield: false,
-            },
-          ],
-        },
-        {
-          userAddress: this.signers.carol.address,
-          deposits: [
-            {
-              tokenAmount: toWei(500),
-              weight: toWei(500).mul(1.5e6),
-              lockedFrom: INIT_TIME,
-              lockedUntil: INIT_TIME + ONE_YEAR / 2,
-              isYield: false,
-            },
-            {
-              tokenAmount: toWei(400),
-              weight: toWei(400).mul(2e6),
-              lockedFrom: INIT_TIME,
-              lockedUntil: INIT_TIME + ONE_YEAR,
-              isYield: true,
-            },
-            {
-              tokenAmount: toWei(100),
-              weight: toWei(100).mul(2e6),
-              lockedFrom: INIT_TIME,
-              lockedUntil: INIT_TIME + ONE_YEAR,
-              isYield: false,
-            },
-          ],
-        },
-      ];
+      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
       await v1Pool.setUsers(users);
     });
@@ -172,79 +102,7 @@ export function migrationTests(usingPool: string): () => void {
 export function mintV1Yield(): () => void {
   return function () {
     beforeEach(async function () {
-      const users = [
-        {
-          userAddress: this.signers.alice.address,
-          deposits: [
-            {
-              tokenAmount: toWei(200),
-              weight: toWei(200).mul(2e6),
-              lockedFrom: INIT_TIME,
-              lockedUntil: INIT_TIME + ONE_YEAR,
-              isYield: false,
-            },
-            {
-              tokenAmount: toWei(500),
-              weight: toWei(500).mul(2e6),
-              lockedFrom: INIT_TIME,
-              lockedUntil: INIT_TIME + ONE_YEAR,
-              isYield: true,
-            },
-            {
-              tokenAmount: toWei(300),
-              weight: toWei(300).mul(2e6),
-              lockedFrom: INIT_TIME,
-              lockedUntil: INIT_TIME + ONE_YEAR,
-              isYield: false,
-            },
-          ],
-        },
-        {
-          userAddress: this.signers.bob.address,
-          deposits: [
-            {
-              tokenAmount: toWei(100),
-              weight: toWei(100).mul(1e6),
-              lockedFrom: 0,
-              lockedUntil: 0,
-              isYield: false,
-            },
-            {
-              tokenAmount: toWei(100),
-              weight: toWei(100).mul(2e6),
-              lockedFrom: INIT_TIME + 25,
-              lockedUntil: INIT_TIME + 25 + ONE_YEAR,
-              isYield: false,
-            },
-          ],
-        },
-        {
-          userAddress: this.signers.carol.address,
-          deposits: [
-            {
-              tokenAmount: toWei(500),
-              weight: toWei(500).mul(1.5e6),
-              lockedFrom: INIT_TIME,
-              lockedUntil: INIT_TIME + ONE_YEAR / 2,
-              isYield: false,
-            },
-            {
-              tokenAmount: toWei(400),
-              weight: toWei(400).mul(2e6),
-              lockedFrom: INIT_TIME,
-              lockedUntil: INIT_TIME + ONE_YEAR,
-              isYield: true,
-            },
-            {
-              tokenAmount: toWei(100),
-              weight: toWei(100).mul(2e6),
-              lockedFrom: INIT_TIME,
-              lockedUntil: INIT_TIME + ONE_YEAR,
-              isYield: false,
-            },
-          ],
-        },
-      ];
+      const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
       await this.ilvPool.migrateWeights(
         [this.signers.alice.address],
@@ -263,7 +121,38 @@ export function mintV1Yield(): () => void {
       const ilvBalance1 = await this.ilv.balanceOf(this.signers.alice.address);
       expect(ilvBalance1.sub(ilvBalance0)).to.be.equal(toWei(500));
     });
-    // it("")
+    it("should revert if stake !isYield", async function () {
+      await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
+      await expect(this.ilvPool.connect(this.signers.alice).mintV1Yield(0)).reverted;
+    });
+    it("should revert if lockedUntil > _now256", async function () {
+      await expect(this.ilvPool.connect(this.signers.alice).mintV1Yield(1)).reverted;
+    });
+    it("should revert if yield is already minted", async function () {
+      await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
+      await this.ilvPool.connect(this.signers.alice).mintV1Yield(1);
+      await expect(this.ilvPool.connect(this.signers.alice).mintV1Yield(1)).reverted;
+    });
+    it("should mint multiple v1 yield stake", async function () {
+      const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+
+      await this.ilvPool.migrateWeights(
+        [this.signers.carol.address],
+        [users[2].deposits[0].weight.add(users[2].deposits[1].weight).add(users[2].deposits[2].weight)],
+        users[2].deposits[0].weight.add(users[2].deposits[1].weight).add(users[2].deposits[2].weight),
+      );
+
+      const ilvBalance0 = await this.ilv.balanceOf(this.signers.carol.address);
+
+      await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
+      await this.ilvPool.connect(this.signers.carol).mintV1YieldMultiple([0, 1, 2]);
+
+      const ilvBalance1 = await this.ilv.balanceOf(this.signers.carol.address);
+
+      expect(ilvBalance1.sub(ilvBalance0)).to.be.equal(
+        users[2].deposits[0].tokenAmount.add(users[2].deposits[1].tokenAmount).add(users[2].deposits[2].tokenAmount),
+      );
+    });
   };
 }
 
