@@ -69,6 +69,13 @@ export function migrationTests(usingPool: string): () => void {
               lockedUntil: 0,
               isYield: false,
             },
+            {
+              tokenAmount: toWei(100),
+              weight: toWei(100).mul(2e6),
+              lockedFrom: INIT_TIME + 25,
+              lockedUntil: INIT_TIME + 25 + ONE_YEAR,
+              isYield: false,
+            },
           ],
         },
         {
@@ -101,39 +108,68 @@ export function migrationTests(usingPool: string): () => void {
 
       await v1Pool.setUsers(users);
     });
-    it("should migrate locked stakes - alice", async function () {
-      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+    context("#migrateLockedStake", function () {
+      it("should migrate locked stakes - alice", async function () {
+        const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
-      await pool.connect(this.signers.alice).migrateLockedStake([0, 2]);
+        await pool.connect(this.signers.alice).migrateLockedStake([0, 2]);
 
-      const aliceV1StakePositions = await Promise.all([
-        pool.getV1StakePosition(this.signers.alice.address, 0),
-        pool.getV1StakePosition(this.signers.alice.address, 2),
-      ]);
-      const aliceV1StakeIds = await Promise.all([
-        pool.getV1StakeId(this.signers.alice.address, aliceV1StakePositions[0]),
-        pool.getV1StakeId(this.signers.alice.address, aliceV1StakePositions[1]),
-      ]);
+        const aliceV1StakePositions = await Promise.all([
+          pool.getV1StakePosition(this.signers.alice.address, 0),
+          pool.getV1StakePosition(this.signers.alice.address, 2),
+        ]);
+        const aliceV1StakeIds = await Promise.all([
+          pool.getV1StakeId(this.signers.alice.address, aliceV1StakePositions[0]),
+          pool.getV1StakeId(this.signers.alice.address, aliceV1StakePositions[1]),
+        ]);
 
-      expect(aliceV1StakeIds[0]).to.be.equal(0);
-      expect(aliceV1StakeIds[1]).to.be.equal(2);
+        expect(aliceV1StakeIds[0]).to.be.equal(0);
+        expect(aliceV1StakeIds[1]).to.be.equal(2);
+      });
+      it("should migrate locked stakes - carol", async function () {
+        const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+        await pool.connect(this.signers.carol).migrateLockedStake([0, 2]);
+
+        const carolV1StakePositions = await Promise.all([
+          pool.getV1StakePosition(this.signers.carol.address, 0),
+          pool.getV1StakePosition(this.signers.carol.address, 2),
+        ]);
+        const carolV1StakeIds = await Promise.all([
+          pool.getV1StakeId(this.signers.carol.address, carolV1StakePositions[0]),
+          pool.getV1StakeId(this.signers.carol.address, carolV1StakePositions[1]),
+        ]);
+
+        expect(carolV1StakeIds[0]).to.be.equal(0);
+        expect(carolV1StakeIds[1]).to.be.equal(2);
+      });
+      it("should revert if migrating already migrated stake", async function () {
+        const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+        await pool.connect(this.signers.carol).migrateLockedStake([0, 2]);
+        await expect(pool.connect(this.signers.carol).migrateLockedStake([0, 2])).reverted;
+      });
+      it("should revert if migrating yield", async function () {
+        const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+        await expect(pool.connect(this.signers.carol).migrateLockedStake([1])).reverted;
+        await expect(pool.connect(this.signers.alice).migrateLockedStake([1])).reverted;
+      });
+      it("should revert if migrating unlocked stake", async function () {
+        const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+        await expect(pool.connect(this.signers.bob).migrateLockedStake([0])).reverted;
+      });
+      it("should revert if lockedFrom > v1StakeMaxPeriod", async function () {
+        const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+        await expect(pool.connect(this.signers.bob).migrateLockedStake([1])).reverted;
+      });
     });
-    it("should migrate locked stakes - carol", async function () {
-      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
-
-      await pool.connect(this.signers.carol).migrateLockedStake([0, 2]);
-
-      const carolV1StakePositions = await Promise.all([
-        pool.getV1StakePosition(this.signers.carol.address, 0),
-        pool.getV1StakePosition(this.signers.carol.address, 2),
-      ]);
-      const carolV1StakeIds = await Promise.all([
-        pool.getV1StakeId(this.signers.carol.address, carolV1StakePositions[0]),
-        pool.getV1StakeId(this.signers.carol.address, carolV1StakePositions[1]),
-      ]);
-
-      expect(carolV1StakeIds[0]).to.be.equal(0);
-      expect(carolV1StakeIds[1]).to.be.equal(2);
+    context("#mintV1Yield", function () {
+      it("should mint v1 yield", async function () {
+        const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      });
     });
   };
 }

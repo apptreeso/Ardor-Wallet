@@ -6,15 +6,40 @@ import { Errors } from "./libraries/Errors.sol";
 import { Stake } from "./libraries/Stake.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
+import { ICorePoolV1 } from "./interfaces/ICorePoolV1.sol";
 
 contract ILVPool is V2Migrator {
     using Errors for bytes4;
     using Stake for uint256;
 
+    /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
+    ///      if a v1 yield has already been minted by v2 contract
+    mapping(address => mapping(uint256 => bool)) public v1YieldMinted;
+
     event LogClaimYieldRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
     event LogClaimVaultRewardsMultiple(address indexed from, address[] pool);
     event LogStakeAsPool(address indexed from, address indexed staker, uint256 value);
     event LogMigrateWeights(address indexed by, uint256 numberOfUsers, uint248 totalWeight);
+
+    /**
+     * @dev logs mintV1Yield()
+     *
+     * @param from user address
+     * @param stakeId v1 yield id
+     * @param value number of ILV tokens minted
+     *
+     */
+    event LogV1YieldMinted(address indexed from, uint256 stakeId, uint256 value);
+
+    /**
+     * @dev logs mintV1Yield()
+     *
+     * @param from user address
+     * @param stakeIds array of v1 yield ids
+     * @param value number of ILV tokens minted
+     *
+     */
+    event LogV1YieldMintedMultiple(address indexed from, uint256[] stakeIds, uint256 value);
 
     /// @dev see __V2Migrator_init
     function initialize(
@@ -169,5 +194,56 @@ contract ILVPool is V2Migrator {
 
         // emits an event
         emit LogMigrateWeights(msg.sender, _users.length, totalWeight);
+    }
+
+    /**
+     * @dev reads v1 core pool yield data (using `_stakeId` and `msg.sender`),
+     *      validates, mints ILV according to v1 data and stores a receipt hash
+     *
+     * @param _stakeId v1 yield id
+     */
+    function mintV1Yield(uint256 _stakeId) external {
+        (uint256 tokenAmount, uint256 weight, , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
+            msg.sender,
+            _stakeId
+        );
+
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = ILVPool(this).mintV1Yield.selector;
+
+        fnSelector.verifyState(isYield, 0);
+        fnSelector.verifyState(_now256() > lockedUntil, 1);
+        fnSelector.verifyState(!v1YieldMinted[msg.sender][_stakeId], 2);
+
+        users[msg.sender].totalWeight -= uint248(weight);
+        v1YieldMinted[msg.sender][_stakeId] = true;
+        factory.mintYieldTo(msg.sender, tokenAmount, false);
+
+        emit LogV1YieldMinted(msg.sender, _stakeId, tokenAmount);
+    }
+
+    function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
+        uint256 amountToMint;
+
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = ILVPool(this).mintV1YieldMultiple.selector;
+
+        for (uint256 i = 0; i < _stakeIds.length; i++) {
+            uint256 _stakeId = _stakeIds[i];
+            (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
+                msg.sender,
+                _stakeId
+            );
+            fnSelector.verifyState(isYield, i * 3);
+            fnSelector.verifyState(_now256() > lockedUntil, i * 3 + 1);
+            fnSelector.verifyState(!v1YieldMinted[msg.sender][_stakeId], i * 3 + 2);
+
+            v1YieldMinted[msg.sender][_stakeId] = true;
+            amountToMint += tokenAmount;
+        }
+
+        factory.mintYieldTo(msg.sender, amountToMint, false);
+
+        emit LogV1YieldMintedMultiple(msg.sender, _stakeIds, amountToMint);
     }
 }
