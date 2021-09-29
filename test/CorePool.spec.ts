@@ -27,6 +27,7 @@ import {
 } from "./utils";
 import {
   migrationTests,
+  mintV1Yield,
   updateStakeLock,
   stakeAndLock,
   sync,
@@ -145,5 +146,6 @@ describe("CorePools", function () {
   describe("Migration tests", function () {
     context("ILV Pool", migrationTests("ILV"));
     context("Sushi LP Pool", migrationTests("LP"));
+    context("Mint yield", mintV1Yield());
   });
 });
