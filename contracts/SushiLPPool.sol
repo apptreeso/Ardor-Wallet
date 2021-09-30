@@ -50,4 +50,10 @@ contract SushiLPPool is V2Migrator {
 
         _claimVaultRewards(_staker);
     }
+
+    /// @dev checks if caller is ILVPool
+    function _requirePoolIsValid() internal view {
+        bool poolIsValid = address(factory.pools(ilv)) == msg.sender;
+        require(poolIsValid);
+    }
 }

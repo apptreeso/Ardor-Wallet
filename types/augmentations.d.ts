@@ -26,7 +26,8 @@ declare module "mocha" {
     lpPool: SushiLPPoolMock;
     flashPool: FlashPoolMock;
     factory: PoolFactoryMock;
-    corePoolV1: CorePoolV1Mock;
+    ilvPoolV1: CorePoolV1Mock;
+    lpPoolV1: CorePoolV1Mock;
     ilv: ERC20Mock;
     silv: ERC20Mock;
     lp: ERC20Mock;

@@ -1,7 +1,8 @@
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
-import { ERC20Mock, ILVPoolMock, SushiLPPoolMock } from "../../types";
+import { ERC20Mock, ILVPoolMock, SushiLPPoolMock, CorePoolV1Mock } from "../../types";
 
 export const SECONDS_PER_UPDATE = 1209600;
 
@@ -38,4 +39,158 @@ export const getPool = (
   usingPool: string,
 ): ILVPoolMock | SushiLPPoolMock => (usingPool === "ILV" ? ilvPoolInstance : lpPoolInstance);
 
+export const getV1Pool = (
+  ilvPoolInstance: CorePoolV1Mock,
+  lpPoolInstance: CorePoolV1Mock,
+  usingPool: string,
+): CorePoolV1Mock => (usingPool === "ILV" ? ilvPoolInstance : lpPoolInstance);
+
 export const ONE_YEAR = 31536000;
+
+export const getUsers0 = (addresses: string[]) => [
+  {
+    userAddress: addresses[0],
+    deposits: [
+      {
+        tokenAmount: toWei(200),
+        weight: toWei(200).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(500),
+        weight: toWei(500).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: true,
+      },
+      {
+        tokenAmount: toWei(300),
+        weight: toWei(300).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+  {
+    userAddress: addresses[1],
+    deposits: [
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100).mul(1e6),
+        lockedFrom: 0,
+        lockedUntil: 0,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100).mul(2e6),
+        lockedFrom: INIT_TIME + 25,
+        lockedUntil: INIT_TIME + 25 + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+  {
+    userAddress: addresses[2],
+    deposits: [
+      {
+        tokenAmount: toWei(500),
+        weight: toWei(500).mul(1.5e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR / 2,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(400),
+        weight: toWei(400).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: true,
+      },
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+];
+
+export const getUsers1 = (addresses: string[]) => [
+  {
+    userAddress: addresses[0],
+    deposits: [
+      {
+        tokenAmount: toWei(200),
+        weight: toWei(200).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(500),
+        weight: toWei(500).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: true,
+      },
+      {
+        tokenAmount: toWei(300),
+        weight: toWei(300).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+  {
+    userAddress: addresses[1],
+    deposits: [
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100).mul(1e6),
+        lockedFrom: 0,
+        lockedUntil: 0,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100).mul(2e6),
+        lockedFrom: INIT_TIME + 25,
+        lockedUntil: INIT_TIME + 25 + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+  {
+    userAddress: addresses[2],
+    deposits: [
+      {
+        tokenAmount: toWei(500),
+        weight: toWei(500).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: true,
+      },
+      {
+        tokenAmount: toWei(400),
+        weight: toWei(400).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: true,
+      },
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: true,
+      },
+    ],
+  },
+];

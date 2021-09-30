@@ -26,6 +26,10 @@ import {
   toAddress,
 } from "./utils";
 import {
+  setWeight,
+  migrationTests,
+  mintV1Yield,
+  updateStakeLock,
   stakeAndLock,
   sync,
   stakeFlexible,
@@ -34,6 +38,8 @@ import {
   claimYieldRewardsMultiple,
   unstakeFlexible,
   unstakeLocked,
+  unstakeLockedMultiple,
+  migrateUser,
 } from "./CorePool.behavior";
 
 chai.use(solidity);
@@ -42,7 +48,6 @@ chai.use(chaiSubset);
 describe("CorePools", function () {
   before(async function () {
     this.signers = {} as Signers;
-
     this.ILVPool = <ILVPoolMock__factory>await ethers.getContractFactory("ILVPoolMock");
     this.SushiLPPool = <SushiLPPoolMock__factory>await ethers.getContractFactory("SushiLPPoolMock");
     this.PoolFactory = <PoolFactoryMock__factory>await ethers.getContractFactory("PoolFactoryMock");
@@ -73,7 +78,8 @@ describe("CorePools", function () {
       INIT_TIME,
       END_TIME,
     ])) as PoolFactoryMock;
-    this.corePoolV1 = await this.CorePoolV1.deploy();
+    this.ilvPoolV1 = await this.CorePoolV1.deploy();
+    this.lpPoolV1 = await this.CorePoolV1.deploy();
     this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
       this.ilv.address,
       this.silv.address,
@@ -81,7 +87,7 @@ describe("CorePools", function () {
       this.factory.address,
       INIT_TIME,
       ILV_POOL_WEIGHT,
-      this.corePoolV1.address,
+      this.ilvPoolV1.address,
       V1_STAKE_MAX_PERIOD,
     ])) as ILVPoolMock;
     this.lpPool = (await upgrades.deployProxy(this.SushiLPPool, [
@@ -91,7 +97,7 @@ describe("CorePools", function () {
       this.factory.address,
       INIT_TIME,
       LP_POOL_WEIGHT,
-      this.corePoolV1.address,
+      this.lpPoolV1.address,
       V1_STAKE_MAX_PERIOD,
     ])) as SushiLPPoolMock;
 
@@ -134,5 +140,26 @@ describe("CorePools", function () {
   describe("#sync", function () {
     context("ILV Pool", sync("ILV"));
     context("Sushi LP Pool", sync("LP"));
+  });
+  describe("#updateStakeLock", function () {
+    context("ILV Pool", updateStakeLock("ILV"));
+    context("Sushi LP Pool", updateStakeLock("LP"));
+  });
+  describe("#setWeight", function () {
+    context("ILV Pool", setWeight("ILV"));
+    context("Sushi LP Pool", setWeight("LP"));
+  });
+  describe("#migrateUser", function () {
+    context("ILV Pool", migrateUser("ILV"));
+    context("Sushi LP Pool", migrateUser("LP"));
+  });
+  describe("#unstakeLockedMultiple", function () {
+    context("ILV Pool", unstakeLockedMultiple("ILV"));
+    context("Sushi LP Pool", unstakeLockedMultiple("LP"));
+  });
+  describe("Migration tests", function () {
+    context("ILV Pool", migrationTests("ILV"));
+    context("Sushi LP Pool", migrationTests("LP"));
+    context("Mint yield", mintV1Yield());
   });
 });

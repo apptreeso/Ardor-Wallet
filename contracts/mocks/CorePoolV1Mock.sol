@@ -17,7 +17,7 @@ contract CorePoolV1Mock is ICorePoolV1 {
     function setUsers(UserParameter[] calldata _userParameter) external {
         for (uint256 i = 0; i < _userParameter.length; i++) {
             address user = _userParameter[i].userAddress;
-            for (uint256 j = 0; i < _userParameter[i].deposits.length; i++) {
+            for (uint256 j = 0; j < _userParameter[i].deposits.length; j++) {
                 users[user].push(_userParameter[i].deposits[j]);
             }
         }
