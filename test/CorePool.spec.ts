@@ -38,6 +38,7 @@ import {
   claimYieldRewardsMultiple,
   unstakeFlexible,
   unstakeLocked,
+  migrateUser,
 } from "./CorePool.behavior";
 
 chai.use(solidity);
@@ -146,6 +147,10 @@ describe("CorePools", function () {
   describe("#setWeight", function () {
     context("ILV Pool", setWeight("ILV"));
     context("Sushi LP Pool", setWeight("LP"));
+  });
+  describe("#migrateUser", function () {
+    context("ILV Pool", migrateUser("ILV"));
+    context("Sushi LP Pool", migrateUser("LP"));
   });
   describe("Migration tests", function () {
     context("ILV Pool", migrationTests("ILV"));
