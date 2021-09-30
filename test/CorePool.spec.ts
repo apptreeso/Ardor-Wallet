@@ -26,6 +26,7 @@ import {
   toAddress,
 } from "./utils";
 import {
+  setWeight,
   migrationTests,
   mintV1Yield,
   updateStakeLock,
@@ -141,6 +142,10 @@ describe("CorePools", function () {
   describe("#updateStakeLock", function () {
     context("ILV Pool", updateStakeLock("ILV"));
     context("Sushi LP Pool", updateStakeLock("LP"));
+  });
+  describe("#setWeight", function () {
+    context("ILV Pool", setWeight("ILV"));
+    context("Sushi LP Pool", setWeight("LP"));
   });
   describe("Migration tests", function () {
     context("ILV Pool", migrationTests("ILV"));

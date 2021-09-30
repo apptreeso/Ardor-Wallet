@@ -22,12 +22,45 @@ import {
   getUsers1,
 } from "./utils";
 
-const { MaxUint256 } = ethers.constants;
+const { MaxUint256, AddressZero } = ethers.constants;
 
 chai.use(solidity);
 chai.use(chaiSubset);
 
 const { expect } = chai;
+
+export function setWeight(usingPool: string): () => void {
+  return function () {
+    it("should change pool weight from 0 to x", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await this.factory.connect(this.signers.deployer).changePoolWeight(pool.address, 1200);
+
+      const newPoolWeight = await pool.weight();
+
+      expect(newPoolWeight).to.be.equal(1200);
+    });
+    it("should change pool weight from x to 0", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await this.factory.connect(this.signers.deployer).changePoolWeight(pool.address, 0);
+
+      const newPoolWeight = await pool.weight();
+
+      expect(newPoolWeight).to.be.equal(0);
+    });
+    it("should block unauthorized addresses to change weight through pool", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await expect(pool.connect(this.signers.deployer).setWeight(1000)).reverted;
+    });
+    it("should block unauthorized addresses to change weight through factory", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await expect(this.factory.connect(this.signers.alice).changePoolWeight(pool.address, 0)).reverted;
+    });
+  };
+}
 
 export function migrationTests(usingPool: string): () => void {
   return function () {
@@ -103,6 +136,55 @@ export function migrationTests(usingPool: string): () => void {
         const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
         await expect(pool.connect(this.signers.bob).migrateLockedStake([1])).reverted;
+      });
+      it("should migrate an user stake", async function () {
+        const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+        const token = getToken(this.ilv, this.lp, usingPool);
+
+        await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+        await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+        await pool.setNow256(INIT_TIME + 100);
+
+        await pool.connect(this.signers.alice).claimYieldRewards(false);
+
+        await pool.setNow256(INIT_TIME + 200);
+
+        const {
+          pendingYield: pendingYield0,
+          totalWeight: totalWeight0,
+          subYieldRewards: subYieldRewards0,
+          subVaultRewards: subVaultRewards0,
+        } = await pool.users(this.signers.alice.address);
+
+        await pool.connect(this.signers.alice).migrateUser(this.signers.bob.address);
+
+        const {
+          pendingYield: pendingYield1,
+          totalWeight: totalWeight1,
+          subYieldRewards: subYieldRewards1,
+          subVaultRewards: subVaultRewards1,
+        } = await pool.users(this.signers.bob.address);
+
+        expect(pendingYield0).to.be.equal(pendingYield1);
+        expect(totalWeight0).to.be.equal(totalWeight1);
+        expect(subYieldRewards0).to.be.equal(subYieldRewards1);
+        expect(subVaultRewards0).to.be.equal(subVaultRewards1);
+      });
+      it("should revert if _to = address(0)", async function () {
+        const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+        const token = getToken(this.ilv, this.lp, usingPool);
+
+        await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+        await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+        await pool.setNow256(INIT_TIME + 100);
+
+        await pool.connect(this.signers.alice).claimYieldRewards(false);
+
+        await pool.setNow256(INIT_TIME + 200);
+
+        await expect(pool.connect(this.signers.alice).migrateUser(AddressZero)).reverted;
       });
     });
   };

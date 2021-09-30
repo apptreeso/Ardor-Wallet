@@ -1055,13 +1055,9 @@ abstract contract CorePool is
         emit LogClaimVaultRewards(_staker, pendingRevDis);
     }
 
+    /// @dev checks if pool is paused
     function _requireNotPaused() internal view {
         require(!paused());
-    }
-
-    function _requirePoolIsValid() internal view {
-        bool poolIsValid = address(factory.pools(ilv)) == msg.sender;
-        require(poolIsValid);
     }
 
     /// @inheritdoc UUPSUpgradeable
