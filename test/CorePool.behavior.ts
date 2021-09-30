@@ -56,6 +56,15 @@ export function migrationTests(usingPool: string): () => void {
         expect(aliceV1StakeIds[0]).to.be.equal(0);
         expect(aliceV1StakeIds[1]).to.be.equal(2);
       });
+      it("should return 0 if _stakeId doesn't exist", async function () {
+        const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+        await pool.connect(this.signers.alice).migrateLockedStake([0, 2]);
+
+        const aliceInvalidV1StakePosition = await pool.getV1StakePosition(this.signers.alice.address, 4);
+
+        expect(aliceInvalidV1StakePosition).to.be.equal(0);
+      });
       it("should migrate locked stakes - carol", async function () {
         const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
@@ -821,6 +830,21 @@ export function stakeAndLock(usingPool: string): () => void {
       const balance = await pool.balanceOf(this.signers.alice.address);
 
       expect(balance).to.be.equal(toWei(100));
+    });
+    it("should get correct stakesLength", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR);
+
+      const balance = await pool.balanceOf(this.signers.alice.address);
+      const stakesLength = await pool.getStakesLength(this.signers.alice.address);
+
+      expect(balance).to.be.equal(toWei(100));
+      expect(stakesLength).to.be.equal(2);
     });
     it("should revert when staking longer than 2 years", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
