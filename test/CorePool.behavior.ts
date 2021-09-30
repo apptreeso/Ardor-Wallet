@@ -522,6 +522,229 @@ export function sync(usingPool: string): () => void {
   };
 }
 
+export function unstakeLockedMultiple(usingPool: string): () => void {
+  return function () {
+    it("should unstake multiple locked tokens", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR * 2 + 1);
+
+      const balance0 = await pool.balanceOf(this.signers.alice.address);
+
+      const { value: value00 } = await pool.getStake(this.signers.alice.address, 0);
+      const { value: value10 } = await pool.getStake(this.signers.alice.address, 1);
+      const { value: value20 } = await pool.getStake(this.signers.alice.address, 2);
+      const { value: value30 } = await pool.getStake(this.signers.alice.address, 3);
+
+      const unstakeParameters = [
+        { stakeId: 0, value: toWei(25) },
+        { stakeId: 1, value: toWei(25) },
+        { stakeId: 2, value: toWei(25) },
+        { stakeId: 3, value: toWei(25) },
+      ];
+
+      await pool.connect(this.signers.alice).unstakeLockedMultiple(unstakeParameters, false);
+
+      const balance1 = await pool.balanceOf(this.signers.alice.address);
+
+      const { value: value01 } = await pool.getStake(this.signers.alice.address, 0);
+      const { value: value11 } = await pool.getStake(this.signers.alice.address, 1);
+      const { value: value21 } = await pool.getStake(this.signers.alice.address, 2);
+      const { value: value31 } = await pool.getStake(this.signers.alice.address, 3);
+
+      expect(balance0).to.be.equal(toWei(100));
+      expect(balance1).to.be.equal(0);
+      expect(value00).to.be.equal(toWei(25));
+      expect(value10).to.be.equal(toWei(25));
+      expect(value20).to.be.equal(toWei(25));
+      expect(value30).to.be.equal(toWei(25));
+      expect(value01).to.be.equal(0);
+      expect(value11).to.be.equal(0);
+      expect(value21).to.be.equal(0);
+      expect(value31).to.be.equal(0);
+    });
+    it("should revert if unstake parameters length is 0", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR * 2 + 1);
+
+      await pool.getStake(this.signers.alice.address, 0);
+      await pool.getStake(this.signers.alice.address, 1);
+      await pool.getStake(this.signers.alice.address, 2);
+      await pool.getStake(this.signers.alice.address, 3);
+
+      const unstakeParameters: any[] = [];
+
+      await expect(pool.connect(this.signers.alice).unstakeLockedMultiple(unstakeParameters, false)).reverted;
+    });
+    it("should revert if unstaking value is higher than stake value", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR * 2 + 1);
+
+      await pool.getStake(this.signers.alice.address, 0);
+      await pool.getStake(this.signers.alice.address, 1);
+      await pool.getStake(this.signers.alice.address, 2);
+      await pool.getStake(this.signers.alice.address, 3);
+
+      const unstakeParameters = [
+        { stakeId: 0, value: toWei(25) },
+        { stakeId: 1, value: toWei(26) },
+        { stakeId: 2, value: toWei(25) },
+        { stakeId: 3, value: toWei(25) },
+      ];
+
+      await expect(pool.connect(this.signers.alice).unstakeLockedMultiple(unstakeParameters, false)).reverted;
+    });
+    it("should unstake multiple locked tokens partially", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+
+      await pool.setNow256(ONE_YEAR * 2 + 1);
+
+      const balance0 = await pool.balanceOf(this.signers.alice.address);
+
+      const { value: value00 } = await pool.getStake(this.signers.alice.address, 0);
+      const { value: value10 } = await pool.getStake(this.signers.alice.address, 1);
+      const { value: value20 } = await pool.getStake(this.signers.alice.address, 2);
+      const { value: value30 } = await pool.getStake(this.signers.alice.address, 3);
+
+      const unstakeParameters = [
+        { stakeId: 0, value: toWei(25) },
+        { stakeId: 1, value: toWei(15) },
+        { stakeId: 2, value: toWei(20) },
+        { stakeId: 3, value: toWei(22) },
+      ];
+
+      await pool.connect(this.signers.alice).unstakeLockedMultiple(unstakeParameters, false);
+
+      const balance1 = await pool.balanceOf(this.signers.alice.address);
+
+      const { value: value01 } = await pool.getStake(this.signers.alice.address, 0);
+      const { value: value11 } = await pool.getStake(this.signers.alice.address, 1);
+      const { value: value21 } = await pool.getStake(this.signers.alice.address, 2);
+      const { value: value31 } = await pool.getStake(this.signers.alice.address, 3);
+
+      expect(balance0).to.be.equal(toWei(100));
+      expect(balance1).to.be.equal(toWei(18));
+      expect(value00).to.be.equal(toWei(25));
+      expect(value10).to.be.equal(toWei(25));
+      expect(value20).to.be.equal(toWei(25));
+      expect(value30).to.be.equal(toWei(25));
+      expect(value01).to.be.equal(0);
+      expect(value11).to.be.equal(toWei(10));
+      expect(value21).to.be.equal(toWei(5));
+      expect(value31).to.be.equal(toWei(3));
+    });
+    it("should unstake multiple locked yield after unlock", async function () {
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+
+      await this.ilvPool.setNow256(INIT_TIME + 100);
+
+      await this.ilvPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      await this.ilvPool.setNow256(INIT_TIME + 200);
+
+      await this.ilvPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      await this.ilvPool.setNow256(INIT_TIME + 300);
+
+      await this.ilvPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      await this.ilvPool.setNow256(INIT_TIME + 400);
+
+      await this.ilvPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      const { value: value00 } = await this.ilvPool.getStake(this.signers.alice.address, 1);
+      const { value: value10 } = await this.ilvPool.getStake(this.signers.alice.address, 2);
+      const { value: value20 } = await this.ilvPool.getStake(this.signers.alice.address, 3);
+      const { value: value30 } = await this.ilvPool.getStake(this.signers.alice.address, 4);
+
+      const unstakeParameters = [
+        { stakeId: 1, value: value00 },
+        { stakeId: 2, value: value10 },
+        { stakeId: 3, value: value20 },
+        { stakeId: 4, value: value30 },
+      ];
+
+      await this.ilvPool.setNow256(INIT_TIME + 401 + ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).unstakeLockedMultiple(unstakeParameters, true);
+
+      const { value: value01 } = await this.ilvPool.getStake(this.signers.alice.address, 1);
+      const { value: value11 } = await this.ilvPool.getStake(this.signers.alice.address, 2);
+      const { value: value21 } = await this.ilvPool.getStake(this.signers.alice.address, 3);
+      const { value: value31 } = await this.ilvPool.getStake(this.signers.alice.address, 4);
+
+      expect(value01).to.be.equal(0);
+      expect(value11).to.be.equal(0);
+      expect(value21).to.be.equal(0);
+      expect(value31).to.be.equal(0);
+    });
+    it("should revert unstaking multiple locked yield before unlock", async function () {
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(25), ONE_YEAR * 2);
+
+      await this.ilvPool.setNow256(INIT_TIME + 100);
+
+      await this.ilvPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      await this.ilvPool.setNow256(INIT_TIME + 200);
+
+      await this.ilvPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      await this.ilvPool.setNow256(INIT_TIME + 300);
+
+      await this.ilvPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      await this.ilvPool.setNow256(INIT_TIME + 400);
+
+      await this.ilvPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      const { value: value00 } = await this.ilvPool.getStake(this.signers.alice.address, usingPool === "ILV" ? 1 : 0);
+      const { value: value10 } = await this.ilvPool.getStake(this.signers.alice.address, usingPool === "ILV" ? 2 : 1);
+      const { value: value20 } = await this.ilvPool.getStake(this.signers.alice.address, usingPool === "ILV" ? 3 : 2);
+      const { value: value30 } = await this.ilvPool.getStake(this.signers.alice.address, usingPool === "ILV" ? 4 : 3);
+
+      const unstakeParameters = [
+        { stakeId: usingPool === "ILV" ? 1 : 0, value: value00 },
+        { stakeId: usingPool === "ILV" ? 2 : 1, value: value10 },
+        { stakeId: usingPool === "ILV" ? 3 : 2, value: value20 },
+        { stakeId: usingPool === "ILV" ? 4 : 3, value: value30 },
+      ];
+
+      await expect(this.ilvPool.connect(this.signers.alice).unstakeLockedMultiple(unstakeParameters, true)).reverted;
+    });
+  };
+}
+
 export function unstakeLocked(usingPool: string): () => void {
   return function () {
     it("should unstake locked tokens", async function () {

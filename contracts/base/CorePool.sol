@@ -824,7 +824,6 @@ abstract contract CorePool is
         emit LogUnstakeLocked(msg.sender, _stakeId, _value);
     }
 
-    // TODO: improve variable names
     function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).unstakeLockedMultiple.selector;
@@ -843,7 +842,7 @@ abstract contract CorePool is
             // checks if stake is unlocked already
             fnSelector.verifyState(_now256() > stake.lockedUntil, i * 3);
             // stake structure may get deleted, so we save isYield flag to be able to use it
-            // we also save stakeValue for gasSavings
+            // we also save stakeValue for gas savings
             (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
             fnSelector.verifyState(isYield == _unstakingYield, i * 3 + 1);
             fnSelector.verifyState(stakeValue >= _value, i * 3 + 2);

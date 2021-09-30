@@ -38,6 +38,7 @@ import {
   claimYieldRewardsMultiple,
   unstakeFlexible,
   unstakeLocked,
+  unstakeLockedMultiple,
   migrateUser,
 } from "./CorePool.behavior";
 
@@ -151,6 +152,10 @@ describe("CorePools", function () {
   describe("#migrateUser", function () {
     context("ILV Pool", migrateUser("ILV"));
     context("Sushi LP Pool", migrateUser("LP"));
+  });
+  describe("#unstakeLockedMultiple", function () {
+    context("ILV Pool", unstakeLockedMultiple("ILV"));
+    context("Sushi LP Pool", unstakeLockedMultiple("LP"));
   });
   describe("Migration tests", function () {
     context("ILV Pool", migrationTests("ILV"));
