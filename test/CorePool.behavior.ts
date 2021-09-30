@@ -153,6 +153,43 @@ export function mintV1Yield(): () => void {
         users[2].deposits[0].tokenAmount.add(users[2].deposits[1].tokenAmount).add(users[2].deposits[2].tokenAmount),
       );
     });
+    it("should revert minting multiple yield stakes if already minted", async function () {
+      const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+
+      await this.ilvPool.migrateWeights(
+        [this.signers.carol.address],
+        [users[2].deposits[0].weight.add(users[2].deposits[1].weight).add(users[2].deposits[2].weight)],
+        users[2].deposits[0].weight.add(users[2].deposits[1].weight).add(users[2].deposits[2].weight),
+      );
+
+      await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
+      await this.ilvPool.connect(this.signers.carol).mintV1YieldMultiple([0, 1, 2]);
+      await expect(this.ilvPool.connect(this.signers.carol).mintV1YieldMultiple([0, 1, 2])).reverted;
+    });
+    it("should revert if passing !isYield _stakeId", async function () {
+      const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+
+      await this.ilvPool.migrateWeights(
+        [this.signers.alice.address],
+        [users[0].deposits[0].weight.add(users[0].deposits[1].weight).add(users[0].deposits[2].weight)],
+        users[0].deposits[0].weight.add(users[0].deposits[1].weight).add(users[0].deposits[2].weight),
+      );
+
+      await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
+      await expect(this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([0, 1, 2])).reverted;
+    });
+    it("should revert on mintYieldMultiple if yield is locked", async function () {
+      const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+
+      await this.ilvPool.migrateWeights(
+        [this.signers.alice.address],
+        [users[0].deposits[0].weight.add(users[0].deposits[1].weight).add(users[0].deposits[2].weight)],
+        users[0].deposits[0].weight.add(users[0].deposits[1].weight).add(users[0].deposits[2].weight),
+      );
+
+      await this.ilvPool.setNow256(INIT_TIME);
+      await expect(this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([0, 1, 2])).reverted;
+    });
   };
 }
 
