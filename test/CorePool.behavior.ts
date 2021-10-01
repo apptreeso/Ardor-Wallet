@@ -255,6 +255,8 @@ export function migrationTests(usingPool: string): () => void {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
+      await pool.connect(this.signers.alice).migrateLockedStake([0, 2]);
+
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
