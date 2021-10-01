@@ -251,6 +251,26 @@ export function migrationTests(usingPool: string): () => void {
         await expect(pool.connect(this.signers.bob).migrateLockedStake([1])).reverted;
       });
     });
+    it("should accumulate ILV correctly - with v1 stake ids", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(INIT_TIME + 10);
+
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      const totalWeight = await this.factory.totalWeight();
+      const poolWeight = await pool.weight();
+
+      const expectedRewards = 10 * Number(ILV_PER_SECOND) * (poolWeight / totalWeight);
+
+      const { pendingYield } = await pool.pendingRewards(this.signers.alice.address);
+
+      expect(expectedRewards).to.be.equal(Number(pendingYield));
+    });
   };
 }
 
