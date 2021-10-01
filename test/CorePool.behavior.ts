@@ -960,7 +960,7 @@ export function claimYieldRewardsMultiple(): () => void {
       expect(compoundedIlvYield).to.be.equal(ilvPoolPendingYield);
       expect(sILVBalance).to.be.equal(lpPoolPendingYield);
     });
-    it("should revert if claiming from invalid pool", async function () {
+    it("should revert if claiming invalid pool", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
@@ -974,6 +974,20 @@ export function claimYieldRewardsMultiple(): () => void {
         this.ilvPool
           .connect(this.signers.alice)
           .claimYieldRewardsMultiple([this.ilvPool.address, this.signers.bob.address], [false, true]),
+      ).reverted;
+    });
+    it("should revert if claiming from invalid address", async function () {
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.lpPool.setNow256(INIT_TIME + 1000);
+      await this.lpPool.setNow256(INIT_TIME + 1000);
+
+      await expect(
+        this.lpPool.connect(this.signers.alice).claimYieldRewardsFromRouter(this.signers.alice.address, false),
       ).reverted;
     });
   };
