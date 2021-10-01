@@ -454,7 +454,7 @@ abstract contract CorePool is
         // update user record
         user.flexibleBalance += uint128(_value);
         user.totalWeight += uint248(stakeWeight);
-        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
+        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
@@ -753,7 +753,7 @@ abstract contract CorePool is
 
         // update user record
         user.totalWeight += uint248(stakeWeight);
-        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
+        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
@@ -842,7 +842,7 @@ abstract contract CorePool is
 
         // update user record
         user.totalWeight = uint248(user.totalWeight - previousWeight + newWeight);
-        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
+        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
 
         // update global variable
         globalWeight = globalWeight - previousWeight + newWeight;
@@ -910,7 +910,7 @@ abstract contract CorePool is
         }
 
         user.totalWeight -= uint248(weightToRemove);
-        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
+        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
 
         // update global variable
         globalWeight -= weightToRemove;
@@ -1062,7 +1062,7 @@ abstract contract CorePool is
         }
 
         // subYieldRewards needs to be updated on every `_processRewards` call
-        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
+        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
 
         // emit an event
         emit LogClaimYieldRewards(_staker, _useSILV, pendingYieldToClaim);
