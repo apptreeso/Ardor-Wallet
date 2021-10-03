@@ -260,14 +260,15 @@ abstract contract CorePool is
         CorePool(this).pendingRewards.selector.verifyNonZeroInput(uint160(_staker), 0);
         // `newYieldRewardsPerWeight` will store stored or recalculated value for `yieldRewardsPerWeight`
         uint256 newYieldRewardsPerWeight;
-
+        // gas savings
+        uint256 _lastYieldDistribution = lastYieldDistribution;
         // if smart contract state was not updated recently, `yieldRewardsPerWeight` value
         // is outdated and we need to recalculate it in order to calculate pending rewards correctly
-        if (_now256() > lastYieldDistribution && globalWeight != 0) {
+        if (_now256() > _lastYieldDistribution && globalWeight != 0) {
             uint256 endTime = factory.endTime();
             uint256 multiplier = _now256() > endTime
-                ? endTime - lastYieldDistribution
-                : _now256() - lastYieldDistribution;
+                ? endTime - _lastYieldDistribution
+                : _now256() - _lastYieldDistribution;
             uint256 ilvRewards = (multiplier * weight * factory.ilvPerSecond()) / factory.totalWeight();
             uint256 v1GlobalWeight = ICorePoolV1(corePoolV1).usersLockingWeight();
 
@@ -304,6 +305,8 @@ abstract contract CorePool is
 
         uint256 subYieldRewardsStored = user.subYieldRewards;
         uint256 subVaultRewardsStored = user.subVaultRewards;
+        uint256 subYieldRewards;
+        uint256 subVaultRewards;
 
         if (previousTotalV1Weight != totalV1Weight) {
             uint256 totalWeightStored = user.totalWeight;
@@ -330,10 +333,10 @@ abstract contract CorePool is
         }
 
         pendingYield =
-            ((userWeight + weightToAdd).weightToReward(newYieldRewardsPerWeight) - user.subYieldRewards) +
+            ((userWeight + totalV1Weight).weightToReward(newYieldRewardsPerWeight) - subYieldRewards) +
             user.pendingYield;
         pendingRevDis =
-            ((userWeight + weightToAdd).weightToReward(vaultRewardsPerWeight) - user.subVaultRewards) +
+            ((userWeight + totalV1Weight).weightToReward(vaultRewardsPerWeight) - subVaultRewards) +
             user.pendingRevDis;
     }
 
@@ -915,14 +918,16 @@ abstract contract CorePool is
      *      updates factory state via `updateILVPerSecond`
      */
     function _sync() internal virtual {
+        // gas savings
+        IFactory _factory = factory;
         // update ILV per second value in factory if required
-        if (factory.shouldUpdateRatio()) {
-            factory.updateILVPerSecond();
+        if (_factory.shouldUpdateRatio()) {
+            _factory.updateILVPerSecond();
         }
 
         // check bound conditions and if these are not met -
         // exit silently, without emitting an event
-        uint256 endTime = factory.endTime();
+        uint256 endTime = _factory.endTime();
         if (lastYieldDistribution >= endTime) {
             return;
         }
@@ -943,7 +948,7 @@ abstract contract CorePool is
         uint256 ilvPerSecond = factory.ilvPerSecond();
 
         // calculate the reward
-        uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory.totalWeight();
+        uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / _factory.totalWeight();
 
         // update rewards per weight and `lastYieldDistribution`
         yieldRewardsPerWeight += ilvReward.rewardPerWeight((globalWeight + v1GlobalWeight));
