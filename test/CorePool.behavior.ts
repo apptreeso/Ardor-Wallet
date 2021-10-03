@@ -251,28 +251,38 @@ export function migrationTests(usingPool: string): () => void {
         await expect(pool.connect(this.signers.bob).migrateLockedStake([1])).reverted;
       });
     });
-    // it("should accumulate ILV correctly - with v1 stake ids", async function () {
-    //   const token = getToken(this.ilv, this.lp, usingPool);
-    //   const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+    it("should accumulate ILV correctly - with v1 stake ids", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
 
-    //   await pool.connect(this.signers.alice).migrateLockedStake([0, 2]);
+      await pool.connect(this.signers.alice).migrateLockedStake([0, 2]);
 
-    //   await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-    //   await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
-    //   await pool.setNow256(INIT_TIME + 10);
+      await pool.setNow256(INIT_TIME + 10);
 
-    //   await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
-    //   const totalWeight = await this.factory.totalWeight();
-    //   const poolWeight = await pool.weight();
+      const totalWeight = await this.factory.totalWeight();
+      const poolWeight = await pool.weight();
+      const aliceStakeWeight = toWei(600).mul(2e6);
+      const totalV1UsersWeight = await v1Pool.usersLockingWeight();
+      const totalV2UsersWeight = (await pool.globalWeight()).sub(toWei(100).mul(2e6));
 
-    //   const expectedRewards = 10 * Number(ILV_PER_SECOND) * (poolWeight / totalWeight);
+      const expectedRewards =
+        10 *
+        Number(ILV_PER_SECOND) *
+        (poolWeight / totalWeight) *
+        (Number(aliceStakeWeight) / Number(totalV1UsersWeight.add(totalV2UsersWeight)));
 
-    //   const { pendingYield } = await pool.users(this.signers.alice.address);
+      const { pendingYield } = await pool.users(this.signers.alice.address);
 
-    //   expect(expectedRewards).to.be.equal(Number(pendingYield));
-    // });
+      expect(ethers.utils.formatEther(expectedRewards).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(pendingYield).slice(0, 6),
+      );
+    });
   };
 }
 

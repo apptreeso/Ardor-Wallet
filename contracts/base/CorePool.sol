@@ -1152,8 +1152,8 @@ abstract contract CorePool is
      *         as if the user has been accumulating yield and revenue distributions
      *         with most recent weight since the last user.subYieldRewards and
      *         user.subVaultRewards update
-     * @notice v1 stake weight of a given stakeId can never increase in v1 contracts.
-     *         this way we are safe of attacks by increasing weight in v1 and having
+     * @notice v1 stake token amount of a given stakeId can never increase in v1 contracts.
+     *         this way we are safe of attacks by adding more tokens in v1 and having
      *         a higher accumulation of yield and revenue distributions
      *
      */
