@@ -283,20 +283,50 @@ abstract contract CorePool is
         // based on the rewards per weight value, calculate pending rewards;
         User storage user = users[_staker];
 
-        // gas savings
         (uint256 v1StakesLength, uint256 userWeight) = (uint256(user.v1IdsLength), uint256(user.totalWeight));
-        // value will be used to add to final weight calculations before
-        // calculating rewards
-        uint256 weightToAdd;
 
-        // checks if user has any migrated stake from v1
+        uint256 totalV1Weight;
+        uint256 previousTotalV1Weight;
+
         if (v1StakesLength > 0) {
             // loops through v1StakesIds and adds v1 weight with V1_WEIGHT_BONUS
             for (uint256 i = 0; i < v1StakesLength; i++) {
-                (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
+                // saves v1 stake id to memory
+                uint256 stakeId = user.v1StakesIds[i];
+                (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, stakeId);
 
-                weightToAdd += _weight;
+                uint256 storedWeight = v1StakesMigrated[_staker][stakeId];
+
+                previousTotalV1Weight += storedWeight;
+                totalV1Weight += _weight;
             }
+        }
+
+        uint256 subYieldRewardsStored = user.subYieldRewards;
+        uint256 subVaultRewardsStored = user.subVaultRewards;
+
+        if (previousTotalV1Weight != totalV1Weight) {
+            uint256 totalWeightStored = user.totalWeight;
+
+            // gets subYieldRewards value to be used for yield calculations
+            // during execution
+            subYieldRewards = _getSubRewardsValue(
+                subYieldRewardsStored,
+                totalWeightStored,
+                totalV1Weight,
+                previousTotalV1Weight
+            );
+            // gets subVaultRewards value to be used for revenue distribution
+            // calculations during execution
+            subVaultRewards = _getSubRewardsValue(
+                subVaultRewardsStored,
+                totalWeightStored,
+                totalV1Weight,
+                previousTotalV1Weight
+            );
+        } else {
+            subYieldRewards = subYieldRewardsStored;
+            subVaultRewards = subVaultRewardsStored;
         }
 
         pendingYield =
@@ -1097,7 +1127,6 @@ abstract contract CorePool is
                 (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, stakeId);
 
                 uint256 storedWeight = v1StakesMigrated[_staker][stakeId];
-                previousTotalV1Weight += storedWeight;
 
                 // checks if v1 stake _weight has changed
                 if (storedWeight != _weight) {
@@ -1107,35 +1136,36 @@ abstract contract CorePool is
                     v1StakesMigrated[_staker][stakeId] = _weight == 0 ? 1 : _weight;
                 }
 
-                uint256 subYieldRewardsStored = user.subYieldRewards;
-                uint256 subVaultRewardsStored = user.subVaultRewards;
-
-                if (previousTotalV1Weight != totalV1Weight) {
-                    uint256 totalWeightStored = user.totalWeight;
-
-                    // gets subYieldRewards value to be used for yield calculations
-                    // during execution
-                    subYieldRewards = _getSubRewardsValue(
-                        subYieldRewardsStored,
-                        totalWeightStored,
-                        totalV1Weight,
-                        previousTotalV1Weight
-                    );
-                    // gets subVaultRewards value to be used for revenue distribution
-                    // calculations during execution
-                    subVaultRewards = _getSubRewardsValue(
-                        subVaultRewardsStored,
-                        totalWeightStored,
-                        totalV1Weight,
-                        previousTotalV1Weight
-                    );
-                } else {
-                    subYieldRewards = subYieldRewardsStored;
-                    subVaultRewards = subVaultRewardsStored;
-                }
-
+                previousTotalV1Weight += storedWeight;
                 totalV1Weight += _weight;
             }
+        }
+
+        uint256 subYieldRewardsStored = user.subYieldRewards;
+        uint256 subVaultRewardsStored = user.subVaultRewards;
+
+        if (previousTotalV1Weight != totalV1Weight) {
+            uint256 totalWeightStored = user.totalWeight;
+
+            // gets subYieldRewards value to be used for yield calculations
+            // during execution
+            subYieldRewards = _getSubRewardsValue(
+                subYieldRewardsStored,
+                totalWeightStored,
+                totalV1Weight,
+                previousTotalV1Weight
+            );
+            // gets subVaultRewards value to be used for revenue distribution
+            // calculations during execution
+            subVaultRewards = _getSubRewardsValue(
+                subVaultRewardsStored,
+                totalWeightStored,
+                totalV1Weight,
+                previousTotalV1Weight
+            );
+        } else {
+            subYieldRewards = subYieldRewardsStored;
+            subVaultRewards = subVaultRewardsStored;
         }
     }
 
