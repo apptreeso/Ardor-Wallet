@@ -331,6 +331,14 @@ abstract contract CorePool is
 
                 uint256 storedWeight = v1StakesMigrated[_staker][stakeId];
 
+                // checks if v1 stake _weight has changed
+                if (storedWeight != _weight) {
+                    // if deposit has been completely unstaked in v1, set stake id weight to 1
+                    // so we can keep track that it has been already migrated.
+                    // otherwise just returns _weight
+                    v1StakesMigrated[_staker][stakeId] = _weight == 0 ? 1 : _weight;
+                }
+
                 v1Weight += _weight;
             }
         }
