@@ -67,10 +67,10 @@ contract ILVPool is V2Migrator {
         _requireNotPaused();
         ILVPool(this).stakeAsPool.selector.verifyAccess(factory.poolExists(msg.sender));
         User storage user = users[_staker];
-        // v1Weight to be added to calculations
-        uint256 v1WeightToAdd = getV1Weight(msg.sender);
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards) = _useV1Weight(msg.sender);
         if (user.totalWeight > 0) {
-            _processRewards(_staker, v1WeightToAdd);
+            _processRewards(_staker, v1WeightToAdd, subYieldRewards);
         }
         uint256 stakeWeight = _value * Stake.YEAR_STAKE_WEIGHT_MULTIPLIER;
         Stake.Data memory newStake = Stake.Data({
@@ -86,7 +86,7 @@ contract ILVPool is V2Migrator {
         globalWeight += stakeWeight;
 
         // gas savings
-        uint256 userTotalWeight = user.totalWeight;
+        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
 
         user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
         user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);

@@ -303,8 +303,6 @@ abstract contract CorePool is
         pendingYield =
             ((userWeight + weightToAdd).weightToReward(newYieldRewardsPerWeight) - user.subYieldRewards) +
             user.pendingYield;
-        uint256 valueToLog = ((userWeight + weightToAdd).weightToReward(newYieldRewardsPerWeight) -
-            user.subYieldRewards);
         pendingRevDis =
             ((userWeight + weightToAdd).weightToReward(vaultRewardsPerWeight) - user.subVaultRewards) +
             user.pendingRevDis;
@@ -722,20 +720,22 @@ abstract contract CorePool is
      *         we aren't counting user.pendingYield and user.pendingRevDis here
      *
      * @param _staker an address to calculate yield rewards value for
+     * @param _totalV1Weight v1 weight used in calculations
+     * @param _subYieldRewards value subtracted for yield calculation
      */
-    function _pendingRewards(address _staker, uint256 _v1WeightToAdd)
-        internal
-        view
-        returns (uint256 pendingYield, uint256 pendingRevDis)
-    {
+    function _pendingRewards(
+        address _staker,
+        uint256 _totalV1Weight,
+        uint256 _subYieldRewards
+    ) internal view returns (uint256 pendingYield, uint256 pendingRevDis) {
         // links to _staker user struct in storage
         User storage user = users[_staker];
 
         // gas savings
         uint256 userWeight = uint256(user.totalWeight);
 
-        pendingYield = (userWeight + _v1WeightToAdd).weightToReward(yieldRewardsPerWeight) - user.subYieldRewards;
-        pendingRevDis = (userWeight + _v1WeightToAdd).weightToReward(vaultRewardsPerWeight) - user.subVaultRewards;
+        pendingYield = (userWeight + _totalV1Weight).weightToReward(yieldRewardsPerWeight) - _subYieldRewards;
+        pendingRevDis = (userWeight + _totalV1Weight).weightToReward(vaultRewardsPerWeight) - user.subVaultRewards;
     }
 
     /**
@@ -1020,13 +1020,13 @@ abstract contract CorePool is
      * @param _v1WeightToAdd weight value in v1 protocol to add to calculations
      * @return pendingYield the rewards calculated and saved to the user struct
      */
-    function _processRewards(address _staker, uint256 _v1WeightToAdd)
-        internal
-        virtual
-        returns (uint256 pendingYield, uint256 pendingRevDis)
-    {
+    function _processRewards(
+        address _staker,
+        uint256 _v1WeightToAdd,
+        uint256 _subYieldRewards
+    ) internal virtual returns (uint256 pendingYield, uint256 pendingRevDis) {
         // calculate pending yield rewards, this value will be returned
-        (pendingYield, pendingRevDis) = _pendingRewards(_staker, _v1WeightToAdd);
+        (pendingYield, pendingRevDis) = _pendingRewards(_staker, _v1WeightToAdd, _subYieldRewards);
 
         // if pending yield is zero - just return silently
         if (pendingYield == 0 && pendingRevDis == 0) return (0, 0);
