@@ -279,8 +279,8 @@ export function migrationTests(usingPool: string): () => void {
 
       const { pendingYield } = await pool.users(this.signers.alice.address);
 
-      expect(ethers.utils.formatEther(expectedRewards).slice(0, 6)).to.be.equal(
-        ethers.utils.formatEther(pendingYield).slice(0, 6),
+      expect(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards.toString())).slice(0, 5)).to.be.equal(
+        ethers.utils.formatEther(pendingYield).slice(0, 5),
       );
     });
   };
