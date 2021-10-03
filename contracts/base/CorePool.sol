@@ -58,6 +58,10 @@ abstract contract CorePool is
     /// @dev Token holder storage, maps token holder address to their data record
     mapping(address => User) public users;
 
+    /// @dev maps `keccak256(userAddress,stakeId)` to a uint256 value that tells
+    ///      a v1 locked stake weight that has already been migrated to v2
+    mapping(address => mapping(uint256 => uint256)) public v1StakesMigrated;
+
     /// @dev Link to sILV ERC20 Token instance
     address public silv;
 
@@ -301,8 +305,6 @@ abstract contract CorePool is
             user.pendingYield;
         uint256 valueToLog = ((userWeight + weightToAdd).weightToReward(newYieldRewardsPerWeight) -
             user.subYieldRewards);
-        console.log(user.pendingYield);
-        console.log(valueToLog);
         pendingRevDis =
             ((userWeight + weightToAdd).weightToReward(vaultRewardsPerWeight) - user.subVaultRewards) +
             user.pendingRevDis;
@@ -323,7 +325,11 @@ abstract contract CorePool is
         if (v1StakesLength > 0) {
             // loops through v1StakesIds and adds v1 weight with V1_WEIGHT_BONUS
             for (uint256 i = 0; i < v1StakesLength; i++) {
-                (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
+                // saves v1 stake id to memory
+                uint256 stakeId = user.v1StakesIds[i];
+                (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, stakeId);
+
+                uint256 storedWeight = v1StakesMigrated[_staker][stakeId];
 
                 v1Weight += _weight;
             }
@@ -725,6 +731,10 @@ abstract contract CorePool is
         User storage user = users[_staker];
 
         uint256 v1WeightToAdd = getV1Weight(_staker);
+
+        if (v1WeightToAdd > 0) {
+            console.log(v1WeightToAdd);
+        }
 
         // process current pending rewards if any
         if (user.totalWeight > 0) {

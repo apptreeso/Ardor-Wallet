@@ -269,7 +269,7 @@ export function migrationTests(usingPool: string): () => void {
 
       const expectedRewards = 10 * Number(ILV_PER_SECOND) * (poolWeight / totalWeight);
 
-      const { pendingYield } = await pool.pendingRewards(this.signers.alice.address);
+      const { pendingYield } = await pool.users(this.signers.alice.address);
 
       expect(expectedRewards).to.be.equal(Number(pendingYield));
     });
