@@ -277,7 +277,7 @@ export function migrationTests(usingPool: string): () => void {
         (poolWeight / totalWeight) *
         (Number(aliceStakeWeight) / Number(totalV1UsersWeight.add(totalV2UsersWeight)));
 
-      const { pendingYield } = await pool.users(this.signers.alice.address);
+      const { pendingYield } = await pool.pendingRewards(this.signers.alice.address);
 
       expect(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards.toString())).slice(0, 5)).to.be.equal(
         ethers.utils.formatEther(pendingYield).slice(0, 5),
