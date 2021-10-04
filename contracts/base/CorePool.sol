@@ -945,7 +945,7 @@ abstract contract CorePool is
         // to calculate the reward we need to know how many seconds passed, and reward per second
         uint256 currentTimestamp = _now256() > endTime ? endTime : _now256();
         uint256 secondsPassed = currentTimestamp - lastYieldDistribution;
-        uint256 ilvPerSecond = factory.ilvPerSecond();
+        uint256 ilvPerSecond = _factory.ilvPerSecond();
 
         // calculate the reward
         uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / _factory.totalWeight();

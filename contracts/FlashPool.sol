@@ -372,14 +372,16 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *      updates factory state via `updateILVPerSecond`
      */
     function _sync() internal virtual {
+        // gas savings
+        IFactory _factory = factory;
         // update ILV per second value in factory if required
-        if (factory.shouldUpdateRatio()) {
-            factory.updateILVPerSecond();
+        if (_factory.shouldUpdateRatio()) {
+            _factory.updateILVPerSecond();
         }
 
         // check bound conditions and if these are not met -
         // exit silently, without emitting an event
-        uint256 endTime = factory.endTime();
+        uint256 endTime = _factory.endTime();
         if (lastYieldDistribution >= endTime) {
             return;
         }
@@ -396,10 +398,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // to calculate the reward we need to know how many seconds passed, and reward per second
         uint256 currentTimestamp = _now256() > endTime ? endTime : _now256();
         uint256 secondsPassed = currentTimestamp - lastYieldDistribution;
-        uint256 ilvPerSecond = factory.ilvPerSecond();
+        uint256 ilvPerSecond = _factory.ilvPerSecond();
 
         // calculate the reward
-        uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory.totalWeight();
+        uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / _factory.totalWeight();
 
         // update rewards per weight and `lastYieldDistribution`
         yieldRewardsPerToken += _rewardPerToken(ilvReward, totalStaked);
