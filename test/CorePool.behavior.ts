@@ -44,6 +44,9 @@ export function getPoolData(usingPool: string): () => void {
       expect(poolData.weight).to.be.equal(poolWeight);
       expect(poolData.isFlashPool).to.be.equal(false);
     });
+    it("should revert if pool does not exist", async function () {
+      await expect(this.factory.getPoolData(this.signers.alice.address)).reverted;
+    });
   };
 }
 

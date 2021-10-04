@@ -94,6 +94,14 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     event IlvRatioUpdated(address indexed _by, uint256 newIlvPerSecond);
 
     /**
+     * @dev Fired in setEndTime()
+     *
+     * @param by an address which executed the action
+     * @param endTime new endTime value
+     */
+    event LogSetEndTime(address indexed by, uint32 endTime);
+
+    /**
      * @dev Initializes a factory instance
      *
      * @param _ilv ILV ERC20 token address
@@ -163,18 +171,6 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         return _now256() >= lastRatioUpdate + secondsPerUpdate;
     }
 
-    // function createPool(
-    //     address poolToken,
-    //     uint64 initTime,
-    //     uint32 weight
-    // ) external virtual override onlyOwner {
-    //     // create/deploy new core pool instance
-    //     ICorePool pool = new CorePool(ilv, silv, this, poolToken, initTime, weight);
-
-    //     // register it within a factory
-    //     registerPool(address(pool));
-    // }
-
     function registerPool(address pool) public onlyOwner {
         // read pool information from the pool smart contract
         // via the pool interface (ICorePool)
@@ -233,6 +229,13 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
 
         // emit an event
         emit WeightUpdated(msg.sender, address(pool), weight);
+    }
+
+    function setEndTime(uint32 _endTime) external onlyOwner {
+        require(_endTime > lastRatioUpdate, "invalid _endTime");
+        endTime = _endTime;
+
+        emit LogSetEndTime(msg.sender, _endTime);
     }
 
     /// @inheritdoc UUPSUpgradeable
