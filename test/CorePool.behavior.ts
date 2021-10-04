@@ -29,6 +29,24 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
+export function getPoolData(usingPool: string): () => void {
+  return function () {
+    it("should get correct pool data", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const token = getToken(this.ilv, this.lp, usingPool);
+
+      const poolWeight = await pool.weight();
+
+      const poolData = await this.factory.getPoolData(token.address);
+
+      expect(poolData.poolToken).to.be.equal(token.address);
+      expect(poolData.poolAddress).to.be.equal(pool.address);
+      expect(poolData.weight).to.be.equal(poolWeight);
+      expect(poolData.isFlashPool).to.be.equal(false);
+    });
+  };
+}
+
 export function migrateUser(usingPool: string): () => void {
   return function () {
     it("should migrate an user stake", async function () {
@@ -250,6 +268,38 @@ export function migrationTests(usingPool: string): () => void {
 
         await expect(pool.connect(this.signers.bob).migrateLockedStake([1])).reverted;
       });
+    });
+    it("should accumulate ILV correctly - with v1 stake ids", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+
+      await pool.connect(this.signers.alice).migrateLockedStake([0, 2]);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await pool.setNow256(INIT_TIME + 10);
+
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      const totalWeight = await this.factory.totalWeight();
+      const poolWeight = await pool.weight();
+      const aliceStakeWeight = toWei(600).mul(2e6);
+      const totalV1UsersWeight = await v1Pool.usersLockingWeight();
+      const totalV2UsersWeight = (await pool.globalWeight()).sub(toWei(100).mul(2e6));
+
+      const expectedRewards =
+        10 *
+        Number(ILV_PER_SECOND) *
+        (poolWeight / totalWeight) *
+        (Number(aliceStakeWeight) / Number(totalV1UsersWeight.add(totalV2UsersWeight)));
+
+      const { pendingYield } = await pool.pendingRewards(this.signers.alice.address);
+
+      expect(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards.toString())).slice(0, 5)).to.be.equal(
+        ethers.utils.formatEther(pendingYield).slice(0, 5),
+      );
     });
   };
 }
@@ -960,7 +1010,7 @@ export function claimYieldRewardsMultiple(): () => void {
       expect(compoundedIlvYield).to.be.equal(ilvPoolPendingYield);
       expect(sILVBalance).to.be.equal(lpPoolPendingYield);
     });
-    it("should revert if claiming from invalid pool", async function () {
+    it("should revert if claiming invalid pool", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
@@ -974,6 +1024,20 @@ export function claimYieldRewardsMultiple(): () => void {
         this.ilvPool
           .connect(this.signers.alice)
           .claimYieldRewardsMultiple([this.ilvPool.address, this.signers.bob.address], [false, true]),
+      ).reverted;
+    });
+    it("should revert if claiming from invalid address", async function () {
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.lpPool.setNow256(INIT_TIME + 1000);
+      await this.lpPool.setNow256(INIT_TIME + 1000);
+
+      await expect(
+        this.lpPool.connect(this.signers.alice).claimYieldRewardsFromRouter(this.signers.alice.address, false),
       ).reverted;
     });
   };

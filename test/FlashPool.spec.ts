@@ -27,7 +27,7 @@ import {
   ONE_YEAR,
 } from "./utils";
 
-const { MaxUint256 } = ethers.constants;
+const { MaxUint256, AddressZero } = ethers.constants;
 
 chai.use(solidity);
 chai.use(chaiSubset);
@@ -98,6 +98,18 @@ describe("FlashPool", function () {
     await this.flashToken.connect(this.signers.deployer).transfer(this.signers.alice.address, toWei(10000));
     await this.flashToken.connect(this.signers.deployer).transfer(this.signers.bob.address, toWei(10000));
     await this.flashToken.connect(this.signers.deployer).transfer(this.signers.carol.address, toWei(10000));
+  });
+  describe("#getPoolData", function () {
+    it("should get correct pool data", async function () {
+      const poolWeight = await this.flashPool.weight();
+
+      const poolData = await this.factory.getPoolData(this.flashToken.address);
+
+      expect(poolData.poolToken).to.be.equal(this.flashToken.address);
+      expect(poolData.poolAddress).to.be.equal(this.flashPool.address);
+      expect(poolData.weight).to.be.equal(poolWeight);
+      expect(poolData.isFlashPool).to.be.equal(true);
+    });
   });
   describe("#stake", function () {
     it("should stake", async function () {
@@ -379,7 +391,7 @@ describe("FlashPool", function () {
       expect(compoundedIlvYield).to.be.equal(ilvPoolPendingYield);
       expect(sILVBalance).to.be.equal(flashPoolPendingYield);
     });
-    it("should revert if claiming from invalid pool", async function () {
+    it("should revert if claiming invalid pool", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
@@ -393,6 +405,20 @@ describe("FlashPool", function () {
         this.ilvPool
           .connect(this.signers.alice)
           .claimYieldRewardsMultiple([this.ilvPool.address, this.signers.bob.address], [false, true]),
+      ).reverted;
+    });
+    it("should revert if claiming from invalid address", async function () {
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(100));
+
+      await this.ilvPool.setNow256(FLASH_INIT_TIME + 1000);
+      await this.flashPool.setNow256(FLASH_INIT_TIME + 1000);
+
+      await expect(
+        this.flashPool.connect(this.signers.alice).claimYieldRewardsFromRouter(this.signers.alice.address, false),
       ).reverted;
     });
   });
@@ -525,6 +551,81 @@ describe("FlashPool", function () {
 
       expect(expectedIlvPerSecond).to.be.equal(newIlvPerSecond);
       expect(expectedLastRatioUpdate).to.be.equal(lastRatioUpdate);
+    });
+  });
+  describe("#migrateUser", function () {
+    it("should migrate an user stake", async function () {
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(100));
+
+      await this.flashPool.setNow256(INIT_TIME + 100);
+
+      await this.flashPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      await this.flashPool.setNow256(INIT_TIME + 200);
+
+      const {
+        pendingYield: pendingYield0,
+        balance: balance0,
+        subYieldRewards: subYieldRewards0,
+      } = await this.flashPool.users(this.signers.alice.address);
+
+      await this.flashPool.connect(this.signers.alice).migrateUser(this.signers.bob.address);
+
+      const {
+        pendingYield: pendingYield1,
+        balance: balance1,
+        subYieldRewards: subYieldRewards1,
+      } = await this.flashPool.users(this.signers.bob.address);
+
+      expect(pendingYield0).to.be.equal(pendingYield1);
+      expect(balance0).to.be.equal(balance1);
+      expect(subYieldRewards0).to.be.equal(subYieldRewards1);
+    });
+    it("should revert if _to = address(0)", async function () {
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(100));
+
+      await this.flashPool.setNow256(INIT_TIME + 100);
+
+      await this.flashPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      await this.flashPool.setNow256(INIT_TIME + 200);
+
+      await expect(this.flashPool.connect(this.signers.alice).migrateUser(AddressZero)).reverted;
+    });
+    it("should revert if newUser totalWeight = 0", async function () {
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(100));
+
+      await this.flashPool.setNow256(INIT_TIME + 100);
+
+      await this.flashPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      await this.flashPool.setNow256(INIT_TIME + 200);
+
+      await this.flashToken.connect(this.signers.bob).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.bob).stake(toWei(100));
+
+      await expect(this.flashPool.connect(this.signers.alice).migrateUser(this.signers.bob.address)).reverted;
+    });
+
+    it("should revert if newUser pendingYield = 0", async function () {
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.alice).stake(toWei(100));
+
+      await this.flashPool.setNow256(INIT_TIME + 100);
+
+      await this.flashPool.connect(this.signers.alice).claimYieldRewards(false);
+
+      await this.flashPool.setNow256(INIT_TIME + 200);
+
+      await this.flashToken.connect(this.signers.bob).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.bob).stake(toWei(100));
+
+      await this.flashPool.connect(this.signers.bob).claimYieldRewards(false);
+
+      await expect(this.flashPool.connect(this.signers.alice).migrateUser(this.signers.bob.address)).reverted;
     });
   });
 });

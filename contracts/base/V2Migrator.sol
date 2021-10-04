@@ -9,10 +9,6 @@ import { CorePool } from "./CorePool.sol";
 abstract contract V2Migrator is CorePool {
     using Errors for bytes4;
 
-    /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
-    ///      if a v1 locked stake has already been migrated to v2
-    mapping(address => mapping(uint256 => bool)) public v1StakesMigrated;
-
     /// @dev stores maximum timestamp of a v1 stake accepted in v2
     uint256 public v1StakeMaxPeriod;
 
@@ -67,12 +63,15 @@ abstract contract V2Migrator is CorePool {
         bytes4 fnSelector = V2Migrator(this).migrateLockedStake.selector;
 
         for (uint256 i = 0; i < _stakeIds.length; i++) {
-            (, , uint64 lockedFrom, , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(msg.sender, _stakeIds[i]);
+            (, uint256 weight, uint64 lockedFrom, , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
+                msg.sender,
+                _stakeIds[i]
+            );
             fnSelector.verifyState(lockedFrom <= _v1StakeMaxPeriod, i * 3);
             fnSelector.verifyState(lockedFrom > 0 && !isYield, i * 3 + 1);
-            fnSelector.verifyState(!v1StakesMigrated[msg.sender][_stakeIds[i]], i * 3 + 2);
+            fnSelector.verifyState(v1StakesMigrated[msg.sender][_stakeIds[i]] == 0, i * 3 + 2);
 
-            v1StakesMigrated[msg.sender][_stakeIds[i]] = true;
+            v1StakesMigrated[msg.sender][_stakeIds[i]] = weight;
             user.v1IdsLength++;
             user.v1StakesIds[i] = _stakeIds[i];
         }

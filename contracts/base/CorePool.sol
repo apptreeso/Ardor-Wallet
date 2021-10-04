@@ -9,7 +9,6 @@ import { Timestamp } from "./Timestamp.sol";
 import { VaultRecipient } from "./VaultRecipient.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { Stake } from "../libraries/Stake.sol";
-import { IERC20Mintable } from "../interfaces/IERC20Mintable.sol";
 import { IILVPool } from "../interfaces/IILVPool.sol";
 import { IFactory } from "../interfaces/IFactory.sol";
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
@@ -57,6 +56,10 @@ abstract contract CorePool is
 
     /// @dev Token holder storage, maps token holder address to their data record
     mapping(address => User) public users;
+
+    /// @dev maps `keccak256(userAddress,stakeId)` to a uint256 value that tells
+    ///      a v1 locked stake weight that has already been migrated to v2
+    mapping(address => mapping(uint256 => uint256)) public v1StakesMigrated;
 
     /// @dev Link to sILV ERC20 Token instance
     address public silv;
@@ -257,18 +260,22 @@ abstract contract CorePool is
         CorePool(this).pendingRewards.selector.verifyNonZeroInput(uint160(_staker), 0);
         // `newYieldRewardsPerWeight` will store stored or recalculated value for `yieldRewardsPerWeight`
         uint256 newYieldRewardsPerWeight;
-
+        // gas savings
+        uint256 _lastYieldDistribution = lastYieldDistribution;
         // if smart contract state was not updated recently, `yieldRewardsPerWeight` value
         // is outdated and we need to recalculate it in order to calculate pending rewards correctly
-        if (_now256() > lastYieldDistribution && globalWeight != 0) {
+        if (_now256() > _lastYieldDistribution && globalWeight != 0) {
             uint256 endTime = factory.endTime();
             uint256 multiplier = _now256() > endTime
-                ? endTime - lastYieldDistribution
-                : _now256() - lastYieldDistribution;
+                ? endTime - _lastYieldDistribution
+                : _now256() - _lastYieldDistribution;
             uint256 ilvRewards = (multiplier * weight * factory.ilvPerSecond()) / factory.totalWeight();
+            uint256 v1GlobalWeight = ICorePoolV1(corePoolV1).usersLockingWeight();
 
             // recalculated value for `yieldRewardsPerWeight`
-            newYieldRewardsPerWeight = ilvRewards.rewardPerWeight(globalWeight) + yieldRewardsPerWeight;
+            newYieldRewardsPerWeight =
+                ilvRewards.rewardPerWeight((globalWeight + v1GlobalWeight)) +
+                yieldRewardsPerWeight;
         } else {
             // if smart contract state is up to date, we don't recalculate
             newYieldRewardsPerWeight = yieldRewardsPerWeight;
@@ -277,24 +284,60 @@ abstract contract CorePool is
         // based on the rewards per weight value, calculate pending rewards;
         User storage user = users[_staker];
 
-        // gas savings
         (uint256 v1StakesLength, uint256 userWeight) = (uint256(user.v1IdsLength), uint256(user.totalWeight));
-        // value will be used to add to final weight calculations before
-        // calculating rewards
-        uint256 weightToAdd;
 
-        // checks if user has any migrated stake from v1
+        uint256 totalV1Weight;
+        uint256 previousTotalV1Weight;
+
         if (v1StakesLength > 0) {
             // loops through v1StakesIds and adds v1 weight with V1_WEIGHT_BONUS
             for (uint256 i = 0; i < v1StakesLength; i++) {
-                (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
+                // saves v1 stake id to memory
+                uint256 stakeId = user.v1StakesIds[i];
+                (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, stakeId);
 
-                weightToAdd += _weight;
+                uint256 storedWeight = v1StakesMigrated[_staker][stakeId];
+
+                previousTotalV1Weight += storedWeight;
+                totalV1Weight += _weight;
             }
         }
 
-        pendingYield = (userWeight.weightToReward(newYieldRewardsPerWeight) - user.subYieldRewards) + user.pendingYield;
-        pendingRevDis = (userWeight.weightToReward(vaultRewardsPerWeight) - user.subVaultRewards) + user.pendingRevDis;
+        uint256 subYieldRewardsStored = user.subYieldRewards;
+        uint256 subVaultRewardsStored = user.subVaultRewards;
+        uint256 subYieldRewards;
+        uint256 subVaultRewards;
+
+        if (previousTotalV1Weight != totalV1Weight) {
+            uint256 totalWeightStored = user.totalWeight;
+
+            // gets subYieldRewards value to be used for yield calculations
+            // during execution
+            subYieldRewards = _getSubRewardsValue(
+                subYieldRewardsStored,
+                totalWeightStored,
+                totalV1Weight,
+                previousTotalV1Weight
+            );
+            // gets subVaultRewards value to be used for revenue distribution
+            // calculations during execution
+            subVaultRewards = _getSubRewardsValue(
+                subVaultRewardsStored,
+                totalWeightStored,
+                totalV1Weight,
+                previousTotalV1Weight
+            );
+        } else {
+            subYieldRewards = subYieldRewardsStored;
+            subVaultRewards = subVaultRewardsStored;
+        }
+
+        pendingYield =
+            ((userWeight + totalV1Weight).weightToReward(newYieldRewardsPerWeight) - subYieldRewards) +
+            user.pendingYield;
+        pendingRevDis =
+            ((userWeight + totalV1Weight).weightToReward(vaultRewardsPerWeight) - subVaultRewards) +
+            user.pendingRevDis;
     }
 
     /**
@@ -404,9 +447,12 @@ abstract contract CorePool is
 
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+
         // process current pending rewards if any
         if (user.totalWeight > 0) {
-            _processRewards(msg.sender);
+            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
         }
 
         // no need to calculate locking weight, flexible stake never locks
@@ -418,7 +464,7 @@ abstract contract CorePool is
         // update user record
         user.flexibleBalance += uint128(_value);
         user.totalWeight += uint248(stakeWeight);
-        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
+        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
@@ -430,37 +476,6 @@ abstract contract CorePool is
 
         // emit an event
         emit LogStakeFlexible(msg.sender, _value);
-    }
-
-    function fillStakeId(uint256 _position) external updatePool {
-        User storage user = users[msg.sender];
-        uint256 stakeId = user.v1StakesIds[_position];
-        assert(stakeId > 0);
-        (uint256 value, , uint64 lockedFrom, uint64 lockedUntil, ) = ICorePoolV1(corePoolV1).getDeposit(
-            msg.sender,
-            stakeId
-        );
-
-        // validate deposit is unlocked
-        CorePool(this).fillStakeId.selector.verifyState(_now256() > lockedUntil, 0);
-
-        delete user.v1StakesIds[_position];
-        Stake.Data memory stake = Stake.Data({
-            value: uint120(value),
-            lockedFrom: lockedFrom,
-            lockedUntil: lockedUntil,
-            isYield: false
-        });
-        uint256 stakeWeight = (((lockedUntil - lockedFrom) * Stake.WEIGHT_MULTIPLIER) /
-            730 days +
-            Stake.WEIGHT_MULTIPLIER) * value;
-
-        user.stakes.push(stake);
-        // update user record
-        user.totalWeight += uint248(stakeWeight);
-        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
-        // update global variable
-        globalWeight += stakeWeight;
     }
 
     /**
@@ -510,7 +525,10 @@ abstract contract CorePool is
      * @param _lockedUntil updated stake locked until value
      */
     function updateStakeLock(uint256 _stakeId, uint64 _lockedUntil) external updatePool {
-        _processRewards(msg.sender);
+        // uses v1 weight values for rewards calculations
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
 
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).updateStakeLock.selector;
@@ -647,29 +665,23 @@ abstract contract CorePool is
      *         we aren't counting user.pendingYield and user.pendingRevDis here
      *
      * @param _staker an address to calculate yield rewards value for
+     * @param _totalV1Weight v1 weight used in calculations
+     * @param _subYieldRewards value subtracted for yield calculation
      */
-    function _pendingRewards(address _staker) internal view returns (uint256 pendingYield, uint256 pendingRevDis) {
+    function _pendingRewards(
+        address _staker,
+        uint256 _totalV1Weight,
+        uint256 _subYieldRewards,
+        uint256 _subVaultRewards
+    ) internal view returns (uint256 pendingYield, uint256 pendingRevDis) {
         // links to _staker user struct in storage
         User storage user = users[_staker];
 
         // gas savings
-        (uint256 v1StakesLength, uint256 userWeight) = (uint256(user.v1IdsLength), uint256(user.totalWeight));
-        // value will be used to add to final weight calculations before
-        // calculating rewards
-        uint256 weightToAdd;
+        uint256 userWeight = uint256(user.totalWeight);
 
-        // checks if user has any migrated stake from v1
-        if (v1StakesLength > 0) {
-            // loops through v1StakesIds and adds v1 weight with V1_WEIGHT_BONUS
-            for (uint256 i = 0; i < v1StakesLength; i++) {
-                (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, user.v1StakesIds[i]);
-
-                weightToAdd += _weight;
-            }
-        }
-
-        pendingYield = (userWeight + weightToAdd).weightToReward(yieldRewardsPerWeight) - user.subYieldRewards;
-        pendingRevDis = (userWeight + weightToAdd).weightToReward(vaultRewardsPerWeight) - user.subVaultRewards;
+        pendingYield = (userWeight + _totalV1Weight).weightToReward(yieldRewardsPerWeight) - _subYieldRewards;
+        pendingRevDis = (userWeight + _totalV1Weight).weightToReward(vaultRewardsPerWeight) - _subVaultRewards;
     }
 
     /**
@@ -694,9 +706,13 @@ abstract contract CorePool is
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
+
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+
         // process current pending rewards if any
         if (user.totalWeight > 0) {
-            _processRewards(_staker);
+            _processRewards(_staker, v1WeightToAdd, subYieldRewards, subVaultRewards);
         }
 
         uint64 lockUntil = uint64(_now256()) + _lockDuration;
@@ -721,7 +737,7 @@ abstract contract CorePool is
 
         // update user record
         user.totalWeight += uint248(stakeWeight);
-        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
+        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
@@ -745,8 +761,11 @@ abstract contract CorePool is
         User storage user = users[msg.sender];
         // verify available balance
         fnSelector.verifyInput(user.flexibleBalance >= _value, 0);
+
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
         // and process current pending rewards if any
-        _processRewards(msg.sender);
+        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
 
         // updates user data in storage
         user.flexibleBalance -= uint128(_value);
@@ -784,8 +803,11 @@ abstract contract CorePool is
         (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
         // verify available balance
         fnSelector.verifyInput(stakeValue >= _value, 1);
+
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
         // and process current pending rewards if any
-        _processRewards(msg.sender);
+        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
 
         // store stake weight
         uint256 previousWeight = stake.weight();
@@ -804,7 +826,7 @@ abstract contract CorePool is
 
         // update user record
         user.totalWeight = uint248(user.totalWeight - previousWeight + newWeight);
-        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
+        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
 
         // update global variable
         globalWeight = globalWeight - previousWeight + newWeight;
@@ -831,7 +853,9 @@ abstract contract CorePool is
         fnSelector.verifyNonZeroInput(_stakes.length, 0);
         User storage user = users[msg.sender];
 
-        _processRewards(msg.sender);
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
 
         uint256 weightToRemove;
         uint256 valueToUnstake;
@@ -870,7 +894,7 @@ abstract contract CorePool is
         }
 
         user.totalWeight -= uint248(weightToRemove);
-        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
+        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
 
         // update global variable
         globalWeight -= weightToRemove;
@@ -894,22 +918,26 @@ abstract contract CorePool is
      *      updates factory state via `updateILVPerSecond`
      */
     function _sync() internal virtual {
+        // gas savings
+        IFactory _factory = factory;
         // update ILV per second value in factory if required
-        if (factory.shouldUpdateRatio()) {
-            factory.updateILVPerSecond();
+        if (_factory.shouldUpdateRatio()) {
+            _factory.updateILVPerSecond();
         }
 
         // check bound conditions and if these are not met -
         // exit silently, without emitting an event
-        uint256 endTime = factory.endTime();
+        uint256 endTime = _factory.endTime();
         if (lastYieldDistribution >= endTime) {
             return;
         }
         if (_now256() <= lastYieldDistribution) {
             return;
         }
+        // reads total weight staked in v1
+        uint256 v1GlobalWeight = ICorePoolV1(corePoolV1).usersLockingWeight();
         // if locking weight is zero - update only `lastYieldDistribution` and exit
-        if (globalWeight == 0) {
+        if (globalWeight == 0 && v1GlobalWeight == 0) {
             lastYieldDistribution = uint64(_now256());
             return;
         }
@@ -920,10 +948,7 @@ abstract contract CorePool is
         uint256 ilvPerSecond = factory.ilvPerSecond();
 
         // calculate the reward
-        uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory.totalWeight();
-
-        // reads total weight staked in v1
-        uint256 v1GlobalWeight = ICorePoolV1(corePoolV1).usersLockingWeight();
+        uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / _factory.totalWeight();
 
         // update rewards per weight and `lastYieldDistribution`
         yieldRewardsPerWeight += ilvReward.rewardPerWeight((globalWeight + v1GlobalWeight));
@@ -940,11 +965,22 @@ abstract contract CorePool is
      *      end block), function doesn't throw and exits silently
      *
      * @param _staker an address which receives the reward (which has staked some tokens earlier)
-     * @return pendingYield the rewards calculated and saved to the user struct
+     * @param _v1WeightToAdd weight value in v1 protocol to add to calculations
+     * @param _subYieldRewards parameter passed down to `_pendingRewards()`
+     * @param _subVaultRewards parameter passed down to `_pendingRewards()`
+     *
+     * @return pendingYield the yield rewards calculated and saved to the user struct
+     * @return pendingRevDis the revenue distribution reward calculated and
+     *         saved to the user struct
      */
-    function _processRewards(address _staker) internal virtual returns (uint256 pendingYield, uint256 pendingRevDis) {
+    function _processRewards(
+        address _staker,
+        uint256 _v1WeightToAdd,
+        uint256 _subYieldRewards,
+        uint256 _subVaultRewards
+    ) internal virtual returns (uint256 pendingYield, uint256 pendingRevDis) {
         // calculate pending yield rewards, this value will be returned
-        (pendingYield, pendingRevDis) = _pendingRewards(_staker);
+        (pendingYield, pendingRevDis) = _pendingRewards(_staker, _v1WeightToAdd, _subYieldRewards, _subVaultRewards);
 
         // if pending yield is zero - just return silently
         if (pendingYield == 0 && pendingRevDis == 0) return (0, 0);
@@ -969,8 +1005,10 @@ abstract contract CorePool is
      * @param _useSILV whether the user wants to claim ILV or sILV
      */
     function _claimYieldRewards(address _staker, bool _useSILV) internal {
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
         // update user state
-        _processRewards(_staker);
+        _processRewards(_staker, v1WeightToAdd, subYieldRewards, subVaultRewards);
 
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
@@ -991,7 +1029,7 @@ abstract contract CorePool is
         } else if (poolToken == ilv) {
             // calculate pending yield weight,
             // 2e6 is the bonus weight when staking for 1 year
-            uint256 stakeWeight = pendingYieldToClaim * Stake.YEAR_STAKE_WEIGHT_MULTIPLIER;
+            uint256 stakeWeight = pendingYieldToClaim * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
 
             // if the pool is ILV Pool - create new ILV stake
             // and save it - push it into stakes array
@@ -1016,7 +1054,7 @@ abstract contract CorePool is
         }
 
         // subYieldRewards needs to be updated on every `_processRewards` call
-        user.subYieldRewards = uint256(user.totalWeight).weightToReward(yieldRewardsPerWeight);
+        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
 
         // emit an event
         emit LogClaimYieldRewards(_staker, _useSILV, pendingYieldToClaim);
@@ -1030,8 +1068,10 @@ abstract contract CorePool is
      * @param _staker user address
      */
     function _claimVaultRewards(address _staker) internal {
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
         // update user state
-        _processRewards(_staker);
+        _processRewards(_staker, v1WeightToAdd, subYieldRewards, subVaultRewards);
 
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
@@ -1052,6 +1092,116 @@ abstract contract CorePool is
 
         // emit an event
         emit LogClaimVaultRewards(_staker, pendingRevDis);
+    }
+
+    /**
+     * @dev Calls CorePoolV1 contract, gets v1 stake ids weight and returns
+     * @dev Used by _pendingRewards to calculate yield and revenue distribution
+     *      rewards taking v1 weights into account
+     *
+     * @notice if v1 weights have changed since last call, we use latest v1 weight for
+     *         yield and revenue distribution rewards calculations, and recalculate
+     *         user sub rewards values in order to have correct rewards estimations
+     *
+     * @return totalV1Weight uint256 value of v1StakesIds weights
+     * @return subYieldRewards uint256 value to use in yield calculations accounting
+     *          v1 weights and its possible changes
+     * @return subVaultRewards uint256 value to use in revenue distribution
+     *          calculations accounting v1 weights and its possible changes
+     */
+    function _useV1Weight(address _staker)
+        internal
+        returns (
+            uint256 totalV1Weight,
+            uint256 subYieldRewards,
+            uint256 subVaultRewards
+        )
+    {
+        User storage user = users[_staker];
+
+        uint256 v1StakesLength = user.v1IdsLength;
+
+        uint256 previousTotalV1Weight;
+
+        // checks if user has any migrated stake from v1
+        if (v1StakesLength > 0) {
+            // loops through v1StakesIds and adds v1 weight with V1_WEIGHT_BONUS
+            for (uint256 i = 0; i < v1StakesLength; i++) {
+                // saves v1 stake id to memory
+                uint256 stakeId = user.v1StakesIds[i];
+                (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, stakeId);
+
+                uint256 storedWeight = v1StakesMigrated[_staker][stakeId];
+
+                // checks if v1 stake _weight has changed
+                if (storedWeight != _weight) {
+                    // if deposit has been completely unstaked in v1, set stake id weight to 1
+                    // so we can keep track that it has been already migrated.
+                    // otherwise just returns _weight
+                    v1StakesMigrated[_staker][stakeId] = _weight == 0 ? 1 : _weight;
+                }
+
+                previousTotalV1Weight += storedWeight;
+                totalV1Weight += _weight;
+            }
+        }
+
+        uint256 subYieldRewardsStored = user.subYieldRewards;
+        uint256 subVaultRewardsStored = user.subVaultRewards;
+
+        if (previousTotalV1Weight != totalV1Weight) {
+            uint256 totalWeightStored = user.totalWeight;
+
+            // gets subYieldRewards value to be used for yield calculations
+            // during execution
+            subYieldRewards = _getSubRewardsValue(
+                subYieldRewardsStored,
+                totalWeightStored,
+                totalV1Weight,
+                previousTotalV1Weight
+            );
+            // gets subVaultRewards value to be used for revenue distribution
+            // calculations during execution
+            subVaultRewards = _getSubRewardsValue(
+                subVaultRewardsStored,
+                totalWeightStored,
+                totalV1Weight,
+                previousTotalV1Weight
+            );
+        } else {
+            subYieldRewards = subYieldRewardsStored;
+            subVaultRewards = subVaultRewardsStored;
+        }
+    }
+
+    /**
+     * @dev recalculates subYieldRewards or subVaultRewards using most recent
+     *      _totalV1Weight, by getting previous `yieldRewardsPerWeight` used in
+     *      last subYieldRewards or subVaultRewards update (through _previousTotalV1Weight)
+     *      and returns equivalent value using most recent v1 weight
+     *
+     * @dev this function is very important in order to keep calculations correct even
+     *      after an user unstakes
+     *
+     * @notice if an user in v1 unstakes before claiming yield in v2, it will be considered
+     *         as if the user has been accumulating yield and revenue distributions
+     *         with most recent weight since the last user.subYieldRewards and
+     *         user.subVaultRewards update
+     * @notice v1 stake token amount of a given stakeId can never increase in v1 contracts.
+     *         this way we are safe of attacks by adding more tokens in v1 and having
+     *         a higher accumulation of yield and revenue distributions
+     *
+     */
+    function _getSubRewardsValue(
+        uint256 _subRewardsStored,
+        uint256 _totalWeightStored,
+        uint256 _totalV1Weight,
+        uint256 _previousTotalV1Weight
+    ) internal pure returns (uint256 subRewards) {
+        subRewards =
+            (((_subRewardsStored * Stake.REWARD_PER_WEIGHT_MULTIPLIER) /
+                (_totalWeightStored + _previousTotalV1Weight)) * (_totalWeightStored + _totalV1Weight)) /
+            Stake.REWARD_PER_WEIGHT_MULTIPLIER;
     }
 
     /// @dev checks if pool is paused

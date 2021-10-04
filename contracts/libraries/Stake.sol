@@ -30,10 +30,10 @@ library Stake {
     uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e12;
 
     /**
-     * @dev When we know beforehand that staking is done for a year, and fraction of the year locked is one,
-     *      we use simplified calculation and use the following constant instead previous one
+     * @dev When we know beforehand that staking is done for yield instead of
+     *      executing `weight()` function we use the following constant
      */
-    uint256 internal constant YEAR_STAKE_WEIGHT_MULTIPLIER = 2 * 1e6;
+    uint256 internal constant YIELD_STAKE_WEIGHT_MULTIPLIER = 2 * 1e6;
 
     /**
      * @dev Multiplier used as a bonus reward for v1 stakes

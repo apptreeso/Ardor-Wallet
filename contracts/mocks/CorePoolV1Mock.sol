@@ -19,6 +19,7 @@ contract CorePoolV1Mock is ICorePoolV1 {
             address user = _userParameter[i].userAddress;
             for (uint256 j = 0; j < _userParameter[i].deposits.length; j++) {
                 users[user].push(_userParameter[i].deposits[j]);
+                usersLockingWeight += _userParameter[i].deposits[j].weight;
             }
         }
     }

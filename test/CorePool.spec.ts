@@ -24,9 +24,11 @@ import {
   V1_STAKE_MAX_PERIOD,
   toWei,
   toAddress,
+  getPool,
 } from "./utils";
 import {
   setWeight,
+  getPoolData,
   migrationTests,
   mintV1Yield,
   updateStakeLock,
@@ -111,6 +113,10 @@ describe("CorePools", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.alice), toWei(10000));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
+  });
+  describe("#getPoolData", function () {
+    context("ILV Pool", getPoolData("ILV"));
+    context("Sushi LP Pool", getPoolData("LP"));
   });
   describe("#stakeAndLock", function () {
     context("ILV Pool", stakeAndLock("ILV"));
