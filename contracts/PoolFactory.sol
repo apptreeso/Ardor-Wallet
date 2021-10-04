@@ -60,16 +60,16 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     mapping(address => bool) public poolExists;
 
     /**
-     * @dev Fired in createPool() and registerPool()
+     * @dev Fired in registerPool()
      *
-     * @param _by an address which executed an action
+     * @param by an address which executed an action
      * @param poolToken pool token address (like ILV)
      * @param poolAddress deployed pool instance address
      * @param weight pool weight
      * @param isFlashPool flag indicating if pool is a flash pool
      */
-    event PoolRegistered(
-        address indexed _by,
+    event LogRegisterPool(
+        address indexed by,
         address indexed poolToken,
         address indexed poolAddress,
         uint64 weight,
@@ -79,19 +79,19 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     /**
      * @dev Fired in changePoolWeight()
      *
-     * @param _by an address which executed an action
+     * @param by an address which executed an action
      * @param poolAddress deployed pool instance address
      * @param weight new pool weight
      */
-    event WeightUpdated(address indexed _by, address indexed poolAddress, uint32 weight);
+    event LogChangePoolWeight(address indexed by, address indexed poolAddress, uint32 weight);
 
     /**
      * @dev Fired in updateILVPerSecond()
      *
-     * @param _by an address which executed an action
+     * @param by an address which executed an action
      * @param newIlvPerSecond new ILV/second value
      */
-    event IlvRatioUpdated(address indexed _by, uint256 newIlvPerSecond);
+    event LogUpdateILVPerSecond(address indexed by, uint256 newIlvPerSecond);
 
     /**
      * @dev Fired in setEndTime()
@@ -185,7 +185,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         totalWeight += weight;
 
         // emit an event
-        emit PoolRegistered(msg.sender, poolToken, address(pool), weight, isFlashPool);
+        emit LogRegisterPool(msg.sender, poolToken, address(pool), weight, isFlashPool);
     }
 
     function updateILVPerSecond() external {
@@ -199,7 +199,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         lastRatioUpdate = uint32(_now256());
 
         // emit an event
-        emit IlvRatioUpdated(msg.sender, ilvPerSecond);
+        emit LogUpdateILVPerSecond(msg.sender, ilvPerSecond);
     }
 
     function mintYieldTo(
@@ -228,7 +228,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         ICorePool(pool).setWeight(weight);
 
         // emit an event
-        emit WeightUpdated(msg.sender, address(pool), weight);
+        emit LogChangePoolWeight(msg.sender, address(pool), weight);
     }
 
     function setEndTime(uint32 _endTime) external onlyOwner {
