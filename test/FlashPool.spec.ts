@@ -99,6 +99,18 @@ describe("FlashPool", function () {
     await this.flashToken.connect(this.signers.deployer).transfer(this.signers.bob.address, toWei(10000));
     await this.flashToken.connect(this.signers.deployer).transfer(this.signers.carol.address, toWei(10000));
   });
+  describe("#getPoolData", function () {
+    it("should get correct pool data", async function () {
+      const poolWeight = await this.flashPool.weight();
+
+      const poolData = await this.factory.getPoolData(this.flashToken.address);
+
+      expect(poolData.poolToken).to.be.equal(this.flashToken.address);
+      expect(poolData.poolAddress).to.be.equal(this.flashPool.address);
+      expect(poolData.weight).to.be.equal(poolWeight);
+      expect(poolData.isFlashPool).to.be.equal(true);
+    });
+  });
   describe("#stake", function () {
     it("should stake", async function () {
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);

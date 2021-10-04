@@ -29,6 +29,24 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
+export function getPoolData(usingPool: string): () => void {
+  return function () {
+    it("should get correct pool data", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const token = getToken(this.ilv, this.lp, usingPool);
+
+      const poolWeight = await pool.weight();
+
+      const poolData = await this.factory.getPoolData(token.address);
+
+      expect(poolData.poolToken).to.be.equal(token.address);
+      expect(poolData.poolAddress).to.be.equal(pool.address);
+      expect(poolData.weight).to.be.equal(poolWeight);
+      expect(poolData.isFlashPool).to.be.equal(false);
+    });
+  };
+}
+
 export function migrateUser(usingPool: string): () => void {
   return function () {
     it("should migrate an user stake", async function () {
