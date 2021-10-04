@@ -9,9 +9,6 @@ import {
   SECONDS_PER_UPDATE,
   INIT_TIME,
   END_TIME,
-  ILV_POOL_WEIGHT,
-  LP_POOL_WEIGHT,
-  V1_STAKE_MAX_PERIOD,
   ONE_YEAR,
   toWei,
   toAddress,
@@ -28,6 +25,27 @@ chai.use(solidity);
 chai.use(chaiSubset);
 
 const { expect } = chai;
+
+export function setEndTime(): () => void {
+  return function () {
+    it("should correctly update endTime", async function () {
+      const previousEndTime = await this.factory.endTime();
+
+      await this.factory.connect(this.signers.deployer).setEndTime(END_TIME - 1000);
+
+      const newEndTime = await this.factory.endTime();
+
+      expect(previousEndTime).to.be.equal(END_TIME);
+      expect(newEndTime).to.be.equal(END_TIME - 1000);
+    });
+    it("should revert if invalid endTime", async function () {
+      await expect(this.factory.connect(this.signers.deployer).setEndTime(INIT_TIME - 1)).reverted;
+    });
+    it("should revert if invalid caller", async function () {
+      await expect(this.factory.connect(this.signers.alice).setEndTime(INIT_TIME - 1)).reverted;
+    });
+  };
+}
 
 export function getPoolData(usingPool: string): () => void {
   return function () {
@@ -1255,7 +1273,11 @@ export function pendingYield(usingPool: string): () => void {
 
       const { pendingYield: aliceYield0 } = await pool.pendingRewards(this.signers.alice.address);
 
+      await pool.sync();
+
       await pool.setNow256(END_TIME);
+
+      await pool.sync();
 
       const expectedYield1 = ILV_PER_SECOND.mul(END_TIME - INIT_TIME)
         .mul(poolWeight)

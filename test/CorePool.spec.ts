@@ -28,6 +28,7 @@ import {
 } from "./utils";
 import {
   setWeight,
+  setEndTime,
   getPoolData,
   migrationTests,
   mintV1Yield,
@@ -114,6 +115,7 @@ describe("CorePools", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
+  describe("#setEndTime", setEndTime());
   describe("#getPoolData", function () {
     context("ILV Pool", getPoolData("ILV"));
     context("Sushi LP Pool", getPoolData("LP"));
