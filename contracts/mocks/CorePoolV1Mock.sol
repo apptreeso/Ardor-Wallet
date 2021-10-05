@@ -11,6 +11,7 @@ contract CorePoolV1Mock is ICorePoolV1 {
     }
 
     uint256 public override usersLockingWeight;
+    uint256 public override poolTokenReserve;
 
     mapping(address => V1Stake[]) public users;
 
@@ -20,6 +21,7 @@ contract CorePoolV1Mock is ICorePoolV1 {
             for (uint256 j = 0; j < _userParameter[i].deposits.length; j++) {
                 users[user].push(_userParameter[i].deposits[j]);
                 usersLockingWeight += _userParameter[i].deposits[j].weight;
+                poolTokenReserve += _userParameter[i].deposits[j].tokenAmount;
             }
         }
     }

@@ -217,7 +217,7 @@ contract Vault is Ownable {
 
         // gets poolToken reserves in each pool
         uint256 reserve0 = ilvPool.poolTokenReserve() + ilvPoolV1.poolTokenReserve();
-        uint256 reserve1 = estimatePairPoolReserve(pairPool) + estimatePairPoolReserve(pairPoolV1);
+        uint256 reserve1 = estimatePairPoolReserve(address(pairPool)) + estimatePairPoolReserve(address(pairPoolV1));
         uint256 reserve2 = lockedPoolV1.poolTokenReserve();
         uint256 reserve3 = lockedPoolV2.poolTokenReserve();
 
@@ -257,13 +257,13 @@ contract Vault is Ownable {
      * @param _pairPool LP core pool extracted from pools structure (gas saving optimization)
      * @return ILV estimate of the LP pool share among 2 other pools
      */
-    function estimatePairPoolReserve(ICorePool _pairPool) public view returns (uint256) {
+    function estimatePairPoolReserve(address _pairPool) public view returns (uint256) {
         // 1. Determine LP pool share in terms of LP tokens:
         //    lpShare = lpAmount / lpTotal; lpShare < 1
         //    where lpAmount is amount of LP tokens in the pool,
         //    and lpTotal is total LP tokens supply
-        uint256 lpAmount = _pairPool.poolTokenReserve();
-        uint256 lpTotal = IERC20(_pairPool.poolToken()).totalSupply();
+        uint256 lpAmount = ICorePool(_pairPool).poolTokenReserve();
+        uint256 lpTotal = IERC20(ICorePool(_pairPool).poolToken()).totalSupply();
         // uint256 lpShare = lpAmount / lpTotal; - this will always be zero due to int rounding down,
         // therefore we don't calculate the share, but apply it to the calculations below
 
@@ -272,11 +272,11 @@ contract Vault is Ownable {
         // 2. Considering that LP pool share in terms of ILV tokens is the same as in terms of LP tokens,
         //    ilvShare = lpShare, ILV amount the LP pool has in LP tokens would be estimated as
         //    ilvAmount = ilvTotal * ilvShare = ilvTotal * lpShare
-        uint256 ilvTotal = ilv.balanceOf(_pairPool.poolToken());
+        uint256 ilvTotal = ilv.balanceOf(ICorePool(_pairPool).poolToken());
         uint256 ilvAmount = (ilvTotal * lpAmount) / lpTotal;
 
         // 3. Finally, LP pool can have some ILV present directly on its balance and not in LP pair
-        uint256 ilvBalance = ilv.balanceOf(address(_pairPool));
+        uint256 ilvBalance = ilv.balanceOf(_pairPool);
 
         // we estimate the result as a sum of the two (2) and (3):
         return ilvAmount + ilvBalance;
