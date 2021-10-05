@@ -26,6 +26,8 @@ declare module "mocha" {
     PoolFactory: PoolFactoryMock__factory;
     Vault: Vault__factory;
     WETH: WETHMock__factory;
+    SushiRouter: any;
+    SushiFactory: any;
     CorePoolV1: CorePoolV1Mock__factory;
     ERC20: ERC20Mock__factory;
     ilvPool: ILVPoolMock;
@@ -34,6 +36,8 @@ declare module "mocha" {
     factory: PoolFactoryMock;
     vault: Vault;
     weth: WETHMock;
+    sushiRouter: any;
+    sushiFactory: any;
     ilvPoolV1: CorePoolV1Mock;
     lpPoolV1: CorePoolV1Mock;
     ilv: ERC20Mock;

@@ -44,6 +44,8 @@ describe("Vault", function () {
     this.CorePoolV1 = <CorePoolV1Mock__factory>await ethers.getContractFactory("CorePoolV1Mock");
     this.ERC20 = <ERC20Mock__factory>await ethers.getContractFactory("ERC20Mock");
     this.Vault = <Vault__factory>await ethers.getContractFactory("Vault");
+    this.SushiFactory = await ethers.getContractFactory(factoryAbi, factoryBytecode);
+    this.SushiRouter = await ethers.getContractFactory(routerAbi, routerBytecode);
     this.WETH = <WETHMock__factory>await ethers.getContractFactory("WETHMock");
   });
 
@@ -70,8 +72,8 @@ describe("Vault", function () {
       INIT_TIME,
       END_TIME,
     ])) as PoolFactoryMock;
-    this.ilvPoolV1 = await this.CorePoolV1.deploy();
-    this.lpPoolV1 = await this.CorePoolV1.deploy();
+    this.ilvPoolV1 = await this.CorePoolV1.connect(this.signes.deployer).deploy();
+    this.lpPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy();
     this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
       this.ilv.address,
       this.silv.address,
@@ -92,8 +94,13 @@ describe("Vault", function () {
       this.lpPoolV1.address,
       V1_STAKE_MAX_PERIOD,
     ])) as SushiLPPoolMock;
-    this.weth = await this.WETH.deploy();
-    this.vault = this.Vault.deploy;
+    this.weth = await this.WETH.connect(this.signers.deployer).deploy();
+    this.sushiFactory = await this.SushiFactory.connect(this.signers.deployer).deploy(this.signers.deployer.address);
+    this.sushiRouter = await this.SushiRouter.connect(this.signers.deployer).deploy(
+      this.sushiFactory.address,
+      this.weth.address,
+    );
+    this.vault = await this.Vault.connect(this.signers.deployer).deploy(this.sushiRouter.address, this.ilv.address);
 
     await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
     await this.factory.connect(this.signers.deployer).registerPool(this.lpPool.address);

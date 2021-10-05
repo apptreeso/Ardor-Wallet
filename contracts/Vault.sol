@@ -11,7 +11,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 /**
  * @title Illuvium Vault
  *
- * @notice Integration with Sushi.
+ * @notice Integration with sushi router.
  *      Receives ETH from an address that exists on IMX which collects in-game purchases
  *      (although technically it could receive ETH from anywhere)
  *
@@ -38,7 +38,7 @@ contract Vault is Ownable {
     /**
      * @dev Link to UniswapV2Router02 deployed instance
      */
-    IUniswapV2Router02 public sushi;
+    IUniswapV2Router02 public sushiRouter;
 
     /**
      * @dev Link to IlluviumERC20 token deployed instance
@@ -90,18 +90,18 @@ contract Vault is Ownable {
     );
 
     /**
-     * @notice Creates (deploys) IlluviumVault linked to UniswapV2Router02 and IlluviumERC20 token
+     * @notice Creates (deploys) Vault linked to Sushi AMM Router and IlluviumERC20 token
      *
-     * @param _sushi an address of the UniswapV2Router02 to use for ETH -> ILV exchange
+     * @param _sushiRouter an address of the IUniswapV2Router02 to use for ETH -> ILV exchange
      * @param _ilv an address of the IlluviumERC20 token to use
      */
-    constructor(address _sushi, address _ilv) {
+    constructor(address _sushiRouter, address _ilv) {
         // verify the inputs are set
-        require(_sushi != address(0), "sushi address is not set");
+        require(_sushiRouter != address(0), "sushiRouter address is not set");
         require(_ilv != address(0), "ILV address is not set");
 
         // assign the values
-        sushi = IUniswapV2Router02(_sushi);
+        sushiRouter = IUniswapV2Router02(_sushiRouter);
         ilv = IERC20(_ilv);
     }
 
@@ -319,12 +319,12 @@ contract Vault is Ownable {
         // last element determines output token (what we receive from uniwsap)
         address[] memory path = new address[](2);
         // we send ETH wrapped as WETH into Uniswap
-        path[0] = sushi.WETH();
+        path[0] = sushiRouter.WETH();
         // we receive ILV from Uniswap
         path[1] = address(ilv);
 
         // exchange ETH -> ILV via Uniswap
-        uint256[] memory amounts = sushi.swapExactETHForTokens{ value: _ethIn }(
+        uint256[] memory amounts = sushiRouter.swapExactETHForTokens{ value: _ethIn }(
             _ilvOut,
             path,
             address(this),
