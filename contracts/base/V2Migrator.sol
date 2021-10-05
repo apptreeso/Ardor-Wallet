@@ -63,7 +63,7 @@ abstract contract V2Migrator is CorePool {
         bytes4 fnSelector = V2Migrator(this).migrateLockedStake.selector;
 
         for (uint256 i = 0; i < _stakeIds.length; i++) {
-            (, uint256 weight, uint64 lockedFrom, , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
+            (, uint256 _weight, uint64 lockedFrom, , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
                 msg.sender,
                 _stakeIds[i]
             );
@@ -71,7 +71,7 @@ abstract contract V2Migrator is CorePool {
             fnSelector.verifyState(lockedFrom > 0 && !isYield, i * 3 + 1);
             fnSelector.verifyState(v1StakesMigrated[msg.sender][_stakeIds[i]] == 0, i * 3 + 2);
 
-            v1StakesMigrated[msg.sender][_stakeIds[i]] = weight;
+            v1StakesMigrated[msg.sender][_stakeIds[i]] = _weight;
             user.v1IdsLength++;
             user.v1StakesIds[i] = _stakeIds[i];
         }

@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 
 import { ICorePool } from "./interfaces/ICorePool.sol";
+import { ICorePoolV1 } from "./interfaces/ICorePoolV1.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { IUniswapV2Router02 } from "./interfaces/IUniswapV2Router02.sol";
@@ -21,6 +22,8 @@ contract Vault is Ownable {
      *      linked to this smart contract and receiving vault rewards
      */
     struct Pools {
+        ICorePoolV1 ilvPoolV1;
+        ICorePoolV1 pairPoolV1;
         ICorePool ilvPool;
         ICorePool pairPool;
         ICorePool lockedPoolV1;
@@ -78,6 +81,8 @@ contract Vault is Ownable {
      */
     event LogSetCorePools(
         address indexed by,
+        address ilvPoolV1,
+        address pairPoolV1,
         address ilvPool,
         address pairPool,
         address lockedPoolV1,
@@ -110,12 +115,16 @@ contract Vault is Ownable {
      * @param _lockedPoolV2 deployed locked pool V2 address
      */
     function setCorePools(
+        ICorePoolV1 _ilvPoolV1,
+        ICorePoolV1 _pairPoolV1,
         ICorePool _ilvPool,
         ICorePool _pairPool,
         ICorePool _lockedPoolV1,
         ICorePool _lockedPoolV2
     ) external onlyOwner {
         // verify all the pools are set/supplied
+        require(address(_ilvPoolV1) != address(0), "ILV pool is not set");
+        require(address(_pairPoolV1) != address(0), "ILV pool is not set");
         require(address(_ilvPool) != address(0), "ILV pool is not set");
         require(address(_pairPool) != address(0), "LP pool is not set");
         require(address(_lockedPoolV1) != address(0), "locked pool v1 is not set");
@@ -130,6 +139,8 @@ contract Vault is Ownable {
         // emit an event
         emit LogSetCorePools(
             msg.sender,
+            address(_ilvPoolV1),
+            address(_pairPoolV1),
             address(_ilvPool),
             address(_pairPool),
             address(_lockedPoolV1),
@@ -179,12 +190,14 @@ contract Vault is Ownable {
         }
 
         // reads core pools
-        (ICorePool ilvPool, ICorePool pairPool, ICorePool lockedPoolV1, ICorePool lockedPoolV2) = (
-            pools.ilvPool,
-            pools.pairPool,
-            pools.lockedPoolV1,
-            pools.lockedPoolV2
-        );
+        (
+            ICorePoolV1 ilvPoolV1,
+            ICorePoolV1 pairPoolV1,
+            ICorePool ilvPool,
+            ICorePool pairPool,
+            ICorePool lockedPoolV1,
+            ICorePool lockedPoolV2
+        ) = (pools.ilvPoolV1, pools.pairPoolV1, pools.ilvPool, pools.pairPool, pools.lockedPoolV1, pools.lockedPoolV2);
 
         // read contract's ILV balance
         uint256 ilvBalance = ilv.balanceOf(address(this));

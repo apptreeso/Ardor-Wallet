@@ -6,7 +6,6 @@ import { solidity } from "ethereum-waffle";
 
 import {
   ILV_PER_SECOND,
-  SECONDS_PER_UPDATE,
   INIT_TIME,
   END_TIME,
   ONE_YEAR,

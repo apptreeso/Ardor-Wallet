@@ -711,7 +711,7 @@ abstract contract CorePool is
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
 
         // process current pending rewards if any
-        if (user.totalWeight > 0) {
+        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
             _processRewards(_staker, v1WeightToAdd, subYieldRewards, subVaultRewards);
         }
 
@@ -1133,8 +1133,8 @@ abstract contract CorePool is
 
                 uint256 storedWeight = v1StakesMigrated[_staker][stakeId];
 
-                // checks if v1 stake _weight has changed
-                if (storedWeight != _weight) {
+                // checks if v1 stake _weight has changed (we ignore if user increased weight)
+                if (storedWeight > _weight) {
                     // if deposit has been completely unstaked in v1, set stake id weight to 1
                     // so we can keep track that it has been already migrated.
                     // otherwise just returns _weight
