@@ -8,6 +8,8 @@ import {
   FlashPoolMock,
   PoolFactoryMock__factory,
   PoolFactoryMock,
+  Vault,
+  Vault__factory,
   CorePoolV1Mock__factory,
   CorePoolV1Mock,
   ERC20Mock__factory,
@@ -20,12 +22,14 @@ declare module "mocha" {
     SushiLPPool: SushiLPPoolMock__factory;
     FlashPool: FlashPoolMock__factory;
     PoolFactory: PoolFactoryMock__factory;
+    Vault: Vault__factory;
     CorePoolV1: CorePoolV1Mock__factory;
     ERC20: ERC20Mock__factory;
     ilvPool: ILVPoolMock;
     lpPool: SushiLPPoolMock;
     flashPool: FlashPoolMock;
     factory: PoolFactoryMock;
+    vault: Vault;
     ilvPoolV1: CorePoolV1Mock;
     lpPoolV1: CorePoolV1Mock;
     ilv: ERC20Mock;

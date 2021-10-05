@@ -9,6 +9,8 @@ export {
   FlashPoolMock,
   PoolFactoryMock__factory,
   PoolFactoryMock,
+  Vault,
+  Vault__factory,
   ERC20Mock__factory,
   ERC20Mock,
   CorePoolV1Mock__factory,
