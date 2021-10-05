@@ -216,8 +216,8 @@ contract Vault is Ownable {
         }
 
         // gets poolToken reserves in each pool
-        uint256 reserve0 = ilvPool.poolTokenReserve();
-        uint256 reserve1 = estimatePairPoolReserve(pairPool);
+        uint256 reserve0 = ilvPool.poolTokenReserve() + ilvPoolV1.poolTokenReserve();
+        uint256 reserve1 = estimatePairPoolReserve(pairPool) + estimatePairPoolReserve(pairPoolV1);
         uint256 reserve2 = lockedPoolV1.poolTokenReserve();
         uint256 reserve3 = lockedPoolV2.poolTokenReserve();
 
