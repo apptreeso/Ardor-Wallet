@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-contract WETH9 {
+contract WETHMock {
     string public name = "Wrapped Ether";
     string public symbol = "WETH";
     uint8 public decimals = 18;

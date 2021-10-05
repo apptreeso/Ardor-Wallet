@@ -8,8 +8,10 @@ import {
   FlashPoolMock,
   PoolFactoryMock__factory,
   PoolFactoryMock,
-  Vault,
   Vault__factory,
+  Vault,
+  WETHMock__factory,
+  WETHMock,
   CorePoolV1Mock__factory,
   CorePoolV1Mock,
   ERC20Mock__factory,
@@ -23,6 +25,7 @@ declare module "mocha" {
     FlashPool: FlashPoolMock__factory;
     PoolFactory: PoolFactoryMock__factory;
     Vault: Vault__factory;
+    WETH: WETHMock__factory;
     CorePoolV1: CorePoolV1Mock__factory;
     ERC20: ERC20Mock__factory;
     ilvPool: ILVPoolMock;
@@ -30,6 +33,7 @@ declare module "mocha" {
     flashPool: FlashPoolMock;
     factory: PoolFactoryMock;
     vault: Vault;
+    weth: WETHMock;
     ilvPoolV1: CorePoolV1Mock;
     lpPoolV1: CorePoolV1Mock;
     ilv: ERC20Mock;

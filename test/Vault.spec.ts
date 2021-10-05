@@ -2,6 +2,8 @@ import chai from "chai";
 import chaiSubset from "chai-subset";
 import { solidity } from "ethereum-waffle";
 import { ethers, upgrades } from "hardhat";
+import { abi as factoryAbi, bytecode as factoryBytecode } from "@uniswap/v2-core/build/UniswapV2Factory.json";
+import { abi as routerAbi, bytecode as routerBytecode } from "@uniswap/v2-periphery/build/UniswapV2Router02.json";
 import {
   ILVPoolMock__factory,
   ILVPoolMock,
@@ -12,6 +14,7 @@ import {
   CorePoolV1Mock__factory,
   ERC20Mock__factory,
   Vault__factory,
+  WETHMock__factory,
   Signers,
 } from "../types";
 
@@ -41,6 +44,7 @@ describe("Vault", function () {
     this.CorePoolV1 = <CorePoolV1Mock__factory>await ethers.getContractFactory("CorePoolV1Mock");
     this.ERC20 = <ERC20Mock__factory>await ethers.getContractFactory("ERC20Mock");
     this.Vault = <Vault__factory>await ethers.getContractFactory("Vault");
+    this.WETH = <WETHMock__factory>await ethers.getContractFactory("WETHMock");
   });
 
   beforeEach(async function () {
@@ -88,7 +92,10 @@ describe("Vault", function () {
       this.lpPoolV1.address,
       V1_STAKE_MAX_PERIOD,
     ])) as SushiLPPoolMock;
-    this.vault = await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
+    this.weth = await this.WETH.deploy();
+    this.vault = this.Vault.deploy;
+
+    await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
     await this.factory.connect(this.signers.deployer).registerPool(this.lpPool.address);
 
     await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.alice), toWei(100000));
