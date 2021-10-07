@@ -63,11 +63,6 @@ describe("Vault", function () {
       ethers.utils.parseEther("10000000"),
     );
     this.silv = await this.ERC20.connect(this.signers.deployer).deploy("Escrowed Illuvium", "sILV", "0");
-    this.lp = await this.ERC20.connect(this.signers.deployer).deploy(
-      "Sushiswap ILV/ETH LP",
-      "SLP",
-      ethers.utils.parseEther("100000"),
-    );
 
     this.factory = (await upgrades.deployProxy(this.PoolFactory, [
       this.ilv.address,
@@ -89,16 +84,7 @@ describe("Vault", function () {
       this.ilvPoolV1.address,
       V1_STAKE_MAX_PERIOD,
     ])) as ILVPoolMock;
-    this.lpPool = (await upgrades.deployProxy(this.SushiLPPool, [
-      this.ilv.address,
-      this.silv.address,
-      this.lp.address,
-      this.factory.address,
-      INIT_TIME,
-      LP_POOL_WEIGHT,
-      this.lpPoolV1.address,
-      V1_STAKE_MAX_PERIOD,
-    ])) as SushiLPPoolMock;
+
     this.weth = await this.WETH.connect(this.signers.deployer).deploy();
     this.sushiFactory = await this.SushiFactory.connect(this.signers.deployer).deploy(this.signers.deployer.address);
     this.sushiRouter = await this.SushiRouter.connect(this.signers.deployer).deploy(
@@ -112,13 +98,25 @@ describe("Vault", function () {
       .connect(this.signers.deployer)
       .addLiquidityETH(
         this.ilv.address,
+        toWei(100000),
+        toWei(100000),
         toWei(10000),
-        toWei(10000),
-        toWei(1000),
         this.signers.deployer.address,
         MaxUint256,
         { value: toWei(1000) },
       );
+
+    this.lp = this.ERC20.attach(await this.sushiFactory.getPair(this.weth.address, this.ilv.address));
+    this.lpPool = (await upgrades.deployProxy(this.SushiLPPool, [
+      this.ilv.address,
+      this.silv.address,
+      this.lp.address,
+      this.factory.address,
+      INIT_TIME,
+      LP_POOL_WEIGHT,
+      this.lpPoolV1.address,
+      V1_STAKE_MAX_PERIOD,
+    ])) as SushiLPPoolMock;
 
     await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
     await this.factory.connect(this.signers.deployer).registerPool(this.lpPool.address);
@@ -127,9 +125,9 @@ describe("Vault", function () {
     await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(100000));
     await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(100000));
 
-    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.alice), toWei(10000));
-    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
-    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
+    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.alice), toWei(500));
+    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(500));
+    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(500));
   });
   describe("#setCorePools", setCorePools());
   describe("#swapETHForILV", swapETHForILV());

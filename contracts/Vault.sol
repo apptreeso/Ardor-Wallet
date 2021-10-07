@@ -179,7 +179,7 @@ contract Vault is Ownable {
      * @param _ilvOut expected ILV amount to be received from Uniswap swap
      * @param _deadline maximum timeout to wait for Uniswap swap
      */
-    function sendIlvRewards(
+    function sendILVRewards(
         uint256 _ethIn,
         uint256 _ilvOut,
         uint256 _deadline

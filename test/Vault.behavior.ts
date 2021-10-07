@@ -192,6 +192,25 @@ export function setCorePools(): () => void {
 
 export function swapETHForILV(): () => void {
   return function () {
+    beforeEach(async function () {
+      const ilvPoolV1Address = this.ilvPoolV1.address;
+      const lpPoolV1Address = this.lpPoolV1.address;
+      const ilvPoolAddress = this.ilvPool.address;
+      const lpPoolAddress = this.lpPool.address;
+      const lockedPoolV1MockedAddress = this.ilvPool.address;
+      const lockedPoolV2MockedAddress = this.ilvPool.address;
+
+      await this.vault
+        .connect(this.signers.deployer)
+        .setCorePools(
+          ilvPoolV1Address,
+          lpPoolV1Address,
+          ilvPoolAddress,
+          lpPoolAddress,
+          lockedPoolV1MockedAddress,
+          lockedPoolV2MockedAddress,
+        );
+    });
     it("should swap contract eth balance to ILV", async function () {
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(10) });
       const ethIn = toWei(5);
@@ -217,6 +236,41 @@ export function swapETHForILV(): () => void {
       const [, ilvOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
 
       await expect(this.vault.swapETHForILV(0, ilvOut, MaxUint256)).reverted;
+    });
+    it("should revert if deadline = 0", async function () {
+      await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(10) });
+      const ethIn = toWei(5);
+
+      const [, ilvOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
+
+      await expect(this.vault.swapETHForILV(ethIn, ilvOut, 0)).reverted;
+    });
+  };
+}
+
+export function sendILVRewards(): () => void {
+  return function () {
+    it("should distribute ilv revenue", async function () {
+      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+
+      await this.ilvPoolV1.setUsers(users);
+      await this.lpPoolV1.setUsers(users);
+
+      await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(10) });
+      const ethIn = toWei(8);
+
+      const [, ilvOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
+
+      await this.vault.swapETHForILV(ethIn, ilvOut, MaxUint256);
+
+      await this.vault.sendILVRewards(0, 0, 0);
+
+      const ilvPoolV1IlvBalance = await this.ilv.balanceOf(this.ilvPoolV1.address);
+      const lpPoolV1IlvBalance = await this.vault.estimatePairPoolReserve(this.lpPoolV1.address);
+      const ilvPoolIlvBalance = await this.ilv.balanceOf(this.ilvPool.address);
+      const lpPoolIlvBalance = await this.vault.estimatePairPoolReserve(this.lpPool.address);
+      const lockedPoolV1IlvBalance = await this.ilv.balanceOf(this.ilvPool.address);
+      const lockedPoolV2IlvBalance = await this.vault.estimatePairPoolReserve(this.lpPool.address);
     });
   };
 }
