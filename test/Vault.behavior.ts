@@ -33,7 +33,7 @@ export function setCorePools(): () => void {
       const ilvPoolAddress = this.ilvPool.address;
       const lpPoolAddress = this.lpPool.address;
       const lockedPoolV1MockedAddress = this.ilvPool.address;
-      const lockedPoolV2MockedAddress = this.ilvPool.address;
+      const lockedPoolV2MockedAddress = this.lpPool.address;
 
       await this.vault
         .connect(this.signers.deployer)
@@ -192,25 +192,6 @@ export function setCorePools(): () => void {
 
 export function swapETHForILV(): () => void {
   return function () {
-    beforeEach(async function () {
-      const ilvPoolV1Address = this.ilvPoolV1.address;
-      const lpPoolV1Address = this.lpPoolV1.address;
-      const ilvPoolAddress = this.ilvPool.address;
-      const lpPoolAddress = this.lpPool.address;
-      const lockedPoolV1MockedAddress = this.ilvPool.address;
-      const lockedPoolV2MockedAddress = this.ilvPool.address;
-
-      await this.vault
-        .connect(this.signers.deployer)
-        .setCorePools(
-          ilvPoolV1Address,
-          lpPoolV1Address,
-          ilvPoolAddress,
-          lpPoolAddress,
-          lockedPoolV1MockedAddress,
-          lockedPoolV2MockedAddress,
-        );
-    });
     it("should swap contract eth balance to ILV", async function () {
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(10) });
       const ethIn = toWei(5);
@@ -250,27 +231,78 @@ export function swapETHForILV(): () => void {
 
 export function sendILVRewards(): () => void {
   return function () {
+    beforeEach(async function () {
+      const ilvPoolV1Address = this.ilvPoolV1.address;
+      const lpPoolV1Address = this.lpPoolV1.address;
+      const ilvPoolAddress = this.ilvPool.address;
+      const lpPoolAddress = this.lpPool.address;
+      const lockedPoolV1MockedAddress = this.ilvPool.address;
+      const lockedPoolV2MockedAddress = this.ilvPool.address;
+
+      await this.vault
+        .connect(this.signers.deployer)
+        .setCorePools(
+          ilvPoolV1Address,
+          lpPoolV1Address,
+          ilvPoolAddress,
+          lpPoolAddress,
+          lockedPoolV1MockedAddress,
+          lockedPoolV2MockedAddress,
+        );
+
+      await this.ilvPool.connect(this.signers.deployer).setVault(this.vault.address);
+      await this.lpPool.connect(this.signers.deployer).setVault(this.vault.address);
+    });
     it("should distribute ilv revenue", async function () {
       const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
       await this.ilvPoolV1.setUsers(users);
       await this.lpPoolV1.setUsers(users);
 
-      await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(10) });
-      const ethIn = toWei(8);
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+
+      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+
+      await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
+      const ethIn = toWei(50);
 
       const [, ilvOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
 
       await this.vault.swapETHForILV(ethIn, ilvOut, MaxUint256);
 
+      const vaultILVBalance = await this.ilv.balanceOf(this.vault.address);
+
+      const lockedPoolsMockedBalance = (await this.ilvPool.poolTokenReserve()).mul(2);
+
+      const ilvPoolILVBalance0 = (await this.ilvPool.poolTokenReserve())
+        .add(await this.ilvPoolV1.poolTokenReserve())
+        .add(lockedPoolsMockedBalance);
+      const lpPoolILVBalance0 = (await this.vault.estimatePairPoolReserve(this.lpPool.address)).add(
+        await this.vault.estimatePairPoolReserve(this.lpPoolV1.address),
+      );
+
+      const totalILVInPools = ilvPoolILVBalance0.add(lpPoolILVBalance0);
+
+      const ilvPoolShare = ilvPoolILVBalance0.mul(1e12).div(totalILVInPools);
+      const lpPoolShare = lpPoolILVBalance0.mul(1e12).div(totalILVInPools);
+
       await this.vault.sendILVRewards(0, 0, 0);
 
-      const ilvPoolV1IlvBalance = await this.ilv.balanceOf(this.ilvPoolV1.address);
-      const lpPoolV1IlvBalance = await this.vault.estimatePairPoolReserve(this.lpPoolV1.address);
-      const ilvPoolIlvBalance = await this.ilv.balanceOf(this.ilvPool.address);
-      const lpPoolIlvBalance = await this.vault.estimatePairPoolReserve(this.lpPool.address);
-      const lockedPoolV1IlvBalance = await this.ilv.balanceOf(this.ilvPool.address);
-      const lockedPoolV2IlvBalance = await this.vault.estimatePairPoolReserve(this.lpPool.address);
+      const ilvPoolILVBalance1 = (await this.ilvPool.poolTokenReserve())
+        .add(await this.ilvPoolV1.poolTokenReserve())
+        .add(lockedPoolsMockedBalance);
+      const lpPoolILVBalance1 = (await this.vault.estimatePairPoolReserve(this.lpPool.address)).add(
+        await this.vault.estimatePairPoolReserve(this.lpPoolV1.address),
+      );
+
+      expect(ethers.utils.formatEther(ilvPoolILVBalance1.sub(ilvPoolILVBalance0)).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(ilvPoolShare.mul(vaultILVBalance).div(1e12)).slice(0, 6),
+      );
+      expect(ethers.utils.formatEther(lpPoolILVBalance1.sub(lpPoolILVBalance0)).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(1e12)).slice(0, 6),
+      );
     });
   };
 }

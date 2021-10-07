@@ -68,7 +68,7 @@ describe("FlashPool", function () {
       INIT_TIME,
       END_TIME,
     ])) as PoolFactoryMock;
-    this.corePoolV1 = await this.CorePoolV1.deploy();
+    this.corePoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.ilv.address);
     this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
       this.ilv.address,
       this.silv.address,

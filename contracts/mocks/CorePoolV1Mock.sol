@@ -10,10 +10,17 @@ contract CorePoolV1Mock is ICorePoolV1 {
         V1Stake[] deposits;
     }
 
+    address public override poolToken;
     uint256 public override usersLockingWeight;
     uint256 public override poolTokenReserve;
 
     mapping(address => V1Stake[]) public users;
+
+    constructor(address _poolToken) {
+        require(_poolToken != address(0));
+
+        poolToken = _poolToken;
+    }
 
     function setUsers(UserParameter[] calldata _userParameter) external {
         for (uint256 i = 0; i < _userParameter.length; i++) {

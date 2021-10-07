@@ -29,7 +29,7 @@ import {
   toWei,
   toAddress,
 } from "./utils";
-import { setCorePools, swapETHForILV } from "./Vault.behavior";
+import { setCorePools, swapETHForILV, sendILVRewards } from "./Vault.behavior";
 
 const { MaxUint256 } = ethers.constants;
 
@@ -72,8 +72,8 @@ describe("Vault", function () {
       INIT_TIME,
       END_TIME,
     ])) as PoolFactoryMock;
-    this.ilvPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy();
-    this.lpPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy();
+    this.ilvPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.ilv.address);
+
     this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
       this.ilv.address,
       this.silv.address,
@@ -107,6 +107,7 @@ describe("Vault", function () {
       );
 
     this.lp = this.ERC20.attach(await this.sushiFactory.getPair(this.weth.address, this.ilv.address));
+    this.lpPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.lp.address);
     this.lpPool = (await upgrades.deployProxy(this.SushiLPPool, [
       this.ilv.address,
       this.silv.address,
@@ -131,4 +132,5 @@ describe("Vault", function () {
   });
   describe("#setCorePools", setCorePools());
   describe("#swapETHForILV", swapETHForILV());
+  describe("#sendILVRewards", sendILVRewards());
 });

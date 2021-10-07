@@ -26,6 +26,8 @@ interface ICorePoolV1 {
             bool
         );
 
+    function poolToken() external view returns (address);
+
     function usersLockingWeight() external view returns (uint256);
 
     function poolTokenReserve() external view returns (uint256);

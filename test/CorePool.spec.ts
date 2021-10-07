@@ -81,8 +81,8 @@ describe("CorePools", function () {
       INIT_TIME,
       END_TIME,
     ])) as PoolFactoryMock;
-    this.ilvPoolV1 = await this.CorePoolV1.deploy();
-    this.lpPoolV1 = await this.CorePoolV1.deploy();
+    this.ilvPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.ilv.address);
+    this.lpPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.lp.address);
     this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
       this.ilv.address,
       this.silv.address,
