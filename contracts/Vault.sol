@@ -131,6 +131,8 @@ contract Vault is Ownable {
         require(address(_lockedPoolV2) != address(0), "locked pool v2 is not set");
 
         // set up
+        pools.ilvPoolV1 = _ilvPoolV1;
+        pools.pairPoolV1 = _pairPoolV1;
         pools.ilvPool = _ilvPool;
         pools.pairPool = _pairPool;
         pools.lockedPoolV1 = _lockedPoolV1;

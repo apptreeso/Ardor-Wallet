@@ -1,118 +1,185 @@
+import { ethers } from "hardhat";
+
 import chai from "chai";
 import chaiSubset from "chai-subset";
 import { solidity } from "ethereum-waffle";
-import { ethers, upgrades } from "hardhat";
-import {
-  ILVPoolMock__factory,
-  ILVPoolMock,
-  SushiLPPoolMock__factory,
-  SushiLPPoolMock,
-  PoolFactoryMock__factory,
-  PoolFactoryMock,
-  CorePoolV1Mock__factory,
-  ERC20Mock__factory,
-  Signers,
-} from "../types";
 
 import {
   ILV_PER_SECOND,
-  SECONDS_PER_UPDATE,
   INIT_TIME,
   END_TIME,
-  ILV_POOL_WEIGHT,
-  LP_POOL_WEIGHT,
-  V1_STAKE_MAX_PERIOD,
+  ONE_YEAR,
   toWei,
   toAddress,
+  getToken,
   getPool,
+  getV1Pool,
+  getUsers0,
+  getUsers1,
 } from "./utils";
-import {
-  setWeight,
-  setEndTime,
-  getPoolData,
-  migrationTests,
-  mintV1Yield,
-  updateStakeLock,
-  stakeAndLock,
-  sync,
-  stakeFlexible,
-  pendingYield,
-  claimYieldRewards,
-  claimYieldRewardsMultiple,
-  unstakeFlexible,
-  unstakeLocked,
-  unstakeLockedMultiple,
-  migrateUser,
-} from "./CorePool.behavior";
+
+const { MaxUint256, AddressZero } = ethers.constants;
 
 chai.use(solidity);
 chai.use(chaiSubset);
 
-describe("Vault", function () {
-  before(async function () {
-    this.signers = {} as Signers;
-    this.ILVPool = <ILVPoolMock__factory>await ethers.getContractFactory("ILVPoolMock");
-    this.SushiLPPool = <SushiLPPoolMock__factory>await ethers.getContractFactory("SushiLPPoolMock");
-    this.PoolFactory = <PoolFactoryMock__factory>await ethers.getContractFactory("PoolFactoryMock");
-    this.CorePoolV1 = <CorePoolV1Mock__factory>await ethers.getContractFactory("CorePoolV1Mock");
-    this.ERC20 = <ERC20Mock__factory>await ethers.getContractFactory("ERC20Mock");
-  });
+const { expect } = chai;
 
-  beforeEach(async function () {
-    [this.signers.deployer, this.signers.alice, this.signers.bob, this.signers.carol] = await ethers.getSigners();
+export function setCorePools(): () => void {
+  return function () {
+    it("should set core pools correctly", async function () {
+      const ilvPoolV1Address = this.ilvPoolV1.address;
+      const lpPoolV1Address = this.lpPoolV1.address;
+      const ilvPoolAddress = this.ilvPool.address;
+      const lpPoolAddress = this.lpPool.address;
+      const lockedPoolV1MockedAddress = this.ilvPool.address;
+      const lockedPoolV2MockedAddress = this.ilvPool.address;
 
-    this.ilv = await this.ERC20.connect(this.signers.deployer).deploy(
-      "Illuvium",
-      "ILV",
-      ethers.utils.parseEther("10000000"),
-    );
-    this.silv = await this.ERC20.connect(this.signers.deployer).deploy("Escrowed Illuvium", "sILV", "0");
-    this.lp = await this.ERC20.connect(this.signers.deployer).deploy(
-      "Sushiswap ILV/ETH LP",
-      "SLP",
-      ethers.utils.parseEther("100000"),
-    );
+      await this.vault
+        .connect(this.signers.deployer)
+        .setCorePools(
+          ilvPoolV1Address,
+          lpPoolV1Address,
+          ilvPoolAddress,
+          lpPoolAddress,
+          lockedPoolV1MockedAddress,
+          lockedPoolV2MockedAddress,
+        );
 
-    this.factory = (await upgrades.deployProxy(this.PoolFactory, [
-      this.ilv.address,
-      this.silv.address,
-      ILV_PER_SECOND,
-      SECONDS_PER_UPDATE,
-      INIT_TIME,
-      END_TIME,
-    ])) as PoolFactoryMock;
-    this.ilvPoolV1 = await this.CorePoolV1.deploy();
-    this.lpPoolV1 = await this.CorePoolV1.deploy();
-    this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
-      this.ilv.address,
-      this.silv.address,
-      this.ilv.address,
-      this.factory.address,
-      INIT_TIME,
-      ILV_POOL_WEIGHT,
-      this.ilvPoolV1.address,
-      V1_STAKE_MAX_PERIOD,
-    ])) as ILVPoolMock;
-    this.lpPool = (await upgrades.deployProxy(this.SushiLPPool, [
-      this.ilv.address,
-      this.silv.address,
-      this.lp.address,
-      this.factory.address,
-      INIT_TIME,
-      LP_POOL_WEIGHT,
-      this.lpPoolV1.address,
-      V1_STAKE_MAX_PERIOD,
-    ])) as SushiLPPoolMock;
+      const { ilvPoolV1, pairPoolV1, ilvPool, pairPool, lockedPoolV1, lockedPoolV2 } = await this.vault.pools();
 
-    await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
-    await this.factory.connect(this.signers.deployer).registerPool(this.lpPool.address);
+      expect(ilvPoolV1).to.be.equal(ilvPoolV1Address);
+      expect(pairPoolV1).to.be.equal(lpPoolV1Address);
+      expect(ilvPool).to.be.equal(ilvPoolAddress);
+      expect(pairPool).to.be.equal(lpPoolAddress);
+      expect(lockedPoolV1).to.be.equal(lockedPoolV1MockedAddress);
+      expect(lockedPoolV2).to.be.equal(lockedPoolV2MockedAddress);
+    });
+    it("should revert if ilvPoolV1 = address(0)", async function () {
+      const lpPoolV1Address = this.lpPoolV1.address;
+      const ilvPoolAddress = this.ilvPool.address;
+      const lpPoolAddress = this.lpPool.address;
+      const lockedPoolV1MockedAddress = this.ilvPool.address;
+      const lockedPoolV2MockedAddress = this.ilvPool.address;
 
-    await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.alice), toWei(100000));
-    await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(100000));
-    await this.ilv.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(100000));
+      await expect(
+        this.vault
+          .connect(this.signers.deployer)
+          .setCorePools(
+            AddressZero,
+            lpPoolV1Address,
+            ilvPoolAddress,
+            lpPoolAddress,
+            lockedPoolV1MockedAddress,
+            lockedPoolV2MockedAddress,
+          ),
+      ).reverted;
+    });
+    it("should revert if pairPoolV1 = address(0)", async function () {
+      const ilvPoolV1Address = this.ilvPoolV1.address;
 
-    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.alice), toWei(10000));
-    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
-    await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
-  });
-});
+      const ilvPoolAddress = this.ilvPool.address;
+      const lpPoolAddress = this.lpPool.address;
+      const lockedPoolV1MockedAddress = this.ilvPool.address;
+      const lockedPoolV2MockedAddress = this.ilvPool.address;
+
+      await expect(
+        this.vault
+          .connect(this.signers.deployer)
+          .setCorePools(
+            ilvPoolV1Address,
+            AddressZero,
+            ilvPoolAddress,
+            lpPoolAddress,
+            lockedPoolV1MockedAddress,
+            lockedPoolV2MockedAddress,
+          ),
+      ).reverted;
+    });
+    it("should revert if ilvPool = address(0)", async function () {
+      const ilvPoolV1Address = this.ilvPoolV1.address;
+      const lpPoolV1Address = this.lpPoolV1.address;
+
+      const lpPoolAddress = this.lpPool.address;
+      const lockedPoolV1MockedAddress = this.ilvPool.address;
+      const lockedPoolV2MockedAddress = this.ilvPool.address;
+
+      await expect(
+        this.vault
+          .connect(this.signers.deployer)
+          .setCorePools(
+            ilvPoolV1Address,
+            lpPoolV1Address,
+            AddressZero,
+            lpPoolAddress,
+            lockedPoolV1MockedAddress,
+            lockedPoolV2MockedAddress,
+          ),
+      ).reverted;
+    });
+
+    it("should revert if pairPool = address(0)", async function () {
+      const ilvPoolV1Address = this.ilvPoolV1.address;
+      const lpPoolV1Address = this.lpPoolV1.address;
+      const ilvPoolAddress = this.ilvPool.address;
+
+      const lockedPoolV1MockedAddress = this.ilvPool.address;
+      const lockedPoolV2MockedAddress = this.ilvPool.address;
+
+      await expect(
+        this.vault
+          .connect(this.signers.deployer)
+          .setCorePools(
+            ilvPoolV1Address,
+            lpPoolV1Address,
+            ilvPoolAddress,
+            AddressZero,
+            lockedPoolV1MockedAddress,
+            lockedPoolV2MockedAddress,
+          ),
+      ).reverted;
+    });
+
+    it("should revert if lockedPoolV1 = address(0)", async function () {
+      const ilvPoolV1Address = this.ilvPoolV1.address;
+      const lpPoolV1Address = this.lpPoolV1.address;
+      const ilvPoolAddress = this.ilvPool.address;
+      const lpPoolAddress = this.lpPool.address;
+      const lockedPoolV2MockedAddress = this.ilvPool.address;
+
+      await expect(
+        this.vault
+          .connect(this.signers.deployer)
+          .setCorePools(
+            ilvPoolV1Address,
+            lpPoolV1Address,
+            ilvPoolAddress,
+            lpPoolAddress,
+            AddressZero,
+            lockedPoolV2MockedAddress,
+          ),
+      ).reverted;
+    });
+
+    it("should revert if lockedPoolV2 = address(0)", async function () {
+      const ilvPoolV1Address = this.ilvPoolV1.address;
+      const lpPoolV1Address = this.lpPoolV1.address;
+      const ilvPoolAddress = this.ilvPool.address;
+      const lpPoolAddress = this.lpPool.address;
+      const lockedPoolV1MockedAddress = this.ilvPool.address;
+
+      await expect(
+        this.vault
+          .connect(this.signers.deployer)
+          .setCorePools(
+            ilvPoolV1Address,
+            lpPoolV1Address,
+            ilvPoolAddress,
+            lpPoolAddress,
+            lockedPoolV1MockedAddress,
+            AddressZero,
+          ),
+      ).reverted;
+    });
+  };
+}

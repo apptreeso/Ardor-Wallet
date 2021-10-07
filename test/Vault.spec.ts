@@ -28,9 +28,8 @@ import {
   V1_STAKE_MAX_PERIOD,
   toWei,
   toAddress,
-  getPool,
 } from "./utils";
-import {} from "./Vault.behavior";
+import { setCorePools } from "./Vault.behavior";
 
 chai.use(solidity);
 chai.use(chaiSubset);
@@ -72,7 +71,7 @@ describe("Vault", function () {
       INIT_TIME,
       END_TIME,
     ])) as PoolFactoryMock;
-    this.ilvPoolV1 = await this.CorePoolV1.connect(this.signes.deployer).deploy();
+    this.ilvPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy();
     this.lpPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy();
     this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
       this.ilv.address,
@@ -113,4 +112,5 @@ describe("Vault", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
+  describe("#setCorePools", setCorePools());
 });
