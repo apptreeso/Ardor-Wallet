@@ -52,6 +52,10 @@ describe("Vault", function () {
 
   beforeEach(async function () {
     [this.signers.deployer, this.signers.alice, this.signers.bob, this.signers.carol] = await ethers.getSigners();
+    await ethers.provider.send("hardhat_setBalance", [
+      this.signers.deployer.address,
+      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    ]);
 
     this.ilv = await this.ERC20.connect(this.signers.deployer).deploy(
       "Illuvium",

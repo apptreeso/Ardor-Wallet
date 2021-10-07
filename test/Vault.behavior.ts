@@ -204,5 +204,11 @@ export function swapETHForILV(): () => void {
 
       expect(vaultILVBalance).to.be.equal(ilvOut);
     });
+    it("should revert if _ilvOut = 0", async function () {
+      await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(10) });
+      const ethIn = toWei(5);
+
+      await expect(this.vault.swapETHForILV(ethIn, 0, MaxUint256)).reverted;
+    });
   };
 }
