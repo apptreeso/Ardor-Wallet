@@ -181,5 +181,28 @@ export function setCorePools(): () => void {
           ),
       ).reverted;
     });
+    it("should receive ether", async function () {
+      await expect(this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(10) })).to.emit(
+        this.vault,
+        "LogEthReceived",
+      );
+    });
+  };
+}
+
+export function swapETHForILV(): () => void {
+  return function () {
+    it("should swap contract eth balance to ILV", async function () {
+      await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(10) });
+      const ethIn = toWei(5);
+
+      const [, ilvOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
+
+      await this.vault.swapETHForILV(ethIn, ilvOut, MaxUint256);
+
+      const vaultILVBalance = await this.ilv.balanceOf(this.vault.address);
+
+      expect(vaultILVBalance).to.be.equal(ilvOut);
+    });
   };
 }

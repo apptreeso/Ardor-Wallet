@@ -29,7 +29,9 @@ import {
   toWei,
   toAddress,
 } from "./utils";
-import { setCorePools } from "./Vault.behavior";
+import { setCorePools, swapETHForILV } from "./Vault.behavior";
+
+const { MaxUint256 } = ethers.constants;
 
 chai.use(solidity);
 chai.use(chaiSubset);
@@ -101,6 +103,19 @@ describe("Vault", function () {
     );
     this.vault = await this.Vault.connect(this.signers.deployer).deploy(this.sushiRouter.address, this.ilv.address);
 
+    await this.ilv.connect(this.signers.deployer).approve(this.sushiRouter.address, MaxUint256);
+    await this.sushiRouter
+      .connect(this.signers.deployer)
+      .addLiquidityETH(
+        this.ilv.address,
+        toWei(10000),
+        toWei(10000),
+        toWei(1000),
+        this.signers.deployer.address,
+        MaxUint256,
+        { value: toWei(1000) },
+      );
+
     await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
     await this.factory.connect(this.signers.deployer).registerPool(this.lpPool.address);
 
@@ -113,4 +128,5 @@ describe("Vault", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
   describe("#setCorePools", setCorePools());
+  describe("#swapETHForILV", swapETHForILV());
 });
