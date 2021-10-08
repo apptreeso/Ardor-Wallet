@@ -130,13 +130,23 @@ abstract contract CorePool is
     event LogUnstakeFlexible(address indexed to, uint256 value);
 
     /**
+     * @dev Fired in unstakeFlexible()
+     *
+     * @param to address receiving the tokens (user)
+     * @param totalValue number of tokens unstaked
+     * @param unstakingYield whether function call was to mint ILV (yield) or not
+     */
+    event LogUnstakeLockedMultiple(address indexed to, uint256 totalValue, bool unstakingYield);
+
+    /**
      * @dev Fired in unstakeLocked()
      *
      * @param to address receiving the tokens (user)
      * @param stakeId id value of the stake
      * @param value number of tokens unstaked
+     * @param isYield whether stake struct unstaked was coming from yield or not
      */
-    event LogUnstakeLocked(address indexed to, uint256 stakeId, uint256 value);
+    event LogUnstakeLocked(address indexed to, uint256 stakeId, uint256 value, bool isYield);
 
     /**
      * @dev Fired in _sync(), sync() and dependent functions (stake, unstake, etc.)
@@ -212,9 +222,10 @@ abstract contract CorePool is
      * @param _poolToken token the pool operates on, for example ILV or ILV/ETH pair
      * @param _factory PoolFactory contract address
      * @param _initTime initial timestamp used to calculate the rewards
-     *      note: _initTime can be set to the future effectively meaning _sync() calls will do nothing
-     * @param _weight number representing a weight of the pool, actual weight fraction
-     *      is calculated as that number divided by the total pools weight and doesn't exceed one
+     *      note: _initTime is set to the future effectively meaning _sync() calls will do nothing
+     *           before _initTime
+     * @param _weight number representing the pool's weight, which in _sync calls
+     *        is used by checking the total pools weight in the PoolFactory contract
      */
     function __CorePool_init(
         address _ilv,
@@ -251,7 +262,7 @@ abstract contract CorePool is
      *
      * @dev see _pendingRewards() for further details
      *
-     * @notice external pendingRewards() returns pendingYield and pendingRevDis
+     * @dev external pendingRewards() returns pendingYield and pendingRevDis
      *         accumulated with already stored user.pendingYield and user.pendingRevDis
      *
      * @param _staker an address to calculate yield rewards value for
@@ -434,8 +445,7 @@ abstract contract CorePool is
 
     /**
      * @dev stakes poolTokens without lock
-     *
-     * @notice we use standard weight for flexible stakes (since it's never locked)
+     * @dev we use standard weight for flexible stakes (since it's never locked)
      *
      * @param _value number of tokens to stake
      */
@@ -481,11 +491,12 @@ abstract contract CorePool is
 
     /**
      * @dev migrates msg.sender data to a new address
+     * @dev v1 stakes are never migrated to the new address. We process all rewards,
+     *      clean the previous user (msg.sender), add the previous user data to
+     *      the desired address and update subYieldRewards/subVaultRewards values
+     *      in order to make sure both addresses will have rewards cleaned
      *
-     * @notice data is copied to memory so we can delete previous address data
-     * before we store it in new address
-     *
-     * @param _to new user address
+     * @param _to new user address, needs to be a fresh address with no stakes
      */
     function migrateUser(address _to) external updatePool {
         // uses v1 weight values for rewards calculations
@@ -500,7 +511,13 @@ abstract contract CorePool is
         User storage newUser = users[_to];
 
         // verify new user records are empty
-        fnSelector.verifyState(newUser.totalWeight == 0 && newUser.v1IdsLength == 0 && newUser.pendingYield == 0, 0);
+        fnSelector.verifyState(
+            newUser.totalWeight == 0 &&
+                newUser.v1IdsLength == 0 &&
+                newUser.subYieldRewards == 0 &&
+                newUser.subVaultRewards == 0,
+            0
+        );
 
         User storage previousUser = users[msg.sender];
         newUser.flexibleBalance = previousUser.flexibleBalance;
@@ -757,6 +774,12 @@ abstract contract CorePool is
         emit LogStakeAndLock(msg.sender, _value, lockUntil);
     }
 
+    /**
+     * @dev unstake poolTokens that have been staked in flexible mode
+     *
+     * @param _value number of tokens to unstake
+     */
+
     function unstakeFlexible(uint256 _value) external updatePool {
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).unstakeFlexible.selector;
@@ -787,7 +810,10 @@ abstract contract CorePool is
     }
 
     /**
-     * @dev Used internally, mostly by children implementations, see unstake()
+     * @dev Unstakes a stake that has been previously locked, and is now in an unlocked
+     *      state. If the stake has the isYield flag set to true, then the contract
+     *      requests ILV to be minted by the PoolFactory. Otherwise it transfers ILV or LP
+     *      from the contract balance
      *
      * @param _stakeId stake ID to unstake from, zero-indexed
      * @param _value value of tokens to unstake
@@ -850,9 +876,19 @@ abstract contract CorePool is
         }
 
         // emit an event
-        emit LogUnstakeLocked(msg.sender, _stakeId, _value);
+        emit LogUnstakeLocked(msg.sender, _stakeId, _value, isYield);
     }
 
+    /**
+     * @dev Executes unstake on multiple stakeIds. See unstakeLocked()
+     * @dev Optimizes gas by requiring all unstakes to be made either in yield stakes
+     *      or in non yield stakes. That way we can transfer or mint tokens in one call.
+     *
+     * @param _stakes array of stakeIds and values to be unstaked in each stake from
+     *                the msg.sender
+     * @param _unstakingYield whether all stakeIds have isYield flag set to true or false,
+     *                        i.e if we're minting ILV or transferring pool tokens
+     */
     function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).unstakeLockedMultiple.selector;
@@ -895,9 +931,6 @@ abstract contract CorePool is
 
             weightToRemove += previousWeight - newWeight;
             valueToUnstake += _value;
-
-            // TODO: change event
-            emit LogUnstakeLocked(msg.sender, _stakeId, _value);
         }
 
         user.totalWeight -= uint248(weightToRemove);
@@ -917,6 +950,8 @@ abstract contract CorePool is
             // otherwise just return tokens back to holder
             IERC20(poolToken).safeTransfer(msg.sender, valueToUnstake);
         }
+
+        emit LogUnstakeLockedMultiple(msg.sender, valueToUnstake, _unstakingYield);
     }
 
     /**
@@ -967,8 +1002,9 @@ abstract contract CorePool is
     }
 
     /**
-     * @dev Used internally, mostly by children implementations.
-     * @dev Executed before staking, unstaking and claiming the rewards.
+     * @dev Used internally, mostly by children implementations
+     * @dev Executed before staking, unstaking and claiming the rewards
+     * @dev updates user.pendingYield and user.pendingRevDis
      * @dev When timing conditions are not met (executed too frequently, or after factory
      *      end block), function doesn't throw and exits silently
      *
@@ -1071,8 +1107,7 @@ abstract contract CorePool is
 
     /**
      * @dev claims all pendingRevDis from _staker using ILV
-     *
-     * @notice ILV is sent straight away to _staker address
+     * @dev ILV is sent straight away to _staker address
      *
      * @param _staker user address
      */

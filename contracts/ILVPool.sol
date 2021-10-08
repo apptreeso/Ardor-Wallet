@@ -226,6 +226,14 @@ contract ILVPool is V2Migrator {
         emit LogV1YieldMinted(msg.sender, _stakeId, tokenAmount);
     }
 
+    /**
+     * @dev aggregates in one single mint call multiple yield stakeIds from v1
+     * @dev reads v1 ILV pool to execute checks, if everything is correct, it stores
+     *      in memory total amount of yield to be minted and calls the PoolFactory to mint
+     *      it to msg.sender
+     *
+     * @param _stakeIds array of yield ids in v1 from msg.sender user
+     */
     function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
         uint256 amountToMint;
 
