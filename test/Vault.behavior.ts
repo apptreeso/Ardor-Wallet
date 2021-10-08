@@ -187,6 +187,12 @@ export function setCorePools(): () => void {
         "LogEthReceived",
       );
     });
+    it("should revert deploying vault with _sushiRouter = address(0", async function () {
+      await expect(this.Vault.deploy(AddressZero, this.ilv.address)).reverted;
+    });
+    it("should revert deploying vault with _ilv = address(0", async function () {
+      await expect(this.Vault.deploy(this.sushiRouter.address, AddressZero)).reverted;
+    });
   };
 }
 
