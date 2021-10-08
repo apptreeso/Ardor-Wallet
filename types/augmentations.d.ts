@@ -5,8 +5,10 @@ import {
   SushiLPPoolMock__factory,
   SushiLPPoolMock,
   FlashPoolMock__factory,
+  FlashPoolUpgrade__factory,
   FlashPoolMock,
   PoolFactoryMock__factory,
+  PoolFactoryUpgrade__factory,
   PoolFactoryMock,
   Vault__factory,
   Vault,
@@ -26,7 +28,9 @@ declare module "mocha" {
     SushiLPPool: SushiLPPoolMock__factory;
     SushiLPPoolUpgrade: SushiLPPoolUpgrade__factory;
     FlashPool: FlashPoolMock__factory;
+    FlashPoolUpgrade: FlashPoolUpgrade__factory;
     PoolFactory: PoolFactoryMock__factory;
+    PoolFactoryUpgrade: PoolFactoryUpgrade__factory;
     Vault: Vault__factory;
     WETH: WETHMock__factory;
     SushiRouter: any;

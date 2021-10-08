@@ -6,12 +6,11 @@ import {
   ILVPoolMock__factory,
   ILVPoolUpgrade__factory,
   ILVPoolMock,
-  ILVPoolUpgrade,
   SushiLPPoolMock__factory,
   SushiLPPoolUpgrade__factory,
   SushiLPPoolMock,
-  SushiLPPoolUpgrade,
   PoolFactoryMock__factory,
+  PoolFactoryUpgrade__factory,
   PoolFactoryMock,
   CorePoolV1Mock__factory,
   ERC20Mock__factory,
@@ -31,6 +30,7 @@ import {
   getPool,
 } from "./utils";
 import {
+  upgradePools,
   setWeight,
   setEndTime,
   getPoolData,
@@ -64,6 +64,7 @@ describe("CorePools", function () {
     // upgrades factories
     this.ILVPoolUpgrade = <ILVPoolUpgrade__factory>await ethers.getContractFactory("ILVPoolUpgrade");
     this.SushiLPPoolUpgrade = <SushiLPPoolUpgrade__factory>await ethers.getContractFactory("SushiLPPoolUpgrade");
+    this.PoolFactoryUpgrade = <PoolFactoryUpgrade__factory>await ethers.getContractFactory("PoolFactoryUpgrade");
   });
 
   beforeEach(async function () {
@@ -81,36 +82,41 @@ describe("CorePools", function () {
       ethers.utils.parseEther("100000"),
     );
 
-    this.factory = (await upgrades.deployProxy(this.PoolFactory, [
-      this.ilv.address,
-      this.silv.address,
-      ILV_PER_SECOND,
-      SECONDS_PER_UPDATE,
-      INIT_TIME,
-      END_TIME,
-    ])) as PoolFactoryMock;
+    this.factory = (await upgrades.deployProxy(
+      this.PoolFactory,
+      [this.ilv.address, this.silv.address, ILV_PER_SECOND, SECONDS_PER_UPDATE, INIT_TIME, END_TIME],
+      { kind: "uups" },
+    )) as PoolFactoryMock;
     this.ilvPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.ilv.address);
     this.lpPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.lp.address);
-    this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
-      this.ilv.address,
-      this.silv.address,
-      this.ilv.address,
-      this.factory.address,
-      INIT_TIME,
-      ILV_POOL_WEIGHT,
-      this.ilvPoolV1.address,
-      V1_STAKE_MAX_PERIOD,
-    ])) as ILVPoolMock;
-    this.lpPool = (await upgrades.deployProxy(this.SushiLPPool, [
-      this.ilv.address,
-      this.silv.address,
-      this.lp.address,
-      this.factory.address,
-      INIT_TIME,
-      LP_POOL_WEIGHT,
-      this.lpPoolV1.address,
-      V1_STAKE_MAX_PERIOD,
-    ])) as SushiLPPoolMock;
+    this.ilvPool = (await upgrades.deployProxy(
+      this.ILVPool,
+      [
+        this.ilv.address,
+        this.silv.address,
+        this.ilv.address,
+        this.factory.address,
+        INIT_TIME,
+        ILV_POOL_WEIGHT,
+        this.ilvPoolV1.address,
+        V1_STAKE_MAX_PERIOD,
+      ],
+      { kind: "uups" },
+    )) as ILVPoolMock;
+    this.lpPool = (await upgrades.deployProxy(
+      this.SushiLPPool,
+      [
+        this.ilv.address,
+        this.silv.address,
+        this.lp.address,
+        this.factory.address,
+        INIT_TIME,
+        LP_POOL_WEIGHT,
+        this.lpPoolV1.address,
+        V1_STAKE_MAX_PERIOD,
+      ],
+      { kind: "uups" },
+    )) as SushiLPPoolMock;
 
     await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
     await this.factory.connect(this.signers.deployer).registerPool(this.lpPool.address);
@@ -123,6 +129,7 @@ describe("CorePools", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
+  describe("Upgrade pools", upgradePools());
   describe("#setEndTime", setEndTime());
   describe("#getPoolData", function () {
     context("ILV Pool", getPoolData("ILV"));

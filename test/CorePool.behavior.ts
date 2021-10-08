@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 
 import chai from "chai";
 import chaiSubset from "chai-subset";
@@ -17,6 +17,7 @@ import {
   getUsers0,
   getUsers1,
 } from "./utils";
+import { ILVPoolUpgrade, SushiLPPoolUpgrade, PoolFactoryUpgrade } from "../types";
 
 const { MaxUint256, AddressZero } = ethers.constants;
 
@@ -25,11 +26,42 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
-// export function upgrades(): () => void {
-//   return function () {
+export function upgradePools(): () => void {
+  return function () {
+    it("should upgrade ilv pool", async function () {
+      const prevPoolAddress = this.ilvPool.address;
+      this.ilvPool = (await upgrades.upgradeProxy(this.ilvPool.address, this.ILVPoolUpgrade)) as ILVPoolUpgrade;
+      const newPoolAddress = this.ilvPool.address;
 
-//   }
-// }
+      expect(await (this.ilvPool as ILVPoolUpgrade).newFunction(1, 2)).to.be.equal(3);
+      expect(prevPoolAddress).to.be.equal(newPoolAddress);
+    });
+    it("should upgrade lp pool", async function () {
+      const prevPoolAddress = this.lpPool.address;
+      this.lpPool = (await upgrades.upgradeProxy(this.lpPool.address, this.SushiLPPoolUpgrade)) as SushiLPPoolUpgrade;
+      const newPoolAddress = this.lpPool.address;
+
+      expect(await (this.ilvPool as ILVPoolUpgrade).newFunction(1, 2)).to.be.equal(3);
+      expect(prevPoolAddress).to.be.equal(newPoolAddress);
+    });
+    it("should upgrade factory", async function () {
+      const prevPoolAddress = this.factory.address;
+      this.factory = (await upgrades.upgradeProxy(this.factory.address, this.PoolFactoryUpgrade)) as PoolFactoryUpgrade;
+      const newPoolAddress = this.factory.address;
+
+      expect(await (this.factory as PoolFactoryUpgrade).newFunction(1, 2)).to.be.equal(3);
+      expect(prevPoolAddress).to.be.equal(newPoolAddress);
+    });
+    it("should revert upgrading ilv pool from invalid admin", async function () {
+      const implementationAddress = await upgrades.prepareUpgrade(this.ilvPool.address, this.ILVPoolUpgrade);
+      await expect(this.ilvPool.connect(this.signers.alice).upgradeTo(implementationAddress)).reverted;
+    });
+    it("should revert upgrading lp pool from invalid admin", async function () {
+      const implementationAddress = await upgrades.prepareUpgrade(this.lpPool.address, this.SushiLPPoolUpgrade);
+      await expect(this.lpPool.connect(this.signers.alice).upgradeTo(implementationAddress)).reverted;
+    });
+  };
+}
 
 export function setEndTime(): () => void {
   return function () {

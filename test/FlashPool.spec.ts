@@ -60,33 +60,38 @@ describe("FlashPool", function () {
       ethers.utils.parseEther("10000000"),
     );
 
-    this.factory = (await upgrades.deployProxy(this.PoolFactory, [
-      this.ilv.address,
-      this.silv.address,
-      ILV_PER_SECOND,
-      SECONDS_PER_UPDATE,
-      INIT_TIME,
-      END_TIME,
-    ])) as PoolFactoryMock;
+    this.factory = (await upgrades.deployProxy(
+      this.PoolFactory,
+      [this.ilv.address, this.silv.address, ILV_PER_SECOND, SECONDS_PER_UPDATE, INIT_TIME, END_TIME],
+      { kind: "uups" },
+    )) as PoolFactoryMock;
     this.corePoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.ilv.address);
-    this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
-      this.ilv.address,
-      this.silv.address,
-      this.ilv.address,
-      this.factory.address,
-      INIT_TIME,
-      ILV_POOL_WEIGHT,
-      this.corePoolV1.address,
-      V1_STAKE_MAX_PERIOD,
-    ])) as ILVPoolMock;
-    this.flashPool = (await upgrades.deployProxy(this.FlashPool, [
-      this.ilv.address,
-      this.silv.address,
-      this.flashToken.address,
-      this.factory.address,
-      FLASH_INIT_TIME,
-      FLASH_POOL_WEIGHT,
-    ])) as FlashPoolMock;
+    this.ilvPool = (await upgrades.deployProxy(
+      this.ILVPool,
+      [
+        this.ilv.address,
+        this.silv.address,
+        this.ilv.address,
+        this.factory.address,
+        INIT_TIME,
+        ILV_POOL_WEIGHT,
+        this.corePoolV1.address,
+        V1_STAKE_MAX_PERIOD,
+      ],
+      { kind: "uups" },
+    )) as ILVPoolMock;
+    this.flashPool = (await upgrades.deployProxy(
+      this.FlashPool,
+      [
+        this.ilv.address,
+        this.silv.address,
+        this.flashToken.address,
+        this.factory.address,
+        FLASH_INIT_TIME,
+        FLASH_POOL_WEIGHT,
+      ],
+      { kind: "uups" },
+    )) as FlashPoolMock;
 
     await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
     await this.factory.connect(this.signers.deployer).registerPool(this.flashPool.address);

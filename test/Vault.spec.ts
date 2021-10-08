@@ -64,26 +64,27 @@ describe("Vault", function () {
     );
     this.silv = await this.ERC20.connect(this.signers.deployer).deploy("Escrowed Illuvium", "sILV", "0");
 
-    this.factory = (await upgrades.deployProxy(this.PoolFactory, [
-      this.ilv.address,
-      this.silv.address,
-      ILV_PER_SECOND,
-      SECONDS_PER_UPDATE,
-      INIT_TIME,
-      END_TIME,
-    ])) as PoolFactoryMock;
+    this.factory = (await upgrades.deployProxy(
+      this.PoolFactory,
+      [this.ilv.address, this.silv.address, ILV_PER_SECOND, SECONDS_PER_UPDATE, INIT_TIME, END_TIME],
+      { kind: "uups" },
+    )) as PoolFactoryMock;
     this.ilvPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.ilv.address);
 
-    this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
-      this.ilv.address,
-      this.silv.address,
-      this.ilv.address,
-      this.factory.address,
-      INIT_TIME,
-      ILV_POOL_WEIGHT,
-      this.ilvPoolV1.address,
-      V1_STAKE_MAX_PERIOD,
-    ])) as ILVPoolMock;
+    this.ilvPool = (await upgrades.deployProxy(
+      this.ILVPool,
+      [
+        this.ilv.address,
+        this.silv.address,
+        this.ilv.address,
+        this.factory.address,
+        INIT_TIME,
+        ILV_POOL_WEIGHT,
+        this.ilvPoolV1.address,
+        V1_STAKE_MAX_PERIOD,
+      ],
+      { kind: "uups" },
+    )) as ILVPoolMock;
 
     this.weth = await this.WETH.connect(this.signers.deployer).deploy();
     this.sushiFactory = await this.SushiFactory.connect(this.signers.deployer).deploy(this.signers.deployer.address);
@@ -108,16 +109,20 @@ describe("Vault", function () {
 
     this.lp = this.ERC20.attach(await this.sushiFactory.getPair(this.weth.address, this.ilv.address));
     this.lpPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.lp.address);
-    this.lpPool = (await upgrades.deployProxy(this.SushiLPPool, [
-      this.ilv.address,
-      this.silv.address,
-      this.lp.address,
-      this.factory.address,
-      INIT_TIME,
-      LP_POOL_WEIGHT,
-      this.lpPoolV1.address,
-      V1_STAKE_MAX_PERIOD,
-    ])) as SushiLPPoolMock;
+    this.lpPool = (await upgrades.deployProxy(
+      this.SushiLPPool,
+      [
+        this.ilv.address,
+        this.silv.address,
+        this.lp.address,
+        this.factory.address,
+        INIT_TIME,
+        LP_POOL_WEIGHT,
+        this.lpPoolV1.address,
+        V1_STAKE_MAX_PERIOD,
+      ],
+      { kind: "uups" },
+    )) as SushiLPPoolMock;
 
     await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
     await this.factory.connect(this.signers.deployer).registerPool(this.lpPool.address);
