@@ -6,7 +6,9 @@ import {
   ILVPoolMock__factory,
   ILVPoolMock,
   FlashPoolMock__factory,
+  FlashPoolUpgrade__factory,
   FlashPoolMock,
+  FlashPoolUpgrade,
   PoolFactoryMock__factory,
   PoolFactoryMock,
   CorePoolV1Mock__factory,
@@ -43,6 +45,8 @@ describe("FlashPool", function () {
     this.PoolFactory = <PoolFactoryMock__factory>await ethers.getContractFactory("PoolFactoryMock");
     this.CorePoolV1 = <CorePoolV1Mock__factory>await ethers.getContractFactory("CorePoolV1Mock");
     this.ERC20 = <ERC20Mock__factory>await ethers.getContractFactory("ERC20Mock");
+
+    this.FlashPoolUpgrade = <FlashPoolUpgrade__factory>await ethers.getContractFactory("FlashPoolUpgrade");
   });
 
   beforeEach(async function () {
@@ -60,33 +64,38 @@ describe("FlashPool", function () {
       ethers.utils.parseEther("10000000"),
     );
 
-    this.factory = (await upgrades.deployProxy(this.PoolFactory, [
-      this.ilv.address,
-      this.silv.address,
-      ILV_PER_SECOND,
-      SECONDS_PER_UPDATE,
-      INIT_TIME,
-      END_TIME,
-    ])) as PoolFactoryMock;
-    this.corePoolV1 = await this.CorePoolV1.deploy();
-    this.ilvPool = (await upgrades.deployProxy(this.ILVPool, [
-      this.ilv.address,
-      this.silv.address,
-      this.ilv.address,
-      this.factory.address,
-      INIT_TIME,
-      ILV_POOL_WEIGHT,
-      this.corePoolV1.address,
-      V1_STAKE_MAX_PERIOD,
-    ])) as ILVPoolMock;
-    this.flashPool = (await upgrades.deployProxy(this.FlashPool, [
-      this.ilv.address,
-      this.silv.address,
-      this.flashToken.address,
-      this.factory.address,
-      FLASH_INIT_TIME,
-      FLASH_POOL_WEIGHT,
-    ])) as FlashPoolMock;
+    this.factory = (await upgrades.deployProxy(
+      this.PoolFactory,
+      [this.ilv.address, this.silv.address, ILV_PER_SECOND, SECONDS_PER_UPDATE, INIT_TIME, END_TIME],
+      { kind: "uups" },
+    )) as PoolFactoryMock;
+    this.corePoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.ilv.address);
+    this.ilvPool = (await upgrades.deployProxy(
+      this.ILVPool,
+      [
+        this.ilv.address,
+        this.silv.address,
+        this.ilv.address,
+        this.factory.address,
+        INIT_TIME,
+        ILV_POOL_WEIGHT,
+        this.corePoolV1.address,
+        V1_STAKE_MAX_PERIOD,
+      ],
+      { kind: "uups" },
+    )) as ILVPoolMock;
+    this.flashPool = (await upgrades.deployProxy(
+      this.FlashPool,
+      [
+        this.ilv.address,
+        this.silv.address,
+        this.flashToken.address,
+        this.factory.address,
+        FLASH_INIT_TIME,
+        FLASH_POOL_WEIGHT,
+      ],
+      { kind: "uups" },
+    )) as FlashPoolMock;
 
     await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
     await this.factory.connect(this.signers.deployer).registerPool(this.flashPool.address);
@@ -98,6 +107,16 @@ describe("FlashPool", function () {
     await this.flashToken.connect(this.signers.deployer).transfer(this.signers.alice.address, toWei(10000));
     await this.flashToken.connect(this.signers.deployer).transfer(this.signers.bob.address, toWei(10000));
     await this.flashToken.connect(this.signers.deployer).transfer(this.signers.carol.address, toWei(10000));
+  });
+  describe("Upgrades", function () {
+    it("should upgrade flash pool", async function () {
+      const prevPoolAddress = this.flashPool.address;
+      this.flashPool = (await upgrades.upgradeProxy(this.flashPool.address, this.FlashPoolUpgrade)) as FlashPoolUpgrade;
+      const newPoolAddress = this.flashPool.address;
+
+      expect(await (this.flashPool as FlashPoolUpgrade).newFunction(1, 2)).to.be.equal(3);
+      expect(prevPoolAddress).to.be.equal(newPoolAddress);
+    });
   });
   describe("#getPoolData", function () {
     it("should get correct pool data", async function () {

@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 
 import { ICorePool } from "./interfaces/ICorePool.sol";
+import { ICorePoolV1 } from "./interfaces/ICorePoolV1.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { IUniswapV2Router02 } from "./interfaces/IUniswapV2Router02.sol";
@@ -10,7 +11,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 /**
  * @title Illuvium Vault
  *
- * @notice Integration with Sushi.
+ * @notice Integration with sushi router.
  *      Receives ETH from an address that exists on IMX which collects in-game purchases
  *      (although technically it could receive ETH from anywhere)
  *
@@ -21,6 +22,8 @@ contract Vault is Ownable {
      *      linked to this smart contract and receiving vault rewards
      */
     struct Pools {
+        ICorePoolV1 ilvPoolV1;
+        ICorePoolV1 pairPoolV1;
         ICorePool ilvPool;
         ICorePool pairPool;
         ICorePool lockedPoolV1;
@@ -35,7 +38,7 @@ contract Vault is Ownable {
     /**
      * @dev Link to UniswapV2Router02 deployed instance
      */
-    IUniswapV2Router02 public sushi;
+    IUniswapV2Router02 public sushiRouter;
 
     /**
      * @dev Link to IlluviumERC20 token deployed instance
@@ -78,6 +81,8 @@ contract Vault is Ownable {
      */
     event LogSetCorePools(
         address indexed by,
+        address ilvPoolV1,
+        address pairPoolV1,
         address ilvPool,
         address pairPool,
         address lockedPoolV1,
@@ -85,18 +90,18 @@ contract Vault is Ownable {
     );
 
     /**
-     * @notice Creates (deploys) IlluviumVault linked to UniswapV2Router02 and IlluviumERC20 token
+     * @notice Creates (deploys) Vault linked to Sushi AMM Router and IlluviumERC20 token
      *
-     * @param _sushi an address of the UniswapV2Router02 to use for ETH -> ILV exchange
+     * @param _sushiRouter an address of the IUniswapV2Router02 to use for ETH -> ILV exchange
      * @param _ilv an address of the IlluviumERC20 token to use
      */
-    constructor(address _sushi, address _ilv) {
+    constructor(address _sushiRouter, address _ilv) {
         // verify the inputs are set
-        require(_sushi != address(0), "sushi address is not set");
+        require(_sushiRouter != address(0), "sushiRouter address is not set");
         require(_ilv != address(0), "ILV address is not set");
 
         // assign the values
-        sushi = IUniswapV2Router02(_sushi);
+        sushiRouter = IUniswapV2Router02(_sushiRouter);
         ilv = IERC20(_ilv);
     }
 
@@ -110,18 +115,24 @@ contract Vault is Ownable {
      * @param _lockedPoolV2 deployed locked pool V2 address
      */
     function setCorePools(
+        ICorePoolV1 _ilvPoolV1,
+        ICorePoolV1 _pairPoolV1,
         ICorePool _ilvPool,
         ICorePool _pairPool,
         ICorePool _lockedPoolV1,
         ICorePool _lockedPoolV2
     ) external onlyOwner {
         // verify all the pools are set/supplied
+        require(address(_ilvPoolV1) != address(0), "ILV pool is not set");
+        require(address(_pairPoolV1) != address(0), "ILV pool is not set");
         require(address(_ilvPool) != address(0), "ILV pool is not set");
         require(address(_pairPool) != address(0), "LP pool is not set");
         require(address(_lockedPoolV1) != address(0), "locked pool v1 is not set");
         require(address(_lockedPoolV2) != address(0), "locked pool v2 is not set");
 
         // set up
+        pools.ilvPoolV1 = _ilvPoolV1;
+        pools.pairPoolV1 = _pairPoolV1;
         pools.ilvPool = _ilvPool;
         pools.pairPool = _pairPool;
         pools.lockedPoolV1 = _lockedPoolV1;
@@ -130,6 +141,8 @@ contract Vault is Ownable {
         // emit an event
         emit LogSetCorePools(
             msg.sender,
+            address(_ilvPoolV1),
+            address(_pairPoolV1),
             address(_ilvPool),
             address(_pairPool),
             address(_lockedPoolV1),
@@ -166,7 +179,7 @@ contract Vault is Ownable {
      * @param _ilvOut expected ILV amount to be received from Uniswap swap
      * @param _deadline maximum timeout to wait for Uniswap swap
      */
-    function sendIlvRewards(
+    function sendILVRewards(
         uint256 _ethIn,
         uint256 _ilvOut,
         uint256 _deadline
@@ -174,17 +187,19 @@ contract Vault is Ownable {
         // we treat set `ilvOut` and `deadline` as a flag to execute `swapEthForIlv`
         // in the same time we won't execute the swap if contract balance is zero
         if (_ilvOut > 0 && _deadline > 0 && address(this).balance > 0) {
-            // exchange ETH on the contract's balance into ILV via Uniswap - delegate to `swapEthForIlv`
+            // exchange ETH on the contract's balance into ILV via Sushi - delegate to `swapEthForIlv`
             _swapETHForILV(_ethIn, _ilvOut, _deadline);
         }
 
         // reads core pools
-        (ICorePool ilvPool, ICorePool pairPool, ICorePool lockedPoolV1, ICorePool lockedPoolV2) = (
-            pools.ilvPool,
-            pools.pairPool,
-            pools.lockedPoolV1,
-            pools.lockedPoolV2
-        );
+        (
+            ICorePoolV1 ilvPoolV1,
+            ICorePoolV1 pairPoolV1,
+            ICorePool ilvPool,
+            ICorePool pairPool,
+            ICorePool lockedPoolV1,
+            ICorePool lockedPoolV2
+        ) = (pools.ilvPoolV1, pools.pairPoolV1, pools.ilvPool, pools.pairPool, pools.lockedPoolV1, pools.lockedPoolV2);
 
         // read contract's ILV balance
         uint256 ilvBalance = ilv.balanceOf(address(this));
@@ -203,8 +218,8 @@ contract Vault is Ownable {
         }
 
         // gets poolToken reserves in each pool
-        uint256 reserve0 = ilvPool.poolTokenReserve();
-        uint256 reserve1 = estimatePairPoolReserve(pairPool);
+        uint256 reserve0 = ilvPool.poolTokenReserve() + ilvPoolV1.poolTokenReserve();
+        uint256 reserve1 = estimatePairPoolReserve(address(pairPool)) + estimatePairPoolReserve(address(pairPoolV1));
         uint256 reserve2 = lockedPoolV1.poolTokenReserve();
         uint256 reserve3 = lockedPoolV2.poolTokenReserve();
 
@@ -242,15 +257,15 @@ contract Vault is Ownable {
      *      for the paired ILV it estimates its amount based on the LP token share the pool has
      *
      * @param _pairPool LP core pool extracted from pools structure (gas saving optimization)
-     * @return ILV estimate of the LP pool share among 2 other pools
+     * @return ilvAmount ILV estimate of the LP pool share among 2 other pools
      */
-    function estimatePairPoolReserve(ICorePool _pairPool) public view returns (uint256) {
+    function estimatePairPoolReserve(address _pairPool) public view returns (uint256 ilvAmount) {
         // 1. Determine LP pool share in terms of LP tokens:
         //    lpShare = lpAmount / lpTotal; lpShare < 1
         //    where lpAmount is amount of LP tokens in the pool,
         //    and lpTotal is total LP tokens supply
-        uint256 lpAmount = _pairPool.poolTokenReserve();
-        uint256 lpTotal = IERC20(_pairPool.poolToken()).totalSupply();
+        uint256 lpAmount = ICorePool(_pairPool).poolTokenReserve();
+        uint256 lpTotal = IERC20(ICorePool(_pairPool).poolToken()).totalSupply();
         // uint256 lpShare = lpAmount / lpTotal; - this will always be zero due to int rounding down,
         // therefore we don't calculate the share, but apply it to the calculations below
 
@@ -259,14 +274,9 @@ contract Vault is Ownable {
         // 2. Considering that LP pool share in terms of ILV tokens is the same as in terms of LP tokens,
         //    ilvShare = lpShare, ILV amount the LP pool has in LP tokens would be estimated as
         //    ilvAmount = ilvTotal * ilvShare = ilvTotal * lpShare
-        uint256 ilvTotal = ilv.balanceOf(_pairPool.poolToken());
-        uint256 ilvAmount = (ilvTotal * lpAmount) / lpTotal;
-
-        // 3. Finally, LP pool can have some ILV present directly on its balance and not in LP pair
-        uint256 ilvBalance = ilv.balanceOf(address(_pairPool));
-
-        // we estimate the result as a sum of the two (2) and (3):
-        return ilvAmount + ilvBalance;
+        uint256 ilvTotal = ilv.balanceOf(ICorePool(_pairPool).poolToken());
+        // we store the result
+        ilvAmount = (ilvTotal * lpAmount) / lpTotal;
     }
 
     /**
@@ -306,12 +316,12 @@ contract Vault is Ownable {
         // last element determines output token (what we receive from uniwsap)
         address[] memory path = new address[](2);
         // we send ETH wrapped as WETH into Uniswap
-        path[0] = sushi.WETH();
+        path[0] = sushiRouter.WETH();
         // we receive ILV from Uniswap
         path[1] = address(ilv);
 
         // exchange ETH -> ILV via Uniswap
-        uint256[] memory amounts = sushi.swapExactETHForTokens{ value: _ethIn }(
+        uint256[] memory amounts = sushiRouter.swapExactETHForTokens{ value: _ethIn }(
             _ilvOut,
             path,
             address(this),

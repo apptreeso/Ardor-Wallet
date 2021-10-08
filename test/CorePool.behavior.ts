@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 
 import chai from "chai";
 import chaiSubset from "chai-subset";
@@ -6,12 +6,8 @@ import { solidity } from "ethereum-waffle";
 
 import {
   ILV_PER_SECOND,
-  SECONDS_PER_UPDATE,
   INIT_TIME,
   END_TIME,
-  ILV_POOL_WEIGHT,
-  LP_POOL_WEIGHT,
-  V1_STAKE_MAX_PERIOD,
   ONE_YEAR,
   toWei,
   toAddress,
@@ -21,6 +17,7 @@ import {
   getUsers0,
   getUsers1,
 } from "./utils";
+import { ILVPoolUpgrade, SushiLPPoolUpgrade, PoolFactoryUpgrade } from "../types";
 
 const { MaxUint256, AddressZero } = ethers.constants;
 
@@ -28,6 +25,64 @@ chai.use(solidity);
 chai.use(chaiSubset);
 
 const { expect } = chai;
+
+export function upgradePools(): () => void {
+  return function () {
+    it("should upgrade ilv pool", async function () {
+      const prevPoolAddress = this.ilvPool.address;
+      this.ilvPool = (await upgrades.upgradeProxy(this.ilvPool.address, this.ILVPoolUpgrade)) as ILVPoolUpgrade;
+      const newPoolAddress = this.ilvPool.address;
+
+      expect(await (this.ilvPool as ILVPoolUpgrade).newFunction(1, 2)).to.be.equal(3);
+      expect(prevPoolAddress).to.be.equal(newPoolAddress);
+    });
+    it("should upgrade lp pool", async function () {
+      const prevPoolAddress = this.lpPool.address;
+      this.lpPool = (await upgrades.upgradeProxy(this.lpPool.address, this.SushiLPPoolUpgrade)) as SushiLPPoolUpgrade;
+      const newPoolAddress = this.lpPool.address;
+
+      expect(await (this.ilvPool as ILVPoolUpgrade).newFunction(1, 2)).to.be.equal(3);
+      expect(prevPoolAddress).to.be.equal(newPoolAddress);
+    });
+    it("should upgrade factory", async function () {
+      const prevPoolAddress = this.factory.address;
+      this.factory = (await upgrades.upgradeProxy(this.factory.address, this.PoolFactoryUpgrade)) as PoolFactoryUpgrade;
+      const newPoolAddress = this.factory.address;
+
+      expect(await (this.factory as PoolFactoryUpgrade).newFunction(1, 2)).to.be.equal(3);
+      expect(prevPoolAddress).to.be.equal(newPoolAddress);
+    });
+    it("should revert upgrading ilv pool from invalid admin", async function () {
+      const implementationAddress = await upgrades.prepareUpgrade(this.ilvPool.address, this.ILVPoolUpgrade);
+      await expect(this.ilvPool.connect(this.signers.alice).upgradeTo(implementationAddress)).reverted;
+    });
+    it("should revert upgrading lp pool from invalid admin", async function () {
+      const implementationAddress = await upgrades.prepareUpgrade(this.lpPool.address, this.SushiLPPoolUpgrade);
+      await expect(this.lpPool.connect(this.signers.alice).upgradeTo(implementationAddress)).reverted;
+    });
+  };
+}
+
+export function setEndTime(): () => void {
+  return function () {
+    it("should correctly update endTime", async function () {
+      const previousEndTime = await this.factory.endTime();
+
+      await this.factory.connect(this.signers.deployer).setEndTime(END_TIME - 1000);
+
+      const newEndTime = await this.factory.endTime();
+
+      expect(previousEndTime).to.be.equal(END_TIME);
+      expect(newEndTime).to.be.equal(END_TIME - 1000);
+    });
+    it("should revert if invalid endTime", async function () {
+      await expect(this.factory.connect(this.signers.deployer).setEndTime(INIT_TIME - 1)).reverted;
+    });
+    it("should revert if invalid caller", async function () {
+      await expect(this.factory.connect(this.signers.alice).setEndTime(INIT_TIME - 1)).reverted;
+    });
+  };
+}
 
 export function getPoolData(usingPool: string): () => void {
   return function () {
@@ -65,26 +120,29 @@ export function migrateUser(usingPool: string): () => void {
 
       await pool.setNow256(INIT_TIME + 200);
 
-      const {
-        pendingYield: pendingYield0,
-        totalWeight: totalWeight0,
-        subYieldRewards: subYieldRewards0,
-        subVaultRewards: subVaultRewards0,
-      } = await pool.users(this.signers.alice.address);
+      const { pendingYield: pendingYield0, pendingRevDis: pendingRevDis0 } = await pool.pendingRewards(
+        this.signers.alice.address,
+      );
+
+      const { totalWeight: totalWeight0 } = await pool.users(this.signers.alice.address);
 
       await pool.connect(this.signers.alice).migrateUser(this.signers.bob.address);
 
       const {
         pendingYield: pendingYield1,
+        pendingRevDis: pendingRevDis1,
         totalWeight: totalWeight1,
-        subYieldRewards: subYieldRewards1,
-        subVaultRewards: subVaultRewards1,
       } = await pool.users(this.signers.bob.address);
 
+      const { pendingYield: aliceNewPendingYield, pendingRevDis: aliceNewPendingRevDis } = await pool.pendingRewards(
+        this.signers.alice.address,
+      );
+
       expect(pendingYield0).to.be.equal(pendingYield1);
+      expect(pendingRevDis0).to.be.equal(pendingRevDis1);
       expect(totalWeight0).to.be.equal(totalWeight1);
-      expect(subYieldRewards0).to.be.equal(subYieldRewards1);
-      expect(subVaultRewards0).to.be.equal(subVaultRewards1);
+      expect(Number(aliceNewPendingYield)).to.be.equal(0);
+      expect(Number(aliceNewPendingRevDis)).to.be.equal(0);
     });
     it("should revert if _to = address(0)", async function () {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
@@ -1255,7 +1313,11 @@ export function pendingYield(usingPool: string): () => void {
 
       const { pendingYield: aliceYield0 } = await pool.pendingRewards(this.signers.alice.address);
 
+      await pool.sync();
+
       await pool.setNow256(END_TIME);
+
+      await pool.sync();
 
       const expectedYield1 = ILV_PER_SECOND.mul(END_TIME - INIT_TIME)
         .mul(poolWeight)
