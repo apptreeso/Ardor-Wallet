@@ -226,6 +226,14 @@ export function swapETHForILV(): () => void {
 
       await expect(this.vault.swapETHForILV(ethIn, ilvOut, 0)).reverted;
     });
+    it("should revert if not enough eth", async function () {
+      await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(10) });
+      const ethIn = toWei(500000000);
+
+      const [, ilvOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
+
+      await expect(this.vault.swapETHForILV(ethIn, ilvOut, MaxUint256)).reverted;
+    });
   };
 }
 
@@ -265,7 +273,7 @@ export function sendILVRewards(): () => void {
       await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
       await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
 
-      await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
+      await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(120) });
       const ethIn = toWei(50);
 
       const [, ilvOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
@@ -350,6 +358,37 @@ export function sendILVRewards(): () => void {
       expect(ethers.utils.formatEther(lpPoolILVReceived1.sub(lpPoolILVReceived0)).slice(0, 6)).to.be.equal(
         ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(1e12)).slice(0, 6),
       );
+    });
+    it("should send ilv rewards twice", async function () {
+      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+
+      await this.ilvPoolV1.setUsers(users);
+      await this.lpPoolV1.setUsers(users);
+
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+
+      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+
+      await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(120) });
+      const ethIn = toWei(50);
+
+      const [, ilvOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
+
+      await this.vault.swapETHForILV(ethIn, ilvOut, MaxUint256);
+
+      await this.vault.sendILVRewards(0, 0, 0);
+
+      const [, newILVOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
+
+      await this.vault.swapETHForILV(ethIn, newILVOut, MaxUint256);
+
+      await this.vault.sendILVRewards(0, 0, 0);
+
+      const vaultILVBalance = await this.ilv.balanceOf(this.vault.address);
+
+      expect(Number(ethers.utils.formatEther(vaultILVBalance))).to.be.lessThan(1);
     });
   };
 }
