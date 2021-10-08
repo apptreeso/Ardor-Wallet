@@ -2,9 +2,13 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-wit
 
 export {
   ILVPoolMock__factory,
+  ILVPoolUpgrade__factory,
   ILVPoolMock,
+  ILVPoolUpgrade,
   SushiLPPoolMock__factory,
+  SushiLPPoolUpgrade__factory,
   SushiLPPoolMock,
+  SushiLPPoolUpgrade,
   FlashPoolMock__factory,
   FlashPoolMock,
   PoolFactoryMock__factory,

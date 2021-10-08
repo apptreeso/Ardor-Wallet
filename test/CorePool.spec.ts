@@ -4,9 +4,13 @@ import { solidity } from "ethereum-waffle";
 import { ethers, upgrades } from "hardhat";
 import {
   ILVPoolMock__factory,
+  ILVPoolUpgrade__factory,
   ILVPoolMock,
+  ILVPoolUpgrade,
   SushiLPPoolMock__factory,
+  SushiLPPoolUpgrade__factory,
   SushiLPPoolMock,
+  SushiLPPoolUpgrade,
   PoolFactoryMock__factory,
   PoolFactoryMock,
   CorePoolV1Mock__factory,
@@ -56,6 +60,10 @@ describe("CorePools", function () {
     this.PoolFactory = <PoolFactoryMock__factory>await ethers.getContractFactory("PoolFactoryMock");
     this.CorePoolV1 = <CorePoolV1Mock__factory>await ethers.getContractFactory("CorePoolV1Mock");
     this.ERC20 = <ERC20Mock__factory>await ethers.getContractFactory("ERC20Mock");
+
+    // upgrades factories
+    this.ILVPoolUpgrade = <ILVPoolUpgrade__factory>await ethers.getContractFactory("ILVPoolUpgrade");
+    this.SushiLPPoolUpgrade = <SushiLPPoolUpgrade__factory>await ethers.getContractFactory("SushiLPPoolUpgrade");
   });
 
   beforeEach(async function () {

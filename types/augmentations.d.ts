@@ -17,11 +17,14 @@ import {
   ERC20Mock__factory,
   ERC20Mock,
 } from ".";
+import { ILVPoolUpgrade, ILVPoolUpgrade__factory, SushiLPPoolUpgrade, SushiLPPoolUpgrade__factory } from "../typechain";
 
 declare module "mocha" {
   export interface Context {
     ILVPool: ILVPoolMock__factory;
+    ILVPoolUpgrade: ILVPoolUpgrade__factory;
     SushiLPPool: SushiLPPoolMock__factory;
+    SushiLPPoolUpgrade: SushiLPPoolUpgrade__factory;
     FlashPool: FlashPoolMock__factory;
     PoolFactory: PoolFactoryMock__factory;
     Vault: Vault__factory;
@@ -30,8 +33,8 @@ declare module "mocha" {
     SushiFactory: any;
     CorePoolV1: CorePoolV1Mock__factory;
     ERC20: ERC20Mock__factory;
-    ilvPool: ILVPoolMock;
-    lpPool: SushiLPPoolMock;
+    ilvPool: ILVPoolMock | ILVPoolUpgrade;
+    lpPool: SushiLPPoolMock | SushiLPPoolUpgrade;
     flashPool: FlashPoolMock;
     factory: PoolFactoryMock;
     vault: Vault;
