@@ -38,9 +38,6 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         bool isFlashPool;
     }
 
-    /// @dev TODO: set correct UID
-    uint256 public constant FACTORY_UID = 0xc5cfd88c6e4d7e5c8a03c255f03af23c0918d8e82cac196f57466af3fd4a5ec7;
-
     uint192 public ilvPerSecond;
 
     uint32 public totalWeight;
