@@ -73,7 +73,7 @@ abstract contract CorePool is
     /// @dev address of v1 core pool with same poolToken
     address public corePoolV1;
 
-    /// @dev Pool weight, 200 for ILV pool or 800 for ILV/ETH
+    /// @dev Pool weight, initial values are 200 for ILV pool and 800 for ILV/ETH
     uint32 public weight;
 
     /// @dev Timestamp of the last yield distribution event
