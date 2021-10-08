@@ -6,7 +6,9 @@ import {
   ILVPoolMock__factory,
   ILVPoolMock,
   FlashPoolMock__factory,
+  FlashPoolUpgrade__factory,
   FlashPoolMock,
+  FlashPoolUpgrade,
   PoolFactoryMock__factory,
   PoolFactoryMock,
   CorePoolV1Mock__factory,
@@ -43,6 +45,8 @@ describe("FlashPool", function () {
     this.PoolFactory = <PoolFactoryMock__factory>await ethers.getContractFactory("PoolFactoryMock");
     this.CorePoolV1 = <CorePoolV1Mock__factory>await ethers.getContractFactory("CorePoolV1Mock");
     this.ERC20 = <ERC20Mock__factory>await ethers.getContractFactory("ERC20Mock");
+
+    this.FlashPoolUpgrade = <FlashPoolUpgrade__factory>await ethers.getContractFactory("FlashPoolUpgrade");
   });
 
   beforeEach(async function () {
@@ -103,6 +107,16 @@ describe("FlashPool", function () {
     await this.flashToken.connect(this.signers.deployer).transfer(this.signers.alice.address, toWei(10000));
     await this.flashToken.connect(this.signers.deployer).transfer(this.signers.bob.address, toWei(10000));
     await this.flashToken.connect(this.signers.deployer).transfer(this.signers.carol.address, toWei(10000));
+  });
+  describe("Upgrades", function () {
+    it("should upgrade flash pool", async function () {
+      const prevPoolAddress = this.flashPool.address;
+      this.flashPool = (await upgrades.upgradeProxy(this.flashPool.address, this.FlashPoolUpgrade)) as FlashPoolUpgrade;
+      const newPoolAddress = this.flashPool.address;
+
+      expect(await (this.flashPool as FlashPoolUpgrade).newFunction(1, 2)).to.be.equal(3);
+      expect(prevPoolAddress).to.be.equal(newPoolAddress);
+    });
   });
   describe("#getPoolData", function () {
     it("should get correct pool data", async function () {

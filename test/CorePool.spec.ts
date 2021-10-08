@@ -129,7 +129,7 @@ describe("CorePools", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
-  describe("Upgrade pools", upgradePools());
+  describe("Upgrades", upgradePools());
   describe("#setEndTime", setEndTime());
   describe("#getPoolData", function () {
     context("ILV Pool", getPoolData("ILV"));
