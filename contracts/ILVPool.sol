@@ -250,25 +250,4 @@ contract ILVPool is V2Migrator {
 
         emit LogV1YieldMintedMultiple(msg.sender, _stakeIds, amountToMint);
     }
-
-    function receiveVaultRewards(uint256 _value) external override updatePool {
-        // we're using selector to simplify input and state validation
-        bytes4 fnSelector = ILVPool(this).receiveVaultRewards.selector;
-
-        // verify function is accessed by the vault only
-        fnSelector.verifyAccess(msg.sender == vault);
-        // return silently if there is no reward to receive
-        if (_value == 0) {
-            return;
-        }
-        // verify weight is not zero
-        fnSelector.verifyState(globalWeight > 0, 0);
-
-        vaultRewardsPerWeight += _value.rewardPerWeight(globalWeight);
-        poolTokenReserve += _value;
-
-        IERC20(ilv).safeTransferFrom(msg.sender, address(this), _value);
-
-        emit LogReceiveVaultRewards(msg.sender, _value);
-    }
 }

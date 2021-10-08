@@ -613,7 +613,7 @@ abstract contract CorePool is
      *
      * @param _value amount of ILV rewards to transfer into the pool
      */
-    function receiveVaultRewards(uint256 _value) external virtual updatePool {
+    function receiveVaultRewards(uint256 _value) external updatePool {
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).receiveVaultRewards.selector;
 

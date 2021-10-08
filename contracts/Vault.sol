@@ -187,7 +187,7 @@ contract Vault is Ownable {
         // we treat set `ilvOut` and `deadline` as a flag to execute `swapEthForIlv`
         // in the same time we won't execute the swap if contract balance is zero
         if (_ilvOut > 0 && _deadline > 0 && address(this).balance > 0) {
-            // exchange ETH on the contract's balance into ILV via Uniswap - delegate to `swapEthForIlv`
+            // exchange ETH on the contract's balance into ILV via Sushi - delegate to `swapEthForIlv`
             _swapETHForILV(_ethIn, _ilvOut, _deadline);
         }
 
@@ -257,9 +257,9 @@ contract Vault is Ownable {
      *      for the paired ILV it estimates its amount based on the LP token share the pool has
      *
      * @param _pairPool LP core pool extracted from pools structure (gas saving optimization)
-     * @return ILV estimate of the LP pool share among 2 other pools
+     * @return ilvAmount ILV estimate of the LP pool share among 2 other pools
      */
-    function estimatePairPoolReserve(address _pairPool) public view returns (uint256) {
+    function estimatePairPoolReserve(address _pairPool) public view returns (uint256 ilvAmount) {
         // 1. Determine LP pool share in terms of LP tokens:
         //    lpShare = lpAmount / lpTotal; lpShare < 1
         //    where lpAmount is amount of LP tokens in the pool,
@@ -275,13 +275,8 @@ contract Vault is Ownable {
         //    ilvShare = lpShare, ILV amount the LP pool has in LP tokens would be estimated as
         //    ilvAmount = ilvTotal * ilvShare = ilvTotal * lpShare
         uint256 ilvTotal = ilv.balanceOf(ICorePool(_pairPool).poolToken());
-        uint256 ilvAmount = (ilvTotal * lpAmount) / lpTotal;
-
-        // 3. Finally, LP pool can have some ILV present directly on its balance and not in LP pair
-        uint256 ilvBalance = ilv.balanceOf(_pairPool);
-
-        // we estimate the result as a sum of the two (2) and (3):
-        return ilvAmount + ilvBalance;
+        // we store the result
+        ilvAmount = (ilvTotal * lpAmount) / lpTotal;
     }
 
     /**
