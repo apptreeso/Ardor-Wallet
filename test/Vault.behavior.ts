@@ -282,6 +282,8 @@ export function sendILVRewards(): () => void {
       const lpPoolILVBalance0 = (await this.vault.estimatePairPoolReserve(this.lpPool.address)).add(
         await this.vault.estimatePairPoolReserve(this.lpPoolV1.address),
       );
+
+      const ilvPoolILVReceived0 = await this.ilv.balanceOf(this.ilvPool.address);
       const lpPoolILVReceived0 = await this.ilv.balanceOf(this.lpPool.address);
 
       const totalILVInPools = ilvPoolILVBalance0.add(lpPoolILVBalance0);
@@ -291,66 +293,63 @@ export function sendILVRewards(): () => void {
 
       await this.vault.sendILVRewards(0, 0, 0);
 
-      const ilvPoolILVBalance1 = (await this.ilvPool.poolTokenReserve())
-        .add(await this.ilvPoolV1.poolTokenReserve())
-        .add(lockedPoolsMockedBalance);
+      const ilvPoolILVReceived1 = await this.ilv.balanceOf(this.ilvPool.address);
       const lpPoolILVReceived1 = await this.ilv.balanceOf(this.lpPool.address);
 
-      expect(ethers.utils.formatEther(ilvPoolILVBalance1.sub(ilvPoolILVBalance0)).slice(0, 6)).to.be.equal(
+      expect(ethers.utils.formatEther(ilvPoolILVReceived1.sub(ilvPoolILVReceived0)).slice(0, 6)).to.be.equal(
         ethers.utils.formatEther(ilvPoolShare.mul(vaultILVBalance).div(1e12)).slice(0, 6),
       );
       expect(ethers.utils.formatEther(lpPoolILVReceived1.sub(lpPoolILVReceived0)).slice(0, 6)).to.be.equal(
         ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(1e12)).slice(0, 6),
       );
     });
-    // it("should buy and distribute ilv revenue in the same transaction", async function () {
-    //   const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+    it("should buy and distribute ilv revenue in the same transaction", async function () {
+      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
-    //   await this.ilvPoolV1.setUsers(users);
-    //   await this.lpPoolV1.setUsers(users);
+      await this.ilvPoolV1.setUsers(users);
+      await this.lpPoolV1.setUsers(users);
 
-    //   await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-    //   await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
-    //   await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
-    //   await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
 
-    //   await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
-    //   const ethIn = toWei(50);
+      await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
+      const ethIn = toWei(50);
 
-    //   const [, ilvOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
+      const [, ilvOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
 
-    //   const vaultILVBalance = ilvOut;
+      const vaultILVBalance = ilvOut;
 
-    //   const lockedPoolsMockedBalance = (await this.ilvPool.poolTokenReserve()).mul(2);
+      const lockedPoolsMockedBalance = (await this.ilvPool.poolTokenReserve()).mul(2);
 
-    //   const ilvPoolILVBalance0 = (await this.ilvPool.poolTokenReserve())
-    //     .add(await this.ilvPoolV1.poolTokenReserve())
-    //     .add(lockedPoolsMockedBalance);
-    //   const lpPoolILVBalance0 = (await this.vault.estimatePairPoolReserve(this.lpPool.address)).add(
-    //     await this.vault.estimatePairPoolReserve(this.lpPoolV1.address),
-    //   );
+      const ilvPoolILVBalance0 = (await this.ilvPool.poolTokenReserve())
+        .add(await this.ilvPoolV1.poolTokenReserve())
+        .add(lockedPoolsMockedBalance);
 
-    //   const totalILVInPools = ilvPoolILVBalance0.add(lpPoolILVBalance0);
+      const ilvPoolILVReceived0 = await this.ilv.balanceOf(this.ilvPool.address);
+      const lpPoolILVReceived0 = await this.ilv.balanceOf(this.lpPool.address);
 
-    //   const ilvPoolShare = ilvPoolILVBalance0.mul(1e12).div(totalILVInPools);
-    //   const lpPoolShare = lpPoolILVBalance0.mul(1e12).div(totalILVInPools);
+      await this.vault.sendILVRewards(ethIn, ilvOut, MaxUint256);
 
-    //   await this.vault.sendILVRewards(ethIn, ilvOut, MaxUint256);
+      const lpPoolILVBalance = (await this.vault.estimatePairPoolReserve(this.lpPool.address)).add(
+        await this.vault.estimatePairPoolReserve(this.lpPoolV1.address),
+      );
+      const totalILVInPools = ilvPoolILVBalance0.add(lpPoolILVBalance);
 
-    //   const ilvPoolILVBalance1 = (await this.ilvPool.poolTokenReserve())
-    //     .add(await this.ilvPoolV1.poolTokenReserve())
-    //     .add(lockedPoolsMockedBalance);
-    //   const lpPoolILVBalance1 = (await this.vault.estimatePairPoolReserve(this.lpPool.address)).add(
-    //     await this.vault.estimatePairPoolReserve(this.lpPoolV1.address),
-    //   );
+      const ilvPoolShare = ilvPoolILVBalance0.mul(1e12).div(totalILVInPools);
+      const lpPoolShare = lpPoolILVBalance.mul(1e12).div(totalILVInPools);
 
-    //   expect(ethers.utils.formatEther(ilvPoolILVBalance1.sub(ilvPoolILVBalance0)).slice(0, 6)).to.be.equal(
-    //     ethers.utils.formatEther(ilvPoolShare.mul(vaultILVBalance).div(1e12)).slice(0, 6),
-    //   );
-    //   expect(ethers.utils.formatEther(lpPoolILVBalance1.sub(lpPoolILVBalance0)).slice(0, 6)).to.be.equal(
-    //     ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(1e12)).slice(0, 6),
-    //   );
-    // });
+      const ilvPoolILVReceived1 = await this.ilv.balanceOf(this.ilvPool.address);
+      const lpPoolILVReceived1 = await this.ilv.balanceOf(this.lpPool.address);
+
+      expect(ethers.utils.formatEther(ilvPoolILVReceived1.sub(ilvPoolILVReceived0)).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(ilvPoolShare.mul(vaultILVBalance).div(1e12)).slice(0, 6),
+      );
+      expect(ethers.utils.formatEther(lpPoolILVReceived1.sub(lpPoolILVReceived0)).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(1e12)).slice(0, 6),
+      );
+    });
   };
 }
