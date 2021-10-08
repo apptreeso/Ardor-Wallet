@@ -44,6 +44,11 @@ validates, mints ILV according to v1 data and stores a receipt hash
 
 ### `mintV1YieldMultiple(uint256[] _stakeIds)` (external)
 
+aggregates in one single mint call multiple yield stakeIds from v1
+reads v1 ILV pool to execute checks, if everything is correct, it stores
+in memory total amount of yield to be minted and calls the PoolFactory to mint
+it to msg.sender
+
 ### `LogClaimYieldRewardsMultiple(address from, address[] pools, bool[] useSILV)`
 
 ### `LogClaimVaultRewardsMultiple(address from, address[] pool)`

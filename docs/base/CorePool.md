@@ -12,10 +12,10 @@ Overridden in sub-contracts to initialize the pool
 
 Calculates current yield rewards value available for address specified
 
+see \_pendingRewards() for further details
+
 external pendingRewards() returns pendingYield and pendingRevDis
 accumulated with already stored user.pendingYield and user.pendingRevDis
-
-see \_pendingRewards() for further details
 
 ### `balanceOf(address _user) → uint256 balance` (external)
 
@@ -52,16 +52,16 @@ Requires value to stake to be greater than zero
 
 ### `stakeFlexible(uint256 _value)` (external)
 
-we use standard weight for flexible stakes (since it's never locked)
-
 stakes poolTokens without lock
+we use standard weight for flexible stakes (since it's never locked)
 
 ### `migrateUser(address _to)` (external)
 
-data is copied to memory so we can delete previous address data
-before we store it in new address
-
 migrates msg.sender data to a new address
+v1 stakes are never migrated to the new address. We process all rewards,
+clean the previous user (msg.sender), add the previous user data to
+the desired address and update subYieldRewards/subVaultRewards values
+in order to make sure both addresses will have rewards cleaned
 
 ### `updateStakeLock(uint256 _stakeId, uint64 _lockedUntil)` (external)
 
@@ -128,11 +128,20 @@ Used internally, mostly by children implementations, see stake()
 
 ### `unstakeFlexible(uint256 _value)` (external)
 
+unstake poolTokens that have been staked in flexible mode
+
 ### `unstakeLocked(uint256 _stakeId, uint256 _value)` (external)
 
-Used internally, mostly by children implementations, see unstake()
+Unstakes a stake that has been previously locked, and is now in an unlocked
+state. If the stake has the isYield flag set to true, then the contract
+requests ILV to be minted by the PoolFactory. Otherwise it transfers ILV or LP
+from the contract balance
 
 ### `unstakeLockedMultiple(struct CorePool.UnstakeParameter[] _stakes, bool _unstakingYield)` (external)
+
+Executes unstake on multiple stakeIds. See unstakeLocked()
+Optimizes gas by requiring all unstakes to be made either in yield stakes
+or in non yield stakes. That way we can transfer or mint tokens in one call.
 
 ### `_sync()` (internal)
 
@@ -143,8 +152,9 @@ updates factory state via `updateILVPerSecond`
 
 ### `_processRewards(address _staker, uint256 _v1WeightToAdd, uint256 _subYieldRewards, uint256 _subVaultRewards) → uint256 pendingYield, uint256 pendingRevDis` (internal)
 
-Used internally, mostly by children implementations.
-Executed before staking, unstaking and claiming the rewards.
+Used internally, mostly by children implementations
+Executed before staking, unstaking and claiming the rewards
+updates user.pendingYield and user.pendingRevDis
 When timing conditions are not met (executed too frequently, or after factory
 end block), function doesn't throw and exits silently
 
@@ -157,9 +167,8 @@ claims all pendingYield from \_staker using ILV or sILV
 
 ### `_claimVaultRewards(address _staker)` (internal)
 
-ILV is sent straight away to \_staker address
-
 claims all pendingRevDis from \_staker using ILV
+ILV is sent straight away to \_staker address
 
 ### `_useV1Weight(address _staker) → uint256 totalV1Weight, uint256 subYieldRewards, uint256 subVaultRewards` (internal)
 
@@ -220,7 +229,11 @@ Fired in \_updateStakeLock() and updateStakeLock()
 
 Fired in unstakeFlexible()
 
-### `LogUnstakeLocked(address to, uint256 stakeId, uint256 value)`
+### `LogUnstakeLockedMultiple(address to, uint256 totalValue, bool unstakingYield)`
+
+Fired in unstakeFlexible()
+
+### `LogUnstakeLocked(address to, uint256 stakeId, uint256 value, bool isYield)`
 
 Fired in unstakeLocked()
 
