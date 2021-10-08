@@ -82,26 +82,29 @@ export function migrateUser(usingPool: string): () => void {
 
       await pool.setNow256(INIT_TIME + 200);
 
-      const {
-        pendingYield: pendingYield0,
-        totalWeight: totalWeight0,
-        subYieldRewards: subYieldRewards0,
-        subVaultRewards: subVaultRewards0,
-      } = await pool.users(this.signers.alice.address);
+      const { pendingYield: pendingYield0, pendingRevDis: pendingRevDis0 } = await pool.pendingRewards(
+        this.signers.alice.address,
+      );
+
+      const { totalWeight: totalWeight0 } = await pool.users(this.signers.alice.address);
 
       await pool.connect(this.signers.alice).migrateUser(this.signers.bob.address);
 
       const {
         pendingYield: pendingYield1,
+        pendingRevDis: pendingRevDis1,
         totalWeight: totalWeight1,
-        subYieldRewards: subYieldRewards1,
-        subVaultRewards: subVaultRewards1,
       } = await pool.users(this.signers.bob.address);
 
+      const { pendingYield: aliceNewPendingYield, pendingRevDis: aliceNewPendingRevDis } = await pool.pendingRewards(
+        this.signers.alice.address,
+      );
+
       expect(pendingYield0).to.be.equal(pendingYield1);
+      expect(pendingRevDis0).to.be.equal(pendingRevDis1);
       expect(totalWeight0).to.be.equal(totalWeight1);
-      expect(subYieldRewards0).to.be.equal(subYieldRewards1);
-      expect(subVaultRewards0).to.be.equal(subVaultRewards1);
+      expect(Number(aliceNewPendingYield)).to.be.equal(0);
+      expect(Number(aliceNewPendingRevDis)).to.be.equal(0);
     });
     it("should revert if _to = address(0)", async function () {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);

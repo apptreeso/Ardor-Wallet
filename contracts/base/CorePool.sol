@@ -465,6 +465,7 @@ abstract contract CorePool is
         user.flexibleBalance += uint128(_value);
         user.totalWeight += uint248(stakeWeight);
         user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(vaultRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
@@ -487,6 +488,10 @@ abstract contract CorePool is
      * @param _to new user address
      */
     function migrateUser(address _to) external updatePool {
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+        // we process all pending rewards before migration
+        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).migrateUser.selector;
 
@@ -501,14 +506,15 @@ abstract contract CorePool is
         newUser.flexibleBalance = previousUser.flexibleBalance;
         newUser.pendingYield = previousUser.pendingYield;
         newUser.totalWeight = previousUser.totalWeight;
-        newUser.subYieldRewards = previousUser.subYieldRewards;
-        newUser.subVaultRewards = previousUser.subVaultRewards;
+        newUser.subYieldRewards = uint256(previousUser.totalWeight).weightToReward(yieldRewardsPerWeight);
+        newUser.subVaultRewards = uint256(previousUser.totalWeight).weightToReward(vaultRewardsPerWeight);
         delete previousUser.flexibleBalance;
         delete previousUser.pendingYield;
         delete previousUser.totalWeight;
-        delete previousUser.subYieldRewards;
-        delete previousUser.subVaultRewards;
         delete previousUser.stakes;
+
+        previousUser.subYieldRewards = v1WeightToAdd.weightToReward(yieldRewardsPerWeight);
+        previousUser.subVaultRewards = v1WeightToAdd.weightToReward(vaultRewardsPerWeight);
 
         emit LogMigrateUser(msg.sender, _to);
     }
@@ -525,7 +531,6 @@ abstract contract CorePool is
      * @param _lockedUntil updated stake locked until value
      */
     function updateStakeLock(uint256 _stakeId, uint64 _lockedUntil) external updatePool {
-        // uses v1 weight values for rewards calculations
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
         _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
@@ -738,6 +743,7 @@ abstract contract CorePool is
         // update user record
         user.totalWeight += uint248(stakeWeight);
         user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(vaultRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
@@ -827,6 +833,7 @@ abstract contract CorePool is
         // update user record
         user.totalWeight = uint248(user.totalWeight - previousWeight + newWeight);
         user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(vaultRewardsPerWeight);
 
         // update global variable
         globalWeight = globalWeight - previousWeight + newWeight;
@@ -895,6 +902,7 @@ abstract contract CorePool is
 
         user.totalWeight -= uint248(weightToRemove);
         user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(vaultRewardsPerWeight);
 
         // update global variable
         globalWeight -= weightToRemove;
@@ -1053,8 +1061,9 @@ abstract contract CorePool is
             IILVPool(ilvPool).stakeAsPool(_staker, pendingYieldToClaim);
         }
 
-        // subYieldRewards needs to be updated on every `_processRewards` call
+        // subYieldRewards and subVaultRewards needs to be updated on every `_processRewards` call
         user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(vaultRewardsPerWeight);
 
         // emit an event
         emit LogClaimYieldRewards(_staker, _useSILV, pendingYieldToClaim);
@@ -1085,7 +1094,7 @@ abstract contract CorePool is
         // clears user pending revenue distribution
         user.pendingRevDis = 0;
 
-        // subYieldRewards needs to be updated on every `_processRewards` call
+        // subYieldRewards and subVaultRewards needs to be updated on every `_processRewards` call
         user.subVaultRewards = uint256(user.totalWeight).weightToReward(vaultRewardsPerWeight);
 
         IERC20(ilv).safeTransfer(_staker, pendingRevDis);
