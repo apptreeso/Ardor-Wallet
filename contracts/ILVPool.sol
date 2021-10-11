@@ -10,6 +10,7 @@ import { ICorePool } from "./interfaces/ICorePool.sol";
 import { ICorePoolV1 } from "./interfaces/ICorePoolV1.sol";
 
 contract ILVPool is V2Migrator {
+    // err lib used on fn selectors
     using Errors for bytes4;
     using Stake for uint256;
     using SafeERC20 for IERC20;
@@ -66,8 +67,15 @@ contract ILVPool is V2Migrator {
      * @param _value amount to be staked (yield reward amount)
      */
     function stakeAsPool(address _staker, uint256 _value) external updatePool nonReentrant {
-        _requireNotPaused();
-        ILVPool(this).stakeAsPool.selector.verifyAccess(factory.poolExists(msg.sender));
+        // we're using selector to simplify input and access validation
+        bytes4 fnSelector = ILVPool(this).stakeAsPool.selector;
+
+        // check contract is not paused
+        _requireNotPaused(fnSelector);
+
+        // verify is accessed by the pool
+        fnSelector.verifyAccess(factory.poolExists(msg.sender));
+
         User storage user = users[_staker];
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
@@ -111,12 +119,16 @@ contract ILVPool is V2Migrator {
      *                 as ILV or sILV
      */
     function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external updatePool {
-        _requireNotPaused();
-
         // we're using selector to simplify input and access validation
-        bytes4 fnSelector = ILVPool(address(this)).claimYieldRewardsMultiple.selector;
+        bytes4 fnSelector = ILVPool(this).claimYieldRewardsMultiple.selector;
 
+        // check contract is not paused
+        _requireNotPaused(fnSelector);
+
+        // verify the inputs
         fnSelector.verifyInput(_pools.length == _useSILV.length, 0);
+
+        // do the claiming
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
             fnSelector.verifyAccess(IFactory(factory).poolExists(pool));
@@ -141,14 +153,16 @@ contract ILVPool is V2Migrator {
      * @param _pools array of pool addresses
      */
     function claimVaultRewardsMultiple(address[] calldata _pools) external updatePool {
-        _requireNotPaused();
+        // we're using selector to simplify input and access validation
+        bytes4 fnSelector = ILVPool(this).claimVaultRewardsMultiple.selector;
+        // check contract is not paused
+        _requireNotPaused(fnSelector);
+
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
 
             // we're using selector to simplify input and state validation
-            bytes4(ILVPool(address(this)).claimVaultRewardsMultiple.selector).verifyAccess(
-                IFactory(factory).poolExists(pool)
-            );
+            bytes4(fnSelector).verifyAccess(IFactory(factory).poolExists(pool));
 
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimVaultRewards(msg.sender);

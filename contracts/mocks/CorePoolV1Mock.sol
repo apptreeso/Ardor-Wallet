@@ -3,8 +3,12 @@
 pragma solidity 0.8.4;
 
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 contract CorePoolV1Mock is ICorePoolV1 {
+    // err lib used on fn selectors
+    using Errors for bytes4;
+
     struct UserParameter {
         address userAddress;
         V1Stake[] deposits;
@@ -17,7 +21,7 @@ contract CorePoolV1Mock is ICorePoolV1 {
     mapping(address => V1Stake[]) public users;
 
     constructor(address _poolToken) {
-        require(_poolToken != address(0));
+        bytes4(0x00).verifyNonZeroInput(uint160(_poolToken), 0);
 
         poolToken = _poolToken;
     }

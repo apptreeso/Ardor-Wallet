@@ -24,6 +24,7 @@ abstract contract CorePool is
 {
     using SafeERC20 for IERC20;
     using Stake for Stake.Data;
+    // err lib used on fn selectors
     using Errors for bytes4;
     using Stake for uint256;
 
@@ -427,7 +428,8 @@ abstract contract CorePool is
      * @param _lockDuration stake duration as unix timestamp
      */
     function stakeAndLock(uint256 _value, uint64 _lockDuration) external nonReentrant {
-        _requireNotPaused();
+        // check contract is not paused
+        _requireNotPaused(CorePool(this).stakeAndLock.selector);
         // delegate call to an internal function
         _stakeAndLock(msg.sender, _value, _lockDuration);
     }
@@ -440,7 +442,8 @@ abstract contract CorePool is
      * @param _value number of tokens to stake
      */
     function stakeFlexible(uint256 _value) external updatePool nonReentrant {
-        _requireNotPaused();
+        // check contract is not paused
+        _requireNotPaused(CorePool(this).stakeFlexible.selector);
 
         // validate input is set
         CorePool(this).stakeFlexible.selector.verifyNonZeroInput(_value, 0);
@@ -596,7 +599,9 @@ abstract contract CorePool is
      * @notice pool state is updated before calling the internal function
      */
     function claimYieldRewards(bool _useSILV) external updatePool {
-        _requireNotPaused();
+        // check contract is not paused
+        _requireNotPaused(CorePool(this).claimYieldRewards.selector);
+        // delegate to internal implementation
         _claimYieldRewards(msg.sender, _useSILV);
     }
 
@@ -606,7 +611,9 @@ abstract contract CorePool is
      * @notice pool state is updated before calling the internal function
      */
     function claimVaultRewards() external updatePool {
-        _requireNotPaused();
+        // check contract is not paused
+        _requireNotPaused(CorePool(this).claimVaultRewards.selector);
+        // delegate to internal implementation
         _claimVaultRewards(msg.sender);
     }
 
@@ -1214,8 +1221,9 @@ abstract contract CorePool is
     }
 
     /// @dev checks if pool is paused
-    function _requireNotPaused() internal view {
-        require(!paused());
+    function _requireNotPaused(bytes4 fnSelector) internal view {
+        // verify if contract is not paused using 255 as an error code
+        fnSelector.verifyState(!paused(), 255);
     }
 
     /// @inheritdoc UUPSUpgradeable
