@@ -29,7 +29,7 @@ import {
   toWei,
   toAddress,
 } from "./utils";
-import { setCorePools, swapETHForILV, sendILVRewards } from "./Vault.behavior";
+import { setCorePools, swapETHForILV, sendILVRewards, claimVaultRewards } from "./Vault.behavior";
 
 const { MaxUint256 } = ethers.constants;
 
@@ -138,4 +138,5 @@ describe("Vault", function () {
   describe("#setCorePools", setCorePools());
   describe("#swapETHForILV", swapETHForILV());
   describe("#sendILVRewards", sendILVRewards());
+  describe("#claimVaultRewards", claimVaultRewards());
 });
