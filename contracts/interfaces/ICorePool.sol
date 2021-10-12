@@ -57,10 +57,6 @@ interface ICorePool {
 
     function poolTokenReserve() external view returns (uint256);
 
-    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external;
-
-    function claimVaultRewardsFromRouter(address _staker) external;
-
     function balanceOf(address _user) external view returns (uint256);
 
     function getStake(address _user, uint256 _stakeId) external view returns (Stake.Data memory);

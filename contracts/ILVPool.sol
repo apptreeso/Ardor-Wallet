@@ -154,7 +154,7 @@ contract ILVPool is V2Migrator {
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimVaultRewards(msg.sender);
             } else {
-                ICorePool(pool).claimVaultRewardsFromRouter(msg.sender);
+                SushiLPPool(pool).claimVaultRewardsFromRouter(msg.sender);
             }
         }
 
