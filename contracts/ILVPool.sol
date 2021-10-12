@@ -8,6 +8,7 @@ import { Stake } from "./libraries/Stake.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 import { ICorePoolV1 } from "./interfaces/ICorePoolV1.sol";
+import { SushiLPPool } from "./SushiLPPool.sol";
 
 contract ILVPool is V2Migrator {
     using Errors for bytes4;
@@ -124,7 +125,7 @@ contract ILVPool is V2Migrator {
             if (ICorePool(pool).poolToken() == ilv) {
                 _claimYieldRewards(msg.sender, _useSILV[i]);
             } else {
-                ICorePool(pool).claimYieldRewardsFromRouter(msg.sender, _useSILV[i]);
+                SushiLPPool(pool).claimYieldRewardsFromRouter(msg.sender, _useSILV[i]);
             }
         }
 
