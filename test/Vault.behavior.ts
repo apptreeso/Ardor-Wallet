@@ -401,6 +401,28 @@ export function sendILVRewards(): () => void {
 
 export function claimVaultRewards(): () => void {
   return function () {
+    beforeEach(async function () {
+      const ilvPoolV1Address = this.ilvPoolV1.address;
+      const lpPoolV1Address = this.lpPoolV1.address;
+      const ilvPoolAddress = this.ilvPool.address;
+      const lpPoolAddress = this.lpPool.address;
+      const lockedPoolV1MockedAddress = this.ilvPool.address;
+      const lockedPoolV2MockedAddress = this.ilvPool.address;
+
+      await this.vault
+        .connect(this.signers.deployer)
+        .setCorePools(
+          ilvPoolV1Address,
+          lpPoolV1Address,
+          ilvPoolAddress,
+          lpPoolAddress,
+          lockedPoolV1MockedAddress,
+          lockedPoolV2MockedAddress,
+        );
+
+      await this.ilvPool.connect(this.signers.deployer).setVault(this.vault.address);
+      await this.lpPool.connect(this.signers.deployer).setVault(this.vault.address);
+    });
     it("should claim vault rewards", async function () {
       const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
@@ -436,19 +458,32 @@ export function claimVaultRewards(): () => void {
       );
       const totalILVInPools = ilvPoolILVBalance0.add(lpPoolILVBalance);
 
-      const ilvPoolShare = ilvPoolILVBalance0.mul(1e12).div(totalILVInPools);
-      const lpPoolShare = lpPoolILVBalance.mul(1e12).div(totalILVInPools);
-
       const ilvPoolILVReceived1 = await this.ilv.balanceOf(this.ilvPool.address);
       const lpPoolILVReceived1 = await this.ilv.balanceOf(this.lpPool.address);
+
+      const ilvBalance0 = await this.ilv.balanceOf(this.signers.alice.address);
 
       const { pendingRevDis: alicePendingRevDisILVPool } = await this.ilvPool.pendingRewards(
         this.signers.alice.address,
       );
       const { pendingRevDis: alicePendingRevDisLPPool } = await this.lpPool.pendingRewards(this.signers.alice.address);
 
-      expect(alicePendingRevDisILVPool).to.be.equal(ilvPoolILVReceived1.sub(ilvPoolILVReceived0));
-      expect(alicePendingRevDisLPPool).to.be.equal(lpPoolILVReceived1.sub(lpPoolILVReceived0));
+      await this.ilvPool.connect(this.signers.alice).claimVaultRewards();
+
+      const ilvBalance1 = await this.ilv.balanceOf(this.signers.alice.address);
+
+      await this.lpPool.connect(this.signers.alice).claimVaultRewards();
+
+      const ilvBalance2 = await this.ilv.balanceOf(this.signers.alice.address);
+
+      expect(ethers.utils.formatEther(alicePendingRevDisILVPool).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(ilvPoolILVReceived1.sub(ilvPoolILVReceived0)).slice(0, 6),
+      );
+      expect(ethers.utils.formatEther(alicePendingRevDisLPPool).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(lpPoolILVReceived1.sub(lpPoolILVReceived0)).slice(0, 6),
+      );
+      expect(ilvBalance1.sub(ilvBalance0)).to.be.equal(alicePendingRevDisILVPool);
+      expect(ilvBalance2.sub(ilvBalance1)).to.be.equal(alicePendingRevDisLPPool);
     });
   };
 }
