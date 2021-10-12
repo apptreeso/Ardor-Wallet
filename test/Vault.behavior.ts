@@ -440,23 +440,10 @@ export function claimVaultRewards(): () => void {
 
       const [, ilvOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
 
-      const vaultILVBalance = ilvOut;
-
-      const lockedPoolsMockedBalance = (await this.ilvPool.poolTokenReserve()).mul(2);
-
-      const ilvPoolILVBalance0 = (await this.ilvPool.poolTokenReserve())
-        .add(await this.ilvPoolV1.poolTokenReserve())
-        .add(lockedPoolsMockedBalance);
-
       const ilvPoolILVReceived0 = await this.ilv.balanceOf(this.ilvPool.address);
       const lpPoolILVReceived0 = await this.ilv.balanceOf(this.lpPool.address);
 
       await this.vault.sendILVRewards(ethIn, ilvOut, MaxUint256);
-
-      const lpPoolILVBalance = (await this.vault.estimatePairPoolReserve(this.lpPool.address)).add(
-        await this.vault.estimatePairPoolReserve(this.lpPoolV1.address),
-      );
-      const totalILVInPools = ilvPoolILVBalance0.add(lpPoolILVBalance);
 
       const ilvPoolILVReceived1 = await this.ilv.balanceOf(this.ilvPool.address);
       const lpPoolILVReceived1 = await this.ilv.balanceOf(this.lpPool.address);
