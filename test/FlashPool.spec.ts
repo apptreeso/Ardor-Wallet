@@ -117,6 +117,22 @@ describe("FlashPool", function () {
       expect(await (this.flashPool as FlashPoolUpgrade).newFunction(1, 2)).to.be.equal(3);
       expect(prevPoolAddress).to.be.equal(newPoolAddress);
     });
+    it("should revert deploying a pool if factory == address(0)", async function () {
+      await expect(
+        upgrades.deployProxy(
+          this.FlashPool,
+          [
+            this.ilv.address,
+            this.silv.address,
+            this.flashToken.address,
+            AddressZero,
+            FLASH_INIT_TIME,
+            FLASH_POOL_WEIGHT,
+          ],
+          { kind: "uups" },
+        ),
+      ).reverted;
+    });
   });
   describe("#getPoolData", function () {
     it("should get correct pool data", async function () {

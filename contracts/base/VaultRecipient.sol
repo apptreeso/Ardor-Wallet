@@ -43,7 +43,7 @@ abstract contract VaultRecipient is FactoryControlled {
         emit LogSetVault(msg.sender, previousVault, _vault);
     }
 
-    function _requireIsVault() internal {
+    function _requireIsVault() internal view {
         require(msg.sender == vault);
     }
 }
