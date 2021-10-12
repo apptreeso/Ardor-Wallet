@@ -21,11 +21,6 @@ abstract contract VaultRecipient is FactoryControlled {
      */
     event LogSetVault(address indexed by, address previousVault, address newVault);
 
-    modifier onlyVault() {
-        require(msg.sender == vault, "Unauthorized");
-        _;
-    }
-
     /**
      * @dev Executed only by the factory owner to Set the vault
      *
@@ -46,5 +41,9 @@ abstract contract VaultRecipient is FactoryControlled {
 
         // emit an event
         emit LogSetVault(msg.sender, previousVault, _vault);
+    }
+
+    function _requireIsVault() internal {
+        require(msg.sender == vault);
     }
 }

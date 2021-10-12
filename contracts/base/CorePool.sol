@@ -636,11 +636,11 @@ abstract contract CorePool is
      * @param _value amount of ILV rewards to transfer into the pool
      */
     function receiveVaultRewards(uint256 _value) external updatePool {
+        // checks if msg.sender is the vault contract
+        _requireIsVault();
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).receiveVaultRewards.selector;
 
-        // verify function is accessed by the vault only
-        fnSelector.verifyAccess(msg.sender == vault);
         // return silently if there is no reward to receive
         if (_value == 0) {
             return;
