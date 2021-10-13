@@ -115,10 +115,12 @@ export function migrateUser(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await pool.connect(this.signers.alice).claimYieldRewards(false);
 
       await pool.setNow256(INIT_TIME + 200);
+      await this.factory.setNow256(INIT_TIME + 200);
 
       const { pendingYield: pendingYield0, pendingRevDis: pendingRevDis0 } = await pool.pendingRewards(
         this.signers.alice.address,
@@ -152,10 +154,12 @@ export function migrateUser(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await pool.connect(this.signers.alice).claimYieldRewards(false);
 
       await pool.setNow256(INIT_TIME + 200);
+      await this.factory.setNow256(INIT_TIME + 200);
 
       await expect(pool.connect(this.signers.alice).migrateUser(AddressZero)).reverted;
     });
@@ -167,10 +171,12 @@ export function migrateUser(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await pool.connect(this.signers.alice).claimYieldRewards(false);
 
       await pool.setNow256(INIT_TIME + 200);
+      await this.factory.setNow256(INIT_TIME + 200);
 
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.bob).stakeAndLock(toWei(100), ONE_YEAR * 2);
@@ -186,10 +192,12 @@ export function migrateUser(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await pool.connect(this.signers.alice).claimYieldRewards(false);
 
       await pool.setNow256(INIT_TIME + 200);
+      await this.factory.setNow256(INIT_TIME + 200);
 
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.bob).stakeAndLock(toWei(100), ONE_YEAR * 2);
@@ -203,10 +211,12 @@ export function migrateUser(usingPool: string): () => void {
       await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await this.ilvPool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await this.ilvPool.connect(this.signers.alice).claimYieldRewards(false);
 
       await this.ilvPool.setNow256(INIT_TIME + 200);
+      await this.factory.setNow256(INIT_TIME + 200);
 
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
@@ -250,6 +260,11 @@ export function setWeight(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await expect(this.factory.connect(this.signers.alice).changePoolWeight(pool.address, 0)).reverted;
+    });
+    it("should revert minting yield from non pool caller", async function () {
+      await expect(
+        this.factory.connect(this.signers.deployer).mintYieldTo(this.signers.deployer.address, toWei(100000), false),
+      ).reverted;
     });
   };
 }
@@ -1012,6 +1027,7 @@ export function claimYieldRewardsMultiple(): () => void {
 
       await this.ilvPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
+      await this.factory.setNow256(INIT_TIME + 1000);
 
       const { pendingYield: ilvPoolPendingYield } = await this.ilvPool.pendingRewards(this.signers.alice.address);
       const { pendingYield: lpPoolPendingYield } = await this.lpPool.pendingRewards(this.signers.alice.address);
@@ -1035,6 +1051,7 @@ export function claimYieldRewardsMultiple(): () => void {
 
       await this.ilvPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
+      await this.factory.setNow256(INIT_TIME + 1000);
 
       const { pendingYield: ilvPoolPendingYield } = await this.ilvPool.pendingRewards(this.signers.alice.address);
       const { pendingYield: lpPoolPendingYield } = await this.lpPool.pendingRewards(this.signers.alice.address);
@@ -1057,6 +1074,7 @@ export function claimYieldRewardsMultiple(): () => void {
 
       await this.ilvPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
+      await this.factory.setNow256(INIT_TIME + 1000);
 
       const { pendingYield: ilvPoolPendingYield } = await this.ilvPool.pendingRewards(this.signers.alice.address);
       const { pendingYield: lpPoolPendingYield } = await this.lpPool.pendingRewards(this.signers.alice.address);
@@ -1080,6 +1098,7 @@ export function claimYieldRewardsMultiple(): () => void {
 
       await this.ilvPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
+      await this.factory.setNow256(INIT_TIME + 1000);
 
       await expect(
         this.ilvPool
@@ -1096,6 +1115,7 @@ export function claimYieldRewardsMultiple(): () => void {
 
       await this.lpPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
+      await this.factory.setNow256(INIT_TIME + 1000);
 
       await expect(
         this.lpPool.connect(this.signers.alice).claimYieldRewardsFromRouter(this.signers.alice.address, false),
@@ -1195,6 +1215,7 @@ export function pendingYield(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(1);
+      await this.factory.setNow256(1);
 
       const { pendingYield } = await pool.pendingRewards(this.signers.alice.address);
 
@@ -1208,6 +1229,7 @@ export function pendingYield(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(INIT_TIME + 10);
+      await this.factory.setNow256(INIT_TIME + 10);
 
       const totalWeight = await this.factory.totalWeight();
       const poolWeight = await pool.weight();
@@ -1229,6 +1251,7 @@ export function pendingYield(usingPool: string): () => void {
       await pool.connect(this.signers.bob).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(INIT_TIME + 10);
+      await this.factory.setNow256(INIT_TIME + 10);
 
       const totalWeight = await this.factory.totalWeight();
       const poolWeight = await pool.weight();
@@ -1252,6 +1275,7 @@ export function pendingYield(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeFlexible(toWei(10));
 
       await pool.setNow256(INIT_TIME + 50);
+      await this.factory.setNow256(INIT_TIME + 50);
 
       const { pendingYield: aliceYield0 } = await pool.pendingRewards(this.signers.alice.address);
 
@@ -1267,6 +1291,7 @@ export function pendingYield(usingPool: string): () => void {
       const expectedBobYield0 = 0;
 
       await pool.setNow256(INIT_TIME + 200);
+      await this.factory.setNow256(INIT_TIME + 200);
 
       const { pendingYield: aliceYield1 } = await pool.pendingRewards(this.signers.alice.address);
       const { pendingYield: bobYield1 } = await pool.pendingRewards(this.signers.bob.address);
@@ -1308,6 +1333,7 @@ export function pendingYield(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeFlexible(toWei(100));
 
       await pool.setNow256(INIT_TIME + 20);
+      await this.factory.setNow256(INIT_TIME + 20);
 
       const expectedYield0 = ILV_PER_SECOND.mul(20).mul(poolWeight).div(totalWeight);
 

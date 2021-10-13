@@ -193,6 +193,10 @@ export function setCorePools(): () => void {
     it("should revert deploying vault with _ilv = address(0", async function () {
       await expect(this.Vault.deploy(this.sushiRouter.address, AddressZero)).reverted;
     });
+    it("should revert setting vault to address(0)", async function () {
+      await expect(this.ilvPool.connect(this.signers.deployer).setVault(AddressZero)).reverted;
+      await expect(this.lpPool.connect(this.signers.deployer).setVault(AddressZero)).reverted;
+    });
   };
 }
 
@@ -563,6 +567,10 @@ export function claimVaultRewards(): () => void {
         ethers.utils.formatEther(lpPoolILVReceived1.sub(lpPoolILVReceived0)).slice(0, 6),
       );
       expect(ilvBalance1.sub(ilvBalance0)).to.be.equal(alicePendingRevDisILVPool.add(alicePendingRevDisLPPool));
+    });
+    it("should revert if calling receiveVaultRewards from non-vault address", async function () {
+      await expect(this.ilvPool.connect(this.signers.deployer).receiveVaultRewards(toWei(10))).reverted;
+      await expect(this.lpPool.connect(this.signers.deployer).receiveVaultRewards(toWei(10))).reverted;
     });
   };
 }

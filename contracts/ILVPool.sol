@@ -179,7 +179,9 @@ contract ILVPool is V2Migrator {
         address[] calldata _users,
         uint248[] calldata _yieldWeights,
         uint248 _totalWeight
-    ) external onlyFactoryController {
+    ) external {
+        // checks caller is factory.owner()
+        _requireIsFactoryController();
         // checks if parameters are valid
         ILVPool(this).migrateWeights.selector.verifyInput(_users.length == _yieldWeights.length, 0);
 

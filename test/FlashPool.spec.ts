@@ -133,6 +133,60 @@ describe("FlashPool", function () {
         ),
       ).reverted;
     });
+    it("should revert initializing a factory if _ilv == address(0)", async function () {
+      await expect(
+        upgrades.deployProxy(
+          this.PoolFactory,
+          [AddressZero, this.silv.address, ILV_PER_SECOND, SECONDS_PER_UPDATE, INIT_TIME, END_TIME],
+          { kind: "uups" },
+        ),
+      ).reverted;
+    });
+    it("should revert initializing a factory if _silv == address(0)", async function () {
+      await expect(
+        upgrades.deployProxy(
+          this.PoolFactory,
+          [this.ilv.address, AddressZero, ILV_PER_SECOND, SECONDS_PER_UPDATE, INIT_TIME, END_TIME],
+          { kind: "uups" },
+        ),
+      ).reverted;
+    });
+    it("should revert initializing a factory if _ilvPerSecond == 0", async function () {
+      await expect(
+        upgrades.deployProxy(
+          this.PoolFactory,
+          [this.ilv.address, this.silv.address, 0, SECONDS_PER_UPDATE, INIT_TIME, END_TIME],
+          { kind: "uups" },
+        ),
+      ).reverted;
+    });
+    it("should revert initializing a factory if _secondsPerUpdate == 0", async function () {
+      await expect(
+        upgrades.deployProxy(
+          this.PoolFactory,
+          [this.ilv.address, this.silv.address, ILV_PER_SECOND, 0, INIT_TIME, END_TIME],
+          { kind: "uups" },
+        ),
+      ).reverted;
+    });
+    it("should revert initializing a factory if _initTime == 0", async function () {
+      await expect(
+        upgrades.deployProxy(
+          this.PoolFactory,
+          [this.ilv.address, this.silv.address, ILV_PER_SECOND, SECONDS_PER_UPDATE, 0, END_TIME],
+          { kind: "uups" },
+        ),
+      ).reverted;
+    });
+    it("should revert initializing a factory if _endTime == 0", async function () {
+      await expect(
+        upgrades.deployProxy(
+          this.PoolFactory,
+          [this.ilv.address, this.silv.address, ILV_PER_SECOND, SECONDS_PER_UPDATE, INIT_TIME, 0],
+          { kind: "uups" },
+        ),
+      ).reverted;
+    });
   });
   describe("#getPoolData", function () {
     it("should get correct pool data", async function () {

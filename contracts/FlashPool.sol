@@ -504,5 +504,8 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address) internal override onlyFactoryController {}
+    function _authorizeUpgrade(address) internal override {
+        // checks caller is factory.owner()
+        _requireIsFactoryController();
+    }
 }
