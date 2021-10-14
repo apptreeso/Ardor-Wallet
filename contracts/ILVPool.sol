@@ -21,7 +21,6 @@ contract ILVPool is V2Migrator {
 
     event LogClaimYieldRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
     event LogClaimVaultRewardsMultiple(address indexed from, address[] pool);
-    event LogStakeAsPool(address indexed from, address indexed staker, uint256 value);
     event LogMigrateWeights(address indexed by, uint256 numberOfUsers, uint248 totalWeight);
 
     /**
@@ -98,7 +97,7 @@ contract ILVPool is V2Migrator {
         // update `poolTokenReserve` only if this is a LP Core Pool (stakeAsPool can be executed only for LP pool)
         poolTokenReserve += _value;
 
-        emit LogStakeAsPool(msg.sender, _staker, _value);
+        emit LogStakeAndLock(msg.sender, _staker, _value, uint64(_now256() + 365 days));
     }
 
     /**

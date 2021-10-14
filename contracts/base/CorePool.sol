@@ -104,12 +104,13 @@ abstract contract CorePool is
     event LogStakeFlexible(address indexed from, uint256 value);
 
     /**
-     * @dev Fired in _stakeAndLock()
+     * @dev Fired in _stakeAndLock() and stakeAsPool() in ILVPool contract
+     * @param by address that executed the stake function (user or pool)
      * @param from token holder address, the tokens will be returned to that address
      * @param value value of tokens staked
      * @param lockUntil timestamp indicating when tokens should unlock (max 2 years)
      */
-    event LogStakeAndLock(address indexed from, uint256 value, uint64 lockUntil);
+    event LogStakeAndLock(address indexed by, address indexed from, uint256 value, uint64 lockUntil);
 
     /**
      * @dev Fired in _updateStakeLock() and updateStakeLock()
@@ -182,15 +183,6 @@ abstract contract CorePool is
      * @param revDisValue value of revenue distribution processed
      */
     event LogProcessRewards(address indexed from, uint256 yieldValue, uint256 revDisValue);
-
-    /**
-     * @dev Fired in setWeight()
-     *
-     * @param by an address which performed an operation, always a factory
-     * @param fromVal old pool weight value
-     * @param toVal new pool weight value
-     */
-    event LogSetWeight(address indexed by, uint32 fromVal, uint32 toVal);
 
     /**
      * @dev fired in migrateUser()
@@ -597,7 +589,29 @@ abstract contract CorePool is
         emit LogUpdateStakeLock(msg.sender, _stakeId, stakeLockedFrom, _lockedUntil);
     }
 
-    function fillStakeId(uint256 _v1StakeId, uint256 _newLock) external {}
+    function fillStakeId(uint256 _v1StakeId, uint256 _stakeIdPosition) external {
+        User storage user = users[msg.sender];
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = CorePool(this).fillStakeId.selector;
+        uint256 v1StakeWeight = v1StakesMigrated[msg.sender][_v1StakeId];
+        // if v1StakeWeight == 1 it means it has been migrated but completely unstaked.
+        fnSelector.verifyState(v1StakeWeight > 1, 0);
+
+        (uint256 _tokenAmount, , uint64 _lockedFrom, uint64 _lockedUntil, bool _isYield) = ICorePoolV1(corePoolV1)
+            .getDeposit(msg.sender, _v1StakeId);
+        assert(!_isYield);
+
+        delete user.v1StakesIds[_stakeIdPosition];
+        user.stakes.push(
+            Stake.Data({
+                value: uint112(_tokenAmount),
+                lockedFrom: _lockedFrom,
+                lockedUntil: _lockedUntil,
+                isYield: false,
+                fromV1: true
+            })
+        );
+    }
 
     /**
      * @notice Service function to synchronize pool state with current time
@@ -610,6 +624,7 @@ abstract contract CorePool is
      *      end time), function doesn't throw and exits silently
      */
     function sync() external {
+        _requireNotPaused();
         // delegate call to an internal function
         _sync();
     }
@@ -676,9 +691,6 @@ abstract contract CorePool is
 
         // set the new weight value
         weight = _weight;
-
-        // emit an event logging old and new weight values
-        emit LogSetWeight(msg.sender, weight, _weight);
     }
 
     /**
@@ -784,7 +796,7 @@ abstract contract CorePool is
         IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         // emit an event
-        emit LogStakeAndLock(msg.sender, _value, lockUntil);
+        emit LogStakeAndLock(msg.sender, msg.sender, _value, lockUntil);
     }
 
     /**
