@@ -412,6 +412,9 @@ export function migrationTests(usingPool: string): () => void {
       await pool.connect(this.signers.alice).claimYieldRewards(true);
       await pool.connect(this.signers.bob).claimYieldRewards(true);
 
+      const aliceSILVBalance0 = await this.silv.balanceOf(this.signers.alice.address);
+      const bobSILVBalance0 = await this.silv.balanceOf(this.signers.bob.address);
+
       await v1Pool.changeStakeWeight(this.signers.alice.address, 2, 0);
 
       await pool.setNow256(INIT_TIME + 1010);
@@ -430,6 +433,12 @@ export function migrationTests(usingPool: string): () => void {
       const { pendingYield: alicePendingYield1 } = await pool.pendingRewards(this.signers.alice.address);
       const { pendingYield: bobPendingYield1 } = await pool.pendingRewards(this.signers.bob.address);
 
+      await pool.connect(this.signers.alice).claimYieldRewards(true);
+      await pool.connect(this.signers.bob).claimYieldRewards(true);
+
+      const aliceSILVBalance1 = await this.silv.balanceOf(this.signers.alice.address);
+      const bobSILVBalance1 = await this.silv.balanceOf(this.signers.bob.address);
+
       expect(
         Number(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards0.toString())).slice(0, 5)),
       ).to.be.closeTo(Number(ethers.utils.formatEther(alicePendingYield0).slice(0, 5)), 0.01);
@@ -444,6 +453,8 @@ export function migrationTests(usingPool: string): () => void {
         Number(ethers.utils.formatEther(alicePendingYield1.mul(2)).slice(0, 5)),
         0.001,
       );
+      expect(aliceSILVBalance1.sub(aliceSILVBalance0)).to.be.equal(alicePendingYield1);
+      expect(bobSILVBalance1.sub(bobSILVBalance0)).to.be.equal(bobPendingYield1);
     });
     it("should accumulate ILV correctly - with v1 stake ids and increasing v1 weight", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
