@@ -4,13 +4,16 @@ pragma solidity 0.8.4;
 library Stake {
     struct Data {
         /// @dev token amount staked
-        uint120 value;
+        uint112 value;
         /// @dev locking period - from
         uint64 lockedFrom;
         /// @dev locking period - until
         uint64 lockedUntil;
         /// @dev indicates if the stake was created as a yield reward
         bool isYield;
+        /// @dev indicates whether stake has been migrated from a previous v1
+        /// stake or not. V1 stake weights are boosted.
+        bool fromV1;
     }
 
     /**

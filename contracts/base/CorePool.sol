@@ -474,8 +474,13 @@ abstract contract CorePool is
         // update user record
         user.flexibleBalance += uint128(_value);
         user.totalWeight += uint248(stakeWeight);
-        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(vaultRewardsPerWeight);
+
+        // gas savings
+        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
+
+        // resets all rewards after migration
+        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
@@ -591,6 +596,8 @@ abstract contract CorePool is
         // emit an event
         emit LogUpdateStakeLock(msg.sender, _stakeId, stakeLockedFrom, _lockedUntil);
     }
+
+    function fillStakeId(uint256 _v1StakeId, uint256 _newLock) external {}
 
     /**
      * @notice Service function to synchronize pool state with current time
@@ -749,18 +756,24 @@ abstract contract CorePool is
 
         // create and save the stake (append it to stakes array)
         Stake.Data memory stake = Stake.Data({
-            value: uint120(_value),
+            value: uint112(_value),
             lockedFrom: uint64(_now256()),
             lockedUntil: lockUntil,
-            isYield: false
+            isYield: false,
+            fromV1: false
         });
         // stake ID is an index of the stake in `stakes` array
         user.stakes.push(stake);
 
         // update user record
         user.totalWeight += uint248(stakeWeight);
-        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(vaultRewardsPerWeight);
+
+        // gas savings
+        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
+
+        // resets all rewards after migration
+        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
@@ -851,15 +864,20 @@ abstract contract CorePool is
             // deletes stake struct, no need to save new weight because it stays 0
             delete user.stakes[_stakeId];
         } else {
-            stake.value -= uint120(_value);
+            stake.value -= uint112(_value);
             // saves new weight to memory
             newWeight = stake.weight();
         }
 
         // update user record
         user.totalWeight = uint248(user.totalWeight - previousWeight + newWeight);
-        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(vaultRewardsPerWeight);
+
+        // gas savings
+        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
+
+        // resets all rewards after migration
+        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
 
         // update global variable
         globalWeight = globalWeight - previousWeight + newWeight;
@@ -924,7 +942,7 @@ abstract contract CorePool is
                 // deletes stake struct, no need to save new weight because it stays 0
                 delete user.stakes[_stakeId];
             } else {
-                stake.value -= uint120(_value);
+                stake.value -= uint112(_value);
                 // saves new weight to memory
                 newWeight = stake.weight();
             }
@@ -934,8 +952,13 @@ abstract contract CorePool is
         }
 
         user.totalWeight -= uint248(weightToRemove);
-        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(vaultRewardsPerWeight);
+
+        // gas savings
+        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
+
+        // resets all rewards after migration
+        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
 
         // update global variable
         globalWeight -= weightToRemove;
@@ -1078,10 +1101,11 @@ abstract contract CorePool is
             // if the pool is ILV Pool - create new ILV stake
             // and save it - push it into stakes array
             Stake.Data memory newStake = Stake.Data({
-                value: uint120(pendingYieldToClaim),
+                value: uint112(pendingYieldToClaim),
                 lockedFrom: uint64(_now256()),
                 lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
-                isYield: true
+                isYield: true,
+                fromV1: false
             });
 
             user.stakes.push(newStake);
@@ -1097,9 +1121,12 @@ abstract contract CorePool is
             IILVPool(ilvPool).stakeAsPool(_staker, pendingYieldToClaim);
         }
 
+        // gas savings
+        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
+
         // subYieldRewards and subVaultRewards needs to be updated on every `_processRewards` call
-        user.subYieldRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = uint256((user.totalWeight + v1WeightToAdd)).weightToReward(vaultRewardsPerWeight);
+        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
 
         // emit an event
         emit LogClaimYieldRewards(_staker, _useSILV, pendingYieldToClaim);

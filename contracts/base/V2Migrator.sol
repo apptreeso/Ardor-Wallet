@@ -8,6 +8,7 @@ import { CorePool } from "./CorePool.sol";
 
 abstract contract V2Migrator is CorePool {
     using Errors for bytes4;
+    using Stake for uint256;
 
     /// @dev stores maximum timestamp of a v1 stake accepted in v2
     uint256 public v1StakeMaxPeriod;
@@ -66,6 +67,8 @@ abstract contract V2Migrator is CorePool {
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = V2Migrator(this).migrateLockedStake.selector;
 
+        uint256 totalV1WeightAdded;
+
         for (uint256 i = 0; i < _stakeIds.length; i++) {
             (, uint256 _weight, uint64 lockedFrom, , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
                 msg.sender,
@@ -76,10 +79,19 @@ abstract contract V2Migrator is CorePool {
             fnSelector.verifyState(v1StakesMigrated[msg.sender][_stakeIds[i]] == 0, i * 3 + 2);
 
             v1StakesMigrated[msg.sender][_stakeIds[i]] = _weight;
+            totalV1WeightAdded += _weight;
             user.v1IdsLength++;
             user.v1StakesIds[i] = _stakeIds[i];
         }
 
+        // gas savings
+        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
+
+        // resets all rewards after migration
+        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
+
+        // emit an event
         emit LogMigrateLockedStake(msg.sender, _stakeIds);
     }
 }

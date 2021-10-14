@@ -77,10 +77,11 @@ contract ILVPool is V2Migrator {
         }
         uint256 stakeWeight = _value * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
         Stake.Data memory newStake = Stake.Data({
-            value: uint120(_value),
+            value: uint112(_value),
             lockedFrom: uint64(_now256()),
             lockedUntil: uint64(_now256() + 365 days),
-            isYield: true
+            isYield: true,
+            fromV1: false
         });
 
         user.totalWeight += uint248(stakeWeight);
