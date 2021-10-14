@@ -38,6 +38,7 @@ contract CorePoolV1Mock is ICorePoolV1 {
         uint256 _stakeId,
         uint256 _newWeight
     ) external {
+        usersLockingWeight = usersLockingWeight - users[_user][_stakeId].weight + _newWeight;
         users[_user][_stakeId].weight = _newWeight;
     }
 
