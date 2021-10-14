@@ -313,13 +313,15 @@ contract Vault is Ownable {
         uint256 _ilvOut,
         uint256 _deadline
     ) private {
+        // we're using selector to simplify input and state validation
+        // since function is not public we pre-calculate the selector
+        bytes4 fnSelector = 0x45b603e4;
         // verify the inputs
-        require(_ilvOut > 0, "zero input (ilvOut)");
-        require(_deadline >= block.timestamp, "deadline expired");
+        fnSelector.verifyNonZeroInput(_ilvOut, 1);
+        fnSelector.verifyInput(_deadline >= block.timestamp, 2);
 
         // checks if there's enough balance
-
-        require(address(this).balance > _ethIn, "zero ETH balance");
+        fnSelector.verifyInput(address(this).balance > _ethIn, 0);
 
         // create and initialize path array to be used in Uniswap
         // first element of the path determines an input token (what we send to Uniswap),

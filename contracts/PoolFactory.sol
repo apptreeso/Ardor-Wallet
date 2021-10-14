@@ -198,7 +198,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
 
     function updateILVPerSecond() external {
         // checks if ratio can be updated i.e. if seconds/update have passed
-        require(shouldUpdateRatio(), "too frequent");
+        PoolFactory(this).updateILVPerSecond.selector.verifyState(shouldUpdateRatio(), 0);
 
         // decreases ILV/second reward by 3%
         ilvPerSecond = (ilvPerSecond * 97) / 100;
@@ -216,7 +216,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         bool _useSILV
     ) external {
         // verify that sender is a pool registered withing the factory
-        require(poolExists[msg.sender], "access denied");
+        PoolFactory(this).mintYieldTo.selector.verifyAccess(poolExists[msg.sender]);
 
         if (!_useSILV) {
             IERC20Mintable(ilv).mint(_to, _value);
@@ -227,7 +227,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
 
     function changePoolWeight(address pool, uint32 weight) external {
         // verify function is executed either by factory owner or by the pool itself
-        require(msg.sender == owner() || poolExists[msg.sender]);
+        PoolFactory(this).changePoolWeight.selector.verifyAccess(msg.sender == owner() || poolExists[msg.sender]);
 
         // recalculate total weight
         totalWeight = totalWeight + weight - ICorePool(pool).weight();
@@ -240,7 +240,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     }
 
     function setEndTime(uint32 _endTime) external onlyOwner {
-        require(_endTime > lastRatioUpdate, "invalid _endTime");
+        PoolFactory(this).setEndTime.selector.verifyInput(_endTime > lastRatioUpdate, 0);
         endTime = _endTime;
 
         emit LogSetEndTime(msg.sender, _endTime);

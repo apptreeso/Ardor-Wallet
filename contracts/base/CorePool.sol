@@ -1227,5 +1227,12 @@ abstract contract CorePool is
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address) internal override onlyFactoryController {}
+    function _authorizeUpgrade(address) internal override {
+        // we're using selector to simplify input and state validation
+        // since function is not public we pre-calculate the selector
+        bytes4 fnSelector = 0x5ec29272;
+
+        // verify is accessed only by the factory owner
+        fnSelector.verifyAccess(msg.sender == factory.owner());
+    }
 }
