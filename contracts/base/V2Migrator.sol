@@ -58,6 +58,10 @@ abstract contract V2Migrator is CorePool {
 
         // gas savings
         uint256 _v1StakeMaxPeriod = v1StakeMaxPeriod;
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+        // update user state
+        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
 
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = V2Migrator(this).migrateLockedStake.selector;
