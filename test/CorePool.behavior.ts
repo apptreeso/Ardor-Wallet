@@ -377,7 +377,7 @@ export function migrationTests(usingPool: string): () => void {
         ethers.utils.formatEther(pendingYield).slice(0, 5),
       );
     });
-    it("should accumulate ILV correctly - with v1 stake ids and changing v1 weight", async function () {
+    it("should accumulate ILV correctly - with v1 stake ids and decreasing v1 weight", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
       const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
@@ -444,6 +444,85 @@ export function migrationTests(usingPool: string): () => void {
         Number(ethers.utils.formatEther(alicePendingYield1.mul(2)).slice(0, 5)),
         0.001,
       );
+    });
+    it("should accumulate ILV correctly - with v1 stake ids and increasing v1 weight", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+
+      await pool.connect(this.signers.alice).migrateLockedStake([0, 2]);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+      await pool.connect(this.signers.bob).stakeAndLock(toWei(600), ONE_YEAR * 2);
+
+      await pool.setNow256(INIT_TIME + 10);
+      await this.factory.setNow256(INIT_TIME + 10);
+
+      const totalWeight = await this.factory.totalWeight();
+      const poolWeight = await pool.weight();
+      const aliceStakeWeight = toWei(600).mul(2e6);
+      const bobStakeWeight = toWei(600).mul(2e6);
+      const totalV1UsersWeight = await v1Pool.usersLockingWeight();
+      const totalV2UsersWeight = await pool.globalWeight();
+
+      const expectedRewards0 =
+        (10 *
+          Number(ILV_PER_SECOND) *
+          (poolWeight / totalWeight) *
+          (Number(aliceStakeWeight.add(bobStakeWeight)) / Number(totalV1UsersWeight.add(totalV2UsersWeight)))) /
+        2;
+
+      const { pendingYield: alicePendingYield0 } = await pool.pendingRewards(this.signers.alice.address);
+      const { pendingYield: bobPendingYield0 } = await pool.pendingRewards(this.signers.bob.address);
+
+      await pool.connect(this.signers.alice).claimYieldRewards(true);
+      await pool.connect(this.signers.bob).claimYieldRewards(true);
+
+      const aliceSILVBalance0 = await this.silv.balanceOf(this.signers.alice.address);
+      const bobSILVBalance0 = await this.silv.balanceOf(this.signers.bob.address);
+
+      await pool.setNow256(INIT_TIME + 1010);
+      await this.factory.setNow256(INIT_TIME + 1010);
+
+      await v1Pool.changeStakeWeight(this.signers.alice.address, 2, toWei(900).mul(2e6));
+
+      const newAliceStakeWeight = toWei(600).mul(2e6);
+      const newBobStakeWeight = toWei(600).mul(2e6);
+      const newTotalV1UsersWeight = await v1Pool.usersLockingWeight();
+      const newTotalV2UsersWeight = await pool.globalWeight();
+      const totalExpectedRewards1 =
+        1000 *
+        Number(ILV_PER_SECOND) *
+        (poolWeight / totalWeight) *
+        (Number(newAliceStakeWeight.add(newBobStakeWeight)) / Number(newTotalV1UsersWeight.add(newTotalV2UsersWeight)));
+
+      const { pendingYield: alicePendingYield1 } = await pool.pendingRewards(this.signers.alice.address);
+      const { pendingYield: bobPendingYield1 } = await pool.pendingRewards(this.signers.bob.address);
+
+      await pool.connect(this.signers.alice).claimYieldRewards(true);
+      await pool.connect(this.signers.bob).claimYieldRewards(true);
+
+      const aliceSILVBalance1 = await this.silv.balanceOf(this.signers.alice.address);
+      const bobSILVBalance1 = await this.silv.balanceOf(this.signers.bob.address);
+
+      expect(
+        Number(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards0.toString())).slice(0, 5)),
+      ).to.be.closeTo(Number(ethers.utils.formatEther(alicePendingYield0).slice(0, 5)), 0.01);
+      expect(
+        Number(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards0.toString())).slice(0, 5)),
+      ).to.be.closeTo(Number(ethers.utils.formatEther(bobPendingYield0).slice(0, 5)), 0.01);
+      expect(Number(ethers.utils.formatEther(alicePendingYield1.add(bobPendingYield1)).slice(0, 5))).to.be.closeTo(
+        Number(ethers.utils.formatEther(ethers.BigNumber.from(totalExpectedRewards1.toString())).slice(0, 5)),
+        0.001,
+      );
+      expect(Number(ethers.utils.formatEther(alicePendingYield1).slice(0, 5))).to.be.closeTo(
+        Number(ethers.utils.formatEther(bobPendingYield1).slice(0, 5)),
+        0.001,
+      );
+      expect(aliceSILVBalance1.sub(aliceSILVBalance0)).to.be.equal(alicePendingYield1);
+      expect(bobSILVBalance1.sub(bobSILVBalance0)).to.be.equal(bobPendingYield1);
     });
   };
 }

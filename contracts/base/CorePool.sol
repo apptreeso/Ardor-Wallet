@@ -310,7 +310,7 @@ abstract contract CorePool is
                 uint256 storedWeight = v1StakesMigrated[_staker][stakeId];
 
                 previousTotalV1Weight += storedWeight;
-                totalV1Weight += _weight;
+                totalV1Weight += _weight <= storedWeight ? _weight : storedWeight;
             }
         }
 
@@ -1186,7 +1186,7 @@ abstract contract CorePool is
                 }
 
                 previousTotalV1Weight += storedWeight;
-                totalV1Weight += _weight;
+                totalV1Weight += _weight <= storedWeight ? _weight : storedWeight;
             }
         }
 
