@@ -4,6 +4,7 @@ pragma solidity 0.8.4;
 import { ICorePool } from "./interfaces/ICorePool.sol";
 import { ICorePoolV1 } from "./interfaces/ICorePoolV1.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Errors } from "./libraries/Errors.sol";
 
 import { IUniswapV2Router02 } from "./interfaces/IUniswapV2Router02.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
@@ -17,6 +18,9 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
  *
  */
 contract Vault is Ownable {
+    // err lib used on fn selectors
+    using Errors for bytes4;
+
     /**
      * @dev Auxiliary data structure to store ILV, LP and Locked pools,
      *      linked to this smart contract and receiving vault rewards
@@ -96,9 +100,12 @@ contract Vault is Ownable {
      * @param _ilv an address of the IlluviumERC20 token to use
      */
     constructor(address _sushiRouter, address _ilv) {
+        // we're using selector to simplify input and state validation
+        // using the zero-selector for constructor
+        bytes4 fnSelector = 0x00;
         // verify the inputs are set
-        require(_sushiRouter != address(0), "sushiRouter address is not set");
-        require(_ilv != address(0), "ILV address is not set");
+        fnSelector.verifyNonZeroInput(uint160(_sushiRouter), 0);
+        fnSelector.verifyNonZeroInput(uint160(_ilv), 1);
 
         // assign the values
         sushiRouter = IUniswapV2Router02(_sushiRouter);
@@ -122,13 +129,16 @@ contract Vault is Ownable {
         ICorePool _lockedPoolV1,
         ICorePool _lockedPoolV2
     ) external onlyOwner {
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = Vault(this).setCorePools.selector;
+
         // verify all the pools are set/supplied
-        require(address(_ilvPoolV1) != address(0), "ILV pool is not set");
-        require(address(_pairPoolV1) != address(0), "ILV pool is not set");
-        require(address(_ilvPool) != address(0), "ILV pool is not set");
-        require(address(_pairPool) != address(0), "LP pool is not set");
-        require(address(_lockedPoolV1) != address(0), "locked pool v1 is not set");
-        require(address(_lockedPoolV2) != address(0), "locked pool v2 is not set");
+        fnSelector.verifyNonZeroInput(address(_ilvPoolV1), 0);
+        fnSelector.verifyNonZeroInput(address(_pairPoolV1), 1);
+        fnSelector.verifyNonZeroInput(address(_ilvPool), 2);
+        fnSelector.verifyNonZeroInput(address(_pairPool), 3);
+        fnSelector.verifyNonZeroInput(address(_lockedPoolV1), 4);
+        fnSelector.verifyNonZeroInput(address(_lockedPoolV2), 5);
 
         // set up
         pools.ilvPoolV1 = _ilvPoolV1;
@@ -303,13 +313,15 @@ contract Vault is Ownable {
         uint256 _ilvOut,
         uint256 _deadline
     ) private {
+        // we're using selector to simplify input and state validation
+        // since function is not public we pre-calculate the selector
+        bytes4 fnSelector = 0x45b603e4;
         // verify the inputs
-        require(_ilvOut > 0, "zero input (ilvOut)");
-        require(_deadline >= block.timestamp, "deadline expired");
+        fnSelector.verifyNonZeroInput(_ilvOut, 1);
+        fnSelector.verifyInput(_deadline >= block.timestamp, 2);
 
         // checks if there's enough balance
-
-        require(address(this).balance > _ethIn, "zero ETH balance");
+        fnSelector.verifyInput(address(this).balance > _ethIn, 0);
 
         // create and initialize path array to be used in Uniswap
         // first element of the path determines an input token (what we send to Uniswap),

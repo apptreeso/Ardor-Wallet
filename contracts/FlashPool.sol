@@ -6,6 +6,7 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { Timestamp } from "./base/Timestamp.sol";
 import { FactoryControlled } from "./base/FactoryControlled.sol";
+import { Errors } from "./libraries/Errors.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IILVPool } from "./interfaces/IILVPool.sol";
@@ -14,6 +15,8 @@ import { IFactory } from "./interfaces/IFactory.sol";
 import "hardhat/console.sol";
 
 contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgradeable, PausableUpgradeable, Timestamp {
+    // err lib used on fn selectors
+    using Errors for bytes4;
     using SafeERC20 for IERC20;
 
     struct User {
@@ -136,9 +139,13 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         uint64 _initTime,
         uint32 _weight
     ) external initializer {
-        require(_poolToken != address(0), "pool token address not set");
-        require(_initTime > 0, "init time not set");
-        require(_weight > 0, "pool weight not set");
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = FlashPool(this).initialize.selector;
+
+        // verify the inputs
+        fnSelector.verifyNonZeroInput(_poolToken, 0);
+        fnSelector.verifyNonZeroInput(_initTime, 1);
+        fnSelector.verifyNonZeroInput(_weight, 2);
 
         __FactoryControlled_init(_factory);
         __ReentrancyGuard_init();
@@ -207,7 +214,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      */
     function stake(uint256 _value) external updatePool whenNotPaused nonReentrant {
         // validates input
-        require(_value > 0, "zero value");
+        FlashPool(this).stake.selector.verifyNonZeroInput(_value, 0);
 
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
@@ -250,9 +257,17 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _to new user address
      */
     function migrateUser(address _to) external updatePool {
-        require(_to != address(0), "invalid _to");
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = FlashPool(this).migrateUser.selector;
+
+        // input validation
+        fnSelector.verifyNonZeroInput(_to, 0);
+
+        // link to a user in storage, we will be using it a lot
         User storage newUser = users[_to];
-        require(newUser.balance == 0 && newUser.pendingYield == 0, "invalid user, already exists");
+
+        // verify current state (invalid user, already exists)
+        fnSelector.verifyState(newUser.balance == 0 && newUser.pendingYield == 0, 1);
 
         User storage previousUser = users[msg.sender];
         uint128 balance = previousUser.balance;
@@ -304,8 +319,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
     function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external updatePool whenNotPaused {
-        bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
-        require(poolIsValid, "invalid caller");
+        // verify function is accessed by the pool
+        FlashPool(this).claimYieldRewardsFromRouter.selector.verifyAccess(
+            address(IFactory(factory).pools(ilv)) == msg.sender
+        );
 
         _claimYieldRewards(_staker, _useSILV);
     }
@@ -320,7 +337,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      */
     function setWeight(uint32 _weight) external {
         // verify function is executed by the factory
-        require(msg.sender == address(factory), "access denied");
+        FlashPool(this).setWeight.selector.verifyAccess(msg.sender == address(factory));
 
         // set the new weight value
         weight = _weight;
@@ -346,12 +363,14 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     }
 
     function unstake(uint256 _value) external updatePool nonReentrant {
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = FlashPool(this).unstake.selector;
         // verify a value is set
-        require(_value > 0, "zero value");
+        fnSelector.verifyNonZeroInput(_value, 0);
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
         // verify available balance
-        require(user.balance >= _value, "value exceeds user balance");
+        fnSelector.verifyInput(user.balance >= _value, 0);
         // and process current pending rewards if any
         _processRewards(msg.sender);
 
@@ -504,5 +523,12 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address) internal override onlyFactoryController {}
+    function _authorizeUpgrade(address) internal override {
+        // we're using selector to simplify input and state validation
+        // since function is not public we pre-calculate the selector
+        bytes4 fnSelector = 0x5ec29272;
+
+        // verify is accessed only by the factory owner
+        fnSelector.verifyAccess(msg.sender == factory.owner());
+    }
 }

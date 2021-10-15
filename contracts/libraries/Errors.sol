@@ -22,6 +22,7 @@ library Errors {
      * @param paramIndex function parameter index which caused an error thrown
      */
     error ZeroInput(bytes4 fnSelector, uint8 paramIndex);
+    // TODO: consider adding event ZeroAddress
 
     /**
      * @notice Thrown on invalid input at index specified in a function specified
@@ -60,6 +61,23 @@ library Errors {
         uint8 paramIndex
     ) internal pure {
         if (value == 0) {
+            revert ZeroInput(fnSelector, paramIndex);
+        }
+    }
+
+    /**
+     * @notice Verifies an input address is set (non-zero)
+     *
+     * @param fnSelector function selector, defines a function which called the verification
+     * @param value an address to check if it's set (non-zero)
+     * @param paramIndex function parameter index which is verified
+     */
+    function verifyNonZeroInput(
+        bytes4 fnSelector,
+        address value,
+        uint8 paramIndex
+    ) internal pure {
+        if (value == address(0)) {
             revert ZeroInput(fnSelector, paramIndex);
         }
     }
