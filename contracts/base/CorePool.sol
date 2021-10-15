@@ -611,19 +611,14 @@ abstract contract CorePool is
     ) external {
         _requireNotPaused();
         User storage user = users[msg.sender];
-
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).fillV1StakeId.selector;
-
         // checks if v1StakeId has already been filled
         fnSelector.verifyState(v1StakesWeightsOriginal[msg.sender][_v1StakeId] > 0, 0);
-
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-
         // and process current pending rewards if any
         _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
-
         // queries v1 data
         (uint256 _tokenAmount, , uint64 _lockedFrom, uint64 _lockedUntil, bool _isYield) = ICorePoolV1(corePoolV1)
             .getDeposit(msg.sender, _v1StakeId);
@@ -637,7 +632,6 @@ abstract contract CorePool is
             v1StakesWeightsOriginal[msg.sender][_v1StakeId] /
                 (((_lockedUntil - _lockedFrom) * Stake.WEIGHT_MULTIPLIER) / 365 days + Stake.WEIGHT_MULTIPLIER)
         );
-
         // makes sure stake coming from v1 isn't yield, even though it's already
         // verified before migration
         assert(!_isYield);
