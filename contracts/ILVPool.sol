@@ -27,16 +27,6 @@ contract ILVPool is V2Migrator {
      * @dev logs mintV1Yield()
      *
      * @param from user address
-     * @param stakeId v1 yield id
-     * @param value number of ILV tokens minted
-     *
-     */
-    event LogV1YieldMinted(address indexed from, uint256 stakeId, uint256 value);
-
-    /**
-     * @dev logs mintV1Yield()
-     *
-     * @param from user address
      * @param stakeIds array of v1 yield ids
      * @param value number of ILV tokens minted
      *
@@ -201,32 +191,6 @@ contract ILVPool is V2Migrator {
 
         // emits an event
         emit LogMigrateWeights(msg.sender, _users.length, totalWeight);
-    }
-
-    /**
-     * @dev reads v1 core pool yield data (using `_stakeId` and `msg.sender`),
-     *      validates, mints ILV according to v1 data and stores a receipt hash
-     *
-     * @param _stakeId v1 yield id
-     */
-    function mintV1Yield(uint256 _stakeId) external {
-        (uint256 tokenAmount, uint256 weight, , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
-            msg.sender,
-            _stakeId
-        );
-
-        // we're using selector to simplify input and state validation
-        bytes4 fnSelector = ILVPool(this).mintV1Yield.selector;
-
-        fnSelector.verifyState(isYield, 0);
-        fnSelector.verifyState(_now256() > lockedUntil, 1);
-        fnSelector.verifyState(!v1YieldMinted[msg.sender][_stakeId], 2);
-
-        users[msg.sender].totalWeight -= uint248(weight);
-        v1YieldMinted[msg.sender][_stakeId] = true;
-        factory.mintYieldTo(msg.sender, tokenAmount, false);
-
-        emit LogV1YieldMinted(msg.sender, _stakeId, tokenAmount);
     }
 
     /**

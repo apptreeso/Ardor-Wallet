@@ -555,22 +555,22 @@ export function mintV1Yield(): () => void {
       const ilvBalance0 = await this.ilv.balanceOf(this.signers.alice.address);
 
       await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
-      await this.ilvPool.connect(this.signers.alice).mintV1Yield(1);
+      await this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([1]);
 
       const ilvBalance1 = await this.ilv.balanceOf(this.signers.alice.address);
       expect(ilvBalance1.sub(ilvBalance0)).to.be.equal(toWei(500));
     });
     it("should revert if stake !isYield", async function () {
       await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
-      await expect(this.ilvPool.connect(this.signers.alice).mintV1Yield(0)).reverted;
+      await expect(this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([0])).reverted;
     });
     it("should revert if lockedUntil > _now256", async function () {
-      await expect(this.ilvPool.connect(this.signers.alice).mintV1Yield(1)).reverted;
+      await expect(this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([1])).reverted;
     });
     it("should revert if yield is already minted", async function () {
       await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
-      await this.ilvPool.connect(this.signers.alice).mintV1Yield(1);
-      await expect(this.ilvPool.connect(this.signers.alice).mintV1Yield(1)).reverted;
+      await this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([1]);
+      await expect(this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([1])).reverted;
     });
     it("should mint multiple v1 yield stake", async function () {
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);

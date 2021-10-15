@@ -55,8 +55,6 @@ abstract contract V2Migrator is CorePool {
     function migrateLockedStake(uint256[] calldata _stakeIds) external {
         User storage user = users[msg.sender];
 
-        // gas savings
-        uint256 _v1StakeMaxPeriod = v1StakeMaxPeriod;
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
         // update user state
@@ -72,7 +70,7 @@ abstract contract V2Migrator is CorePool {
                 msg.sender,
                 _stakeIds[i]
             );
-            fnSelector.verifyState(lockedFrom <= _v1StakeMaxPeriod, i * 3);
+            fnSelector.verifyState(lockedFrom <= v1StakeMaxPeriod, i * 3);
             fnSelector.verifyState(lockedFrom > 0 && !isYield, i * 3 + 1);
             fnSelector.verifyState(v1StakesWeights[msg.sender][_stakeIds[i]] == 0, i * 3 + 2);
 

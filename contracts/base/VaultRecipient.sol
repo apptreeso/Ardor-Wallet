@@ -2,8 +2,11 @@
 pragma solidity 0.8.4;
 
 import { FactoryControlled } from "./FactoryControlled.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 abstract contract VaultRecipient is FactoryControlled {
+    using Errors for bytes4;
+
     /// @dev Link to deployed IlluviumVault instance
     address public vault;
 
@@ -27,11 +30,14 @@ abstract contract VaultRecipient is FactoryControlled {
      * @param _vault an address of deployed IlluviumVault instance
      */
     function setVault(address _vault) external {
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = VaultRecipient(this).setVault.selector;
+
         // verify function is executed by the factory owner
-        require(factory.owner() == msg.sender, "access denied");
+        fnSelector.verifyState(factory.owner() == msg.sender, 0);
 
         // verify input is set
-        require(_vault != address(0), "zero input");
+        fnSelector.verifyInput(_vault != address(0), 1);
 
         // saves current vault to memory
         address previousVault = vault;
