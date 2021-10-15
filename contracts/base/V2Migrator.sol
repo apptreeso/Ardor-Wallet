@@ -7,7 +7,6 @@ import { Stake } from "../libraries/Stake.sol";
 import { CorePool } from "./CorePool.sol";
 
 abstract contract V2Migrator is CorePool {
-    // err lib used on fn selectors
     using Errors for bytes4;
 
     /// @dev stores maximum timestamp of a v1 stake accepted in v2
