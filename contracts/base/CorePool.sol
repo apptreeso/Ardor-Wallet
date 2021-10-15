@@ -614,10 +614,9 @@ abstract contract CorePool is
 
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).fillV1StakeId.selector;
-        uint256 v1StakeWeight = v1StakesWeightsOriginal[msg.sender][_v1StakeId];
 
         // checks if v1StakeId has already been filled
-        fnSelector.verifyState(v1StakeWeight > 0, 0);
+        fnSelector.verifyState(v1StakesWeightsOriginal[msg.sender][_v1StakeId] > 0, 0);
 
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
@@ -635,7 +634,7 @@ abstract contract CorePool is
         // retrieves original stake value by using v1 _lockedUntil and _lockedFrom, and comparing
         // to the weight originally stored in this contract during migration
         uint112 v1StakeValue = uint112(
-            v1StakeWeight /
+            v1StakesWeightsOriginal[msg.sender][_v1StakeId] /
                 (((_lockedUntil - _lockedFrom) * Stake.WEIGHT_MULTIPLIER) / 365 days + Stake.WEIGHT_MULTIPLIER)
         );
 
@@ -644,7 +643,9 @@ abstract contract CorePool is
         assert(!_isYield);
 
         // if user opts to lock v1 stake for a year, we give max v1 weight multiplier (2e6)
-        uint256 weightToUse = !_boostWeight ? v1StakeWeight : v1StakeValue * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
+        uint256 weightToUse = !_boostWeight
+            ? v1StakesWeightsOriginal[msg.sender][_v1StakeId]
+            : v1StakeValue * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
 
         // delete v1StakeId and original v1 stake weight
         delete user.v1StakesIds[_stakeIdPosition];
