@@ -10,6 +10,9 @@ import { ICorePool } from "./interfaces/ICorePool.sol";
 import { ICorePoolV1 } from "./interfaces/ICorePoolV1.sol";
 import { SushiLPPool } from "./SushiLPPool.sol";
 
+/**
+ * @dev ILV Pool contract to be deployed.
+ */
 contract ILVPool is V2Migrator {
     using Errors for bytes4;
     using Stake for uint256;
