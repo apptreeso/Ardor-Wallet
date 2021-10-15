@@ -6,6 +6,17 @@ import { Errors } from "../libraries/Errors.sol";
 import { Stake } from "../libraries/Stake.sol";
 import { CorePool } from "./CorePool.sol";
 
+/**
+ * @title V2Migrator
+ *
+ * @dev V2Migrator inherits all CorePool base contract functionaltiy, and adds
+ *      v1 to v2 migration related functions. This is a core smart contract of
+ *      Sushi LP and ILV pools, and manages users locked and yield weights coming
+ *      from v1.
+ * @dev Parameters need to be reviewed carefully before deployment for the migration process.
+ * @dev Users will migrate their locked stakes, which are stored in the contract,
+ *      and v1 total yield weights by data stored in a merkle tree using merkle proofs.
+ */
 abstract contract V2Migrator is CorePool {
     using Errors for bytes4;
     using Stake for uint256;
@@ -14,7 +25,7 @@ abstract contract V2Migrator is CorePool {
     uint256 public v1StakeMaxPeriod;
 
     /**
-     * @dev logs migrateLockedStake()
+     * @dev logs `migrateLockedStake()`
      *
      * @param from user address
      * @param stakeIds array of locked stakes ids
@@ -26,6 +37,8 @@ abstract contract V2Migrator is CorePool {
      * @dev V2Migrator initializer function
      *
      * @param _corePoolV1 v1 core pool address
+     * @param _v1StakeMaPeriod max timestamp that we accept _lockedFrom values
+     *                         in v1 stakes.
      *
      */
     function __V2Migrator_init(
@@ -45,10 +58,10 @@ abstract contract V2Migrator is CorePool {
     }
 
     /**
-     * @dev reads v1 core pool locked stakes data (by looping through the `_stakeIds` array),
-     *      checks if it's a valid v1 stake to migrate and save the id to v2 user struct
+     * @dev Reads v1 core pool locked stakes data (by looping through the `_stakeIds` array),
+     *      checks if it's a valid v1 stake to migrate and save the id to v2 user struct.
      *
-     * @notice only `msg.sender` can migrate v1 stakes to v2
+     * @dev Only `msg.sender` can migrate v1 stakes to v2.
      *
      * @param _stakeIds array of v1 stake ids
      */

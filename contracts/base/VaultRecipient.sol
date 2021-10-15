@@ -7,16 +7,16 @@ import { Errors } from "../libraries/Errors.sol";
 abstract contract VaultRecipient is FactoryControlled {
     using Errors for bytes4;
 
-    /// @dev Link to deployed IlluviumVault instance
+    /// @dev Link to deployed IlluviumVault instance.
     address public vault;
 
-    /// @dev Used to calculate vault rewards
-    /// @dev This value is different from "reward per token" used in locked pool
-    /// @dev Note: stakes are different in duration and "weight" reflects that
+    /// @dev Used to calculate vault rewards.
+    /// @dev This value is different from "reward per token" used in locked pool.
+    /// @dev Note: stakes are different in duration and "weight" reflects that,
     uint256 public vaultRewardsPerWeight;
 
     /**
-     * @dev Fired in setVault()
+     * @dev Fired in `setVault()`.
      *
      * @param by an address which executed the function, always a factory owner
      * @param previousVault previous vault contract address
@@ -25,7 +25,7 @@ abstract contract VaultRecipient is FactoryControlled {
     event LogSetVault(address indexed by, address previousVault, address newVault);
 
     /**
-     * @dev Executed only by the factory owner to Set the vault
+     * @dev Executed only by the factory owner to Set the vault.
      *
      * @param _vault an address of deployed IlluviumVault instance
      */
@@ -49,6 +49,7 @@ abstract contract VaultRecipient is FactoryControlled {
         emit LogSetVault(msg.sender, previousVault, _vault);
     }
 
+    /// @dev Utility function to check if caller is the Vault contract
     function _requireIsVault() internal view {
         require(msg.sender == vault);
     }
