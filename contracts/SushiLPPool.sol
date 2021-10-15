@@ -19,11 +19,11 @@ contract SushiLPPool is V2Migrator {
     }
 
     /**
-     * @notice this function can be called only by ILV core pool
+     * @notice This function can be called only by ILV core pool.
      *
-     * @dev uses ILV pool as a router by receiving the _staker address and executing
-     *      the internal _claimYieldRewards()
-     * @dev its usage allows claiming multiple pool contracts in one transaction
+     * @dev Uses ILV pool as a router by receiving the _staker address and executing
+     *      the internal `_claimYieldRewards()`.
+     * @dev Its usage allows claiming multiple pool contracts in one transaction.
      *
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
@@ -36,11 +36,11 @@ contract SushiLPPool is V2Migrator {
     }
 
     /**
-     * @notice this function can be called only by ILV core pool
+     * @notice This function can be called only by ILV core pool.
      *
-     * @dev uses ILV pool as a router by receiving the _staker address and executing
-     *      the internal _claimVaultRewards()
-     * @dev its usage allows claiming multiple pool contracts in one transaction
+     * @dev Uses ILV pool as a router by receiving the _staker address and executing
+     *      the internal `_claimVaultRewards()`.
+     * @dev Its usage allows claiming multiple pool contracts in one transaction.
      *
      * @param _staker user address
      */
@@ -51,7 +51,7 @@ contract SushiLPPool is V2Migrator {
         _claimVaultRewards(_staker);
     }
 
-    /// @dev checks if caller is ILVPool
+    /// @dev Checks if caller is ILVPool.
     function _requirePoolIsValid() internal view {
         bool poolIsValid = address(factory.pools(ilv)) == msg.sender;
         require(poolIsValid);

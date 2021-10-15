@@ -2,10 +2,10 @@
 pragma solidity 0.8.4;
 
 import { FactoryControlled } from "./FactoryControlled.sol";
-import { Errors } from "../libraries/Errors.sol";
+import { ErrorHandler } from "../libraries/ErrorHandler.sol";
 
 abstract contract VaultRecipient is FactoryControlled {
-    using Errors for bytes4;
+    using ErrorHandler for bytes4;
 
     /// @dev Link to deployed IlluviumVault instance.
     address public vault;

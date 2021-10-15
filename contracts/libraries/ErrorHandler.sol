@@ -2,21 +2,21 @@
 pragma solidity 0.8.4;
 
 /**
- * @title Errors Library
+ * @title Errors Library.
  *
  * @notice Introduces some very common input and state validation for smart contracts,
- *      such as non-zero input validation, general boolean expression validation, access validation
+ *      such as non-zero input validation, general boolean expression validation, access validation.
  *
- * @notice Throws pre-defined errors instead of string error messages to reduce gas costs
+ * @notice Throws pre-defined errors instead of string error messages to reduce gas costs.
  *
  * @notice Since the library handles only very common errors, concrete smart contracts may
- *      also introduce their own error types and handling
+ *      also introduce their own error types and handling.
  *
  * @author Basil Gorin
  */
-library Errors {
+library ErrorHandler {
     /**
-     * @notice Thrown on zero input at index specified in a function specified
+     * @notice Thrown on zero input at index specified in a function specified.
      *
      * @param fnSelector function selector, defines a function where error was thrown
      * @param paramIndex function parameter index which caused an error thrown
@@ -24,7 +24,7 @@ library Errors {
     error ZeroInput(bytes4 fnSelector, uint8 paramIndex);
 
     /**
-     * @notice Thrown on invalid input at index specified in a function specified
+     * @notice Thrown on invalid input at index specified in a function specified.
      *
      * @param fnSelector function selector, defines a function where error was thrown
      * @param paramIndex function parameter index which caused an error thrown
@@ -32,7 +32,7 @@ library Errors {
     error InvalidInput(bytes4 fnSelector, uint8 paramIndex);
 
     /**
-     * @notice Thrown on invalid state in a function specified
+     * @notice Thrown on invalid state in a function specified.
      *
      * @param fnSelector function selector, defines a function where error was thrown
      * @param errorCode unique error code determining the exact place in code where error was thrown
@@ -40,7 +40,7 @@ library Errors {
     error InvalidState(bytes4 fnSelector, uint256 errorCode);
 
     /**
-     * @notice Thrown on invalid access to a function specified
+     * @notice Thrown on invalid access to a function specified.
      *
      * @param fnSelector function selector, defines a function where error was thrown
      * @param addr an address which access was denied, usually transaction sender
@@ -48,7 +48,7 @@ library Errors {
     error AccessDenied(bytes4 fnSelector, address addr);
 
     /**
-     * @notice Verifies an input is set (non-zero)
+     * @notice Verifies an input is set (non-zero).
      *
      * @param fnSelector function selector, defines a function which called the verification
      * @param value a value to check if it's set (non-zero)
@@ -65,7 +65,7 @@ library Errors {
     }
 
     /**
-     * @notice Verifies an input is correct
+     * @notice Verifies an input is correct.
      *
      * @param fnSelector function selector, defines a function which called the verification
      * @param expr a boolean expression used to verify the input
@@ -82,7 +82,7 @@ library Errors {
     }
 
     /**
-     * @notice Verifies smart contract state is correct
+     * @notice Verifies smart contract state is correct.
      *
      * @param fnSelector function selector, defines a function which called the verification
      * @param expr a boolean expression used to verify the contract state
@@ -99,7 +99,7 @@ library Errors {
     }
 
     /**
-     * @notice Verifies an access to the function
+     * @notice Verifies an access to the function.
      *
      * @param fnSelector function selector, defines a function which called the verification
      * @param expr a boolean expression used to verify the access

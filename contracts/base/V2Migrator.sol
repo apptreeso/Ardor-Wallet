@@ -2,7 +2,7 @@
 pragma solidity 0.8.4;
 
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
-import { Errors } from "../libraries/Errors.sol";
+import { ErrorHandler } from "../libraries/ErrorHandler.sol";
 import { Stake } from "../libraries/Stake.sol";
 import { CorePool } from "./CorePool.sol";
 
@@ -18,7 +18,7 @@ import { CorePool } from "./CorePool.sol";
  *      and v1 total yield weights by data stored in a merkle tree using merkle proofs.
  */
 abstract contract V2Migrator is CorePool {
-    using Errors for bytes4;
+    using ErrorHandler for bytes4;
     using Stake for uint256;
 
     /// @dev stores maximum timestamp of a v1 stake accepted in v2
@@ -37,7 +37,7 @@ abstract contract V2Migrator is CorePool {
      * @dev V2Migrator initializer function
      *
      * @param _corePoolV1 v1 core pool address
-     * @param _v1StakeMaPeriod max timestamp that we accept _lockedFrom values
+     * @param _v1StakeMaxPeriod max timestamp that we accept _lockedFrom values
      *                         in v1 stakes.
      *
      */

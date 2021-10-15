@@ -7,7 +7,7 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { Timestamp } from "./Timestamp.sol";
 import { VaultRecipient } from "./VaultRecipient.sol";
-import { Errors } from "../libraries/Errors.sol";
+import { ErrorHandler } from "../libraries/ErrorHandler.sol";
 import { Stake } from "../libraries/Stake.sol";
 import { IILVPool } from "../interfaces/IILVPool.sol";
 import { IFactory } from "../interfaces/IFactory.sol";
@@ -47,7 +47,7 @@ abstract contract CorePool is
 {
     using SafeERC20 for IERC20;
     using Stake for Stake.Data;
-    using Errors for bytes4;
+    using ErrorHandler for bytes4;
     using Stake for uint256;
 
     /// @dev Data structure representing token holder using a pool.

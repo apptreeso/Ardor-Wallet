@@ -6,20 +6,20 @@ see \_\_V2Migrator_init()
 
 ### `claimYieldRewardsFromRouter(address _staker, bool _useSILV)` (external)
 
-this function can be called only by ILV core pool
+This function can be called only by ILV core pool.
 
-uses ILV pool as a router by receiving the \_staker address and executing
-the internal \_claimYieldRewards()
-its usage allows claiming multiple pool contracts in one transaction
+Uses ILV pool as a router by receiving the \_staker address and executing
+the internal `_claimYieldRewards()`.
+Its usage allows claiming multiple pool contracts in one transaction.
 
 ### `claimVaultRewardsFromRouter(address _staker)` (external)
 
-this function can be called only by ILV core pool
+This function can be called only by ILV core pool.
 
-uses ILV pool as a router by receiving the \_staker address and executing
-the internal \_claimVaultRewards()
-its usage allows claiming multiple pool contracts in one transaction
+Uses ILV pool as a router by receiving the \_staker address and executing
+the internal `_claimVaultRewards()`.
+Its usage allows claiming multiple pool contracts in one transaction.
 
 ### `_requirePoolIsValid()` (internal)
 
-checks if caller is ILVPool
+Checks if caller is ILVPool.

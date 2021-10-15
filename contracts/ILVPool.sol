@@ -3,7 +3,7 @@ pragma solidity 0.8.4;
 
 import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { V2Migrator } from "./base/V2Migrator.sol";
-import { Errors } from "./libraries/Errors.sol";
+import { ErrorHandler } from "./libraries/ErrorHandler.sol";
 import { Stake } from "./libraries/Stake.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
@@ -20,7 +20,7 @@ import { SushiLPPool } from "./SushiLPPool.sol";
  *      and add quality of life features for stakers.
  */
 contract ILVPool is V2Migrator {
-    using Errors for bytes4;
+    using ErrorHandler for bytes4;
     using Stake for uint256;
     using SafeERC20 for IERC20;
 
@@ -43,7 +43,7 @@ contract ILVPool is V2Migrator {
      * @param from staker address
      * @param pools address array of pools to be claimed
      */
-    event LogClaimVaultRewardsMultiple(address indexed from, address[] pool);
+    event LogClaimVaultRewardsMultiple(address indexed from, address[] pools);
 
     // TODO: change to merkle tree migration
     event LogMigrateWeights(address indexed by, uint256 numberOfUsers, uint248 totalWeight);
