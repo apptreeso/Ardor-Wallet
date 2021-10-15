@@ -17,4 +17,9 @@ abstract contract FactoryControlled is Initializable {
 
         factory = IFactory(_factory);
     }
+
+    modifier onlyFactoryController() {
+        require(msg.sender == factory.owner(), "Unauthorized");
+        _;
+    }
 }

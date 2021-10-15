@@ -4,7 +4,6 @@ pragma solidity 0.8.4;
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Timestamp } from "./base/Timestamp.sol";
-import { Errors } from "./libraries/Errors.sol";
 // import { CorePool } from "./CorePool.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 import { IERC20Mintable } from "./interfaces/IERC20Mintable.sol";
@@ -27,9 +26,6 @@ import "hardhat/console.sol";
  *
  */
 contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
-    // err lib used on fn selectors
-    using Errors for bytes4;
-
     /// @dev Auxiliary data structure used only in getPoolData() view function
     struct PoolData {
         // @dev pool token address (like ILV)
@@ -124,16 +120,12 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         uint32 _initTime,
         uint32 _endTime
     ) external initializer {
-        // we're using selector to simplify input and state validation
-        bytes4 fnSelector = PoolFactory(this).initialize.selector;
-
         // verify the inputs are set
-        fnSelector.verifyNonZeroInput(_ilv, 0);
-        fnSelector.verifyNonZeroInput(_silv, 1);
-        fnSelector.verifyNonZeroInput(_ilvPerSecond, 2);
-        fnSelector.verifyNonZeroInput(_secondsPerUpdate, 3);
-        fnSelector.verifyNonZeroInput(_initTime, 4);
-        fnSelector.verifyInput(_endTime > _initTime, 5);
+        require(_silv != address(0), "sILV address not set");
+        require(_ilvPerSecond > 0, "ILV/second not set");
+        require(_secondsPerUpdate > 0, "seconds/update not set");
+        require(_initTime > 0, "init seconds not set");
+        require(_endTime > _initTime, "invalid end time: must be greater than init time");
 
         __Ownable_init();
 
@@ -156,7 +148,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         ICorePool pool = ICorePool(pools[_poolToken]);
 
         // throw if there is no pool registered for the token specified
-        PoolFactory(this).getPoolData.selector.verifyNonZeroInput(pools[_poolToken], 0);
+        require(address(pool) != address(0), "pool not found");
 
         // read pool information from the pool smart contract
         // via the pool interface (ICorePool)
@@ -198,7 +190,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
 
     function updateILVPerSecond() external {
         // checks if ratio can be updated i.e. if seconds/update have passed
-        PoolFactory(this).updateILVPerSecond.selector.verifyState(shouldUpdateRatio(), 0);
+        require(shouldUpdateRatio(), "too frequent");
 
         // decreases ILV/second reward by 3%
         ilvPerSecond = (ilvPerSecond * 97) / 100;
@@ -216,7 +208,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         bool _useSILV
     ) external {
         // verify that sender is a pool registered withing the factory
-        PoolFactory(this).mintYieldTo.selector.verifyAccess(poolExists[msg.sender]);
+        require(poolExists[msg.sender], "access denied");
 
         if (!_useSILV) {
             IERC20Mintable(ilv).mint(_to, _value);
@@ -227,7 +219,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
 
     function changePoolWeight(address pool, uint32 weight) external {
         // verify function is executed either by factory owner or by the pool itself
-        PoolFactory(this).changePoolWeight.selector.verifyAccess(msg.sender == owner() || poolExists[msg.sender]);
+        require(msg.sender == owner() || poolExists[msg.sender]);
 
         // recalculate total weight
         totalWeight = totalWeight + weight - ICorePool(pool).weight();
@@ -240,7 +232,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     }
 
     function setEndTime(uint32 _endTime) external onlyOwner {
-        PoolFactory(this).setEndTime.selector.verifyInput(_endTime > lastRatioUpdate, 0);
+        require(_endTime > lastRatioUpdate, "invalid _endTime");
         endTime = _endTime;
 
         emit LogSetEndTime(msg.sender, _endTime);
