@@ -604,7 +604,11 @@ abstract contract CorePool is
      * @param _stakeIdPosition position of the desired stake id in the user.v1StakesIds
      *                         array
      */
-    function fillV1StakeId(uint256 _v1StakeId, uint256 _stakeIdPosition) external {
+    function fillV1StakeId(
+        uint256 _v1StakeId,
+        uint256 _stakeIdPosition,
+        uint256 _newLock
+    ) external {
         User storage user = users[msg.sender];
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).fillV1StakeId.selector;
@@ -624,6 +628,8 @@ abstract contract CorePool is
             .getDeposit(msg.sender, _v1StakeId);
         // checks if user unstaked almost all of the tokens in order to fill the v1 stake id
         fnSelector.verifyState(_tokenAmount == 1, 1);
+        // verifies if v1 stake is unlocked
+        fnSelector.verifyState(_lockedUntil < _now256(), 2);
         // retrieves original stake value by using v1 _lockedUntil and _lockedFrom, and comparing
         // to the weight originally stored in this contract during migration
         uint112 v1StakeValue = uint112(
