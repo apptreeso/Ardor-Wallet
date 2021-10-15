@@ -607,9 +607,11 @@ abstract contract CorePool is
     function fillV1StakeId(
         uint256 _v1StakeId,
         uint256 _stakeIdPosition,
-        uint256 _newLock
+        bool _boostWeight
     ) external {
+        _requireNotPaused();
         User storage user = users[msg.sender];
+
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).fillV1StakeId.selector;
         uint256 v1StakeWeight = v1StakesWeightsOriginal[msg.sender][_v1StakeId];
@@ -641,13 +643,22 @@ abstract contract CorePool is
         // verified before migration
         assert(!_isYield);
 
+        // if user opts to lock v1 stake for a year, we give max v1 weight multiplier (2e6)
+        uint256 weightToUse = !_boostWeight ? v1StakeWeight : v1StakeValue * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
+
         // delete v1StakeId and original v1 stake weight
         delete user.v1StakesIds[_stakeIdPosition];
         delete v1StakesWeightsOriginal[msg.sender][_v1StakeId];
         // adds v1 stake data to user struct
-        user.totalWeight += uint248(v1StakeWeight);
+        user.totalWeight += uint248(weightToUse);
         user.stakes.push(
-            Stake.Data({ value: v1StakeValue, lockedFrom: 0, lockedUntil: 0, isYield: false, fromV1: true })
+            Stake.Data({
+                value: v1StakeValue,
+                lockedFrom: _boostWeight ? uint64(_now256()) : 0,
+                lockedUntil: _boostWeight ? uint64(_now256() + 365 days) : 0,
+                isYield: false,
+                fromV1: true
+            })
         );
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
