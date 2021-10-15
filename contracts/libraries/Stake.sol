@@ -4,54 +4,56 @@ pragma solidity 0.8.4;
 library Stake {
     struct Data {
         /// @dev token amount staked
-        uint120 value;
+        uint112 value;
         /// @dev locking period - from
         uint64 lockedFrom;
         /// @dev locking period - until
         uint64 lockedUntil;
         /// @dev indicates if the stake was created as a yield reward
         bool isYield;
+        /// @dev indicates whether stake has been migrated from a previous v1
+        /// stake or not. V1 stake weights are boosted.
+        bool fromV1;
     }
 
     /**
      * @dev Stake weight is proportional to stake value and time locked, precisely
-     *      "stake value wei multiplied by (fraction of the year locked plus one)"
+     *      "stake value wei multiplied by (fraction of the year locked plus one)".
      * @dev To avoid significant precision loss due to multiplication by "fraction of the year" [0, 1],
-     *      weight is stored multiplied by 1e6 constant, as an integer
-     * @dev Corner case 1: if time locked is zero, weight is stake value multiplied by 1e6
-     * @dev Corner case 2: if time locked is one year, fraction of the year locked is one, and
-     *      weight is a stake value multiplied by 2 * 1e6
+     *      weight is stored multiplied by 1e6 constant, as an integer.
+     * @dev Corner case 1: if time locked is zero, weight is stake value multiplied by 1e6 + base weight
+     * @dev Corner case 2: if time locked is two years, division of
+            (lockedUntil - lockedFrom) / MAX_STAKE_PERIOD is 1e6, and
+     *      weight is a stake value multiplied by 2 * 1e6.
      */
     uint256 internal constant WEIGHT_MULTIPLIER = 1e6;
 
     /**
-     * @dev Rewards per weight are stored multiplied by 1e12 as uint
+     * @dev Minimum weight value, if result of multiplication using WEIGHT_MULTIPLIER
+     *      is 0 (e.g stake flexible), then BASE_WEIGHT is used.
+     */
+    uint256 internal constant BASE_WEIGHT = 1e6;
+
+    /**
+     * @dev Maximum period that someone can lock a stake for.
+     */
+    uint256 internal constant MAX_STAKE_PERIOD = 730 days;
+
+    /**
+     * @dev Rewards per weight are stored multiplied by 1e12 as uint.
      */
     uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e12;
 
     /**
      * @dev When we know beforehand that staking is done for yield instead of
-     *      executing `weight()` function we use the following constant
+     *      executing `weight()` function we use the following constant.
      */
     uint256 internal constant YIELD_STAKE_WEIGHT_MULTIPLIER = 2 * 1e6;
-
-    /**
-     * @dev Multiplier used as a bonus reward for v1 stakes
-     */
-    uint256 internal constant V1_WEIGHT_BONUS = 2;
-
-    /**
-     * @dev Multiplier used for normalizing V1 weight to V2 weight
-     *
-     * @notice in v2 contracts, in order to achieve same proportions in v1
-     *         we need to multiply v1 weight by 1.5x
-     */
-    uint256 internal constant V1_WEIGHT_MULTIPLIER = 1500;
 
     function weight(Data storage _self) internal view returns (uint256) {
         return
             uint256(
-                (((_self.lockedUntil - _self.lockedFrom) * WEIGHT_MULTIPLIER) / 730 days + WEIGHT_MULTIPLIER) *
+                (((_self.lockedUntil - _self.lockedFrom) * WEIGHT_MULTIPLIER) / MAX_STAKE_PERIOD + BASE_WEIGHT) *
                     _self.value
             );
     }
@@ -71,10 +73,10 @@ library Stake {
 
     /**
      * @dev Converts reward ILV value to stake weight (not to be mixed with the pool weight),
-     *      applying the 10^12 multiplication on the reward
+     *      applying the 10^12 multiplication on the reward.
      *      - OR -
      * @dev Converts reward ILV value to reward/weight if stake weight is supplied as second
-     *      function parameter instead of reward/weight
+     *      function parameter instead of reward/weight.
      *
      * @param _reward yield reward
      * @param _globalWeight total weight in the pool

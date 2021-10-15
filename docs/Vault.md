@@ -19,7 +19,7 @@ Exchanges ETH balance present on the contract into ILV via Uniswap
 
 Logs operation via `EthIlvSwapped` event
 
-### `sendIlvRewards(uint256 _ethIn, uint256 _ilvOut, uint256 _deadline)` (external)
+### `sendILVRewards(uint256 _ethIn, uint256 _ilvOut, uint256 _deadline)` (external)
 
 Converts an entire contract's ETH balance into ILV via Uniswap and
 sends the entire contract's ILV balance to the Illuvium Yield Pool
@@ -30,7 +30,7 @@ Logs operation via `RewardsDistributed` event
 
 Set `ilvOut` or `deadline` to zero to skip `swapEthForIlv` call
 
-### `estimatePairPoolReserve(address _pairPool) → uint256` (public)
+### `estimatePairPoolReserve(address _pairPool) → uint256 ilvAmount` (public)
 
 Auxiliary function used to estimate LP core pool share among 2 other core pools.
 Since LP pool holds ILV in both paired and unpaired forms, this creates some complexity to

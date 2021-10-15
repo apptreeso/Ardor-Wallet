@@ -115,10 +115,12 @@ export function migrateUser(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await pool.connect(this.signers.alice).claimYieldRewards(false);
 
       await pool.setNow256(INIT_TIME + 200);
+      await this.factory.setNow256(INIT_TIME + 200);
 
       const { pendingYield: pendingYield0, pendingRevDis: pendingRevDis0 } = await pool.pendingRewards(
         this.signers.alice.address,
@@ -152,10 +154,12 @@ export function migrateUser(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await pool.connect(this.signers.alice).claimYieldRewards(false);
 
       await pool.setNow256(INIT_TIME + 200);
+      await this.factory.setNow256(INIT_TIME + 200);
 
       await expect(pool.connect(this.signers.alice).migrateUser(AddressZero)).reverted;
     });
@@ -167,10 +171,12 @@ export function migrateUser(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await pool.connect(this.signers.alice).claimYieldRewards(false);
 
       await pool.setNow256(INIT_TIME + 200);
+      await this.factory.setNow256(INIT_TIME + 200);
 
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.bob).stakeAndLock(toWei(100), ONE_YEAR * 2);
@@ -186,10 +192,12 @@ export function migrateUser(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await pool.connect(this.signers.alice).claimYieldRewards(false);
 
       await pool.setNow256(INIT_TIME + 200);
+      await this.factory.setNow256(INIT_TIME + 200);
 
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.bob).stakeAndLock(toWei(100), ONE_YEAR * 2);
@@ -203,10 +211,12 @@ export function migrateUser(usingPool: string): () => void {
       await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await this.ilvPool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await this.ilvPool.connect(this.signers.alice).claimYieldRewards(false);
 
       await this.ilvPool.setNow256(INIT_TIME + 200);
+      await this.factory.setNow256(INIT_TIME + 200);
 
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
@@ -250,6 +260,11 @@ export function setWeight(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await expect(this.factory.connect(this.signers.alice).changePoolWeight(pool.address, 0)).reverted;
+    });
+    it("should revert minting yield from non pool caller", async function () {
+      await expect(
+        this.factory.connect(this.signers.deployer).mintYieldTo(this.signers.deployer.address, toWei(100000), false),
+      ).reverted;
     });
   };
 }
@@ -362,6 +377,164 @@ export function migrationTests(usingPool: string): () => void {
         ethers.utils.formatEther(pendingYield).slice(0, 5),
       );
     });
+    it("should accumulate ILV correctly - with v1 stake ids and decreasing v1 weight", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+
+      await pool.connect(this.signers.alice).migrateLockedStake([0, 2]);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+      await pool.connect(this.signers.bob).stakeAndLock(toWei(600), ONE_YEAR * 2);
+
+      await pool.setNow256(INIT_TIME + 10);
+      await this.factory.setNow256(INIT_TIME + 10);
+
+      const totalWeight = await this.factory.totalWeight();
+      const poolWeight = await pool.weight();
+      const aliceStakeWeight = toWei(600).mul(2e6);
+      const bobStakeWeight = toWei(600).mul(2e6);
+      const totalV1UsersWeight = await v1Pool.usersLockingWeight();
+      const totalV2UsersWeight = await pool.globalWeight();
+
+      const expectedRewards0 =
+        (10 *
+          Number(ILV_PER_SECOND) *
+          (poolWeight / totalWeight) *
+          (Number(aliceStakeWeight.add(bobStakeWeight)) / Number(totalV1UsersWeight.add(totalV2UsersWeight)))) /
+        2;
+
+      const { pendingYield: alicePendingYield0 } = await pool.pendingRewards(this.signers.alice.address);
+      const { pendingYield: bobPendingYield0 } = await pool.pendingRewards(this.signers.bob.address);
+
+      await pool.connect(this.signers.alice).claimYieldRewards(true);
+      await pool.connect(this.signers.bob).claimYieldRewards(true);
+
+      const aliceSILVBalance0 = await this.silv.balanceOf(this.signers.alice.address);
+      const bobSILVBalance0 = await this.silv.balanceOf(this.signers.bob.address);
+
+      await v1Pool.changeStakeWeight(this.signers.alice.address, 2, 0);
+
+      await pool.setNow256(INIT_TIME + 1010);
+      await this.factory.setNow256(INIT_TIME + 1010);
+
+      const newAliceStakeWeight = toWei(300).mul(2e6);
+      const newBobStakeWeight = toWei(600).mul(2e6);
+      const newTotalV1UsersWeight = await v1Pool.usersLockingWeight();
+      const newTotalV2UsersWeight = await pool.globalWeight();
+      const totalExpectedRewards1 =
+        1000 *
+        Number(ILV_PER_SECOND) *
+        (poolWeight / totalWeight) *
+        (Number(newAliceStakeWeight.add(newBobStakeWeight)) / Number(newTotalV1UsersWeight.add(newTotalV2UsersWeight)));
+
+      const { pendingYield: alicePendingYield1 } = await pool.pendingRewards(this.signers.alice.address);
+      const { pendingYield: bobPendingYield1 } = await pool.pendingRewards(this.signers.bob.address);
+
+      await pool.connect(this.signers.alice).claimYieldRewards(true);
+      await pool.connect(this.signers.bob).claimYieldRewards(true);
+
+      const aliceSILVBalance1 = await this.silv.balanceOf(this.signers.alice.address);
+      const bobSILVBalance1 = await this.silv.balanceOf(this.signers.bob.address);
+
+      expect(
+        Number(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards0.toString())).slice(0, 5)),
+      ).to.be.closeTo(Number(ethers.utils.formatEther(alicePendingYield0).slice(0, 5)), 0.01);
+      expect(
+        Number(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards0.toString())).slice(0, 5)),
+      ).to.be.closeTo(Number(ethers.utils.formatEther(bobPendingYield0).slice(0, 5)), 0.01);
+      expect(Number(ethers.utils.formatEther(alicePendingYield1.add(bobPendingYield1)).slice(0, 5))).to.be.closeTo(
+        Number(ethers.utils.formatEther(ethers.BigNumber.from(totalExpectedRewards1.toString())).slice(0, 5)),
+        0.001,
+      );
+      expect(Number(ethers.utils.formatEther(bobPendingYield1).slice(0, 5))).to.be.closeTo(
+        Number(ethers.utils.formatEther(alicePendingYield1.mul(2)).slice(0, 5)),
+        0.001,
+      );
+      expect(aliceSILVBalance1.sub(aliceSILVBalance0)).to.be.equal(alicePendingYield1);
+      expect(bobSILVBalance1.sub(bobSILVBalance0)).to.be.equal(bobPendingYield1);
+    });
+    it("should accumulate ILV correctly - with v1 stake ids and increasing v1 weight", async function () {
+      const token = getToken(this.ilv, this.lp, usingPool);
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+
+      await pool.connect(this.signers.alice).migrateLockedStake([0, 2]);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
+      await pool.connect(this.signers.bob).stakeAndLock(toWei(600), ONE_YEAR * 2);
+
+      await pool.setNow256(INIT_TIME + 10);
+      await this.factory.setNow256(INIT_TIME + 10);
+
+      const totalWeight = await this.factory.totalWeight();
+      const poolWeight = await pool.weight();
+      const aliceStakeWeight = toWei(600).mul(2e6);
+      const bobStakeWeight = toWei(600).mul(2e6);
+      const totalV1UsersWeight = await v1Pool.usersLockingWeight();
+      const totalV2UsersWeight = await pool.globalWeight();
+
+      const expectedRewards0 =
+        (10 *
+          Number(ILV_PER_SECOND) *
+          (poolWeight / totalWeight) *
+          (Number(aliceStakeWeight.add(bobStakeWeight)) / Number(totalV1UsersWeight.add(totalV2UsersWeight)))) /
+        2;
+
+      const { pendingYield: alicePendingYield0 } = await pool.pendingRewards(this.signers.alice.address);
+      const { pendingYield: bobPendingYield0 } = await pool.pendingRewards(this.signers.bob.address);
+
+      await pool.connect(this.signers.alice).claimYieldRewards(true);
+      await pool.connect(this.signers.bob).claimYieldRewards(true);
+
+      const aliceSILVBalance0 = await this.silv.balanceOf(this.signers.alice.address);
+      const bobSILVBalance0 = await this.silv.balanceOf(this.signers.bob.address);
+
+      await pool.setNow256(INIT_TIME + 1010);
+      await this.factory.setNow256(INIT_TIME + 1010);
+
+      await v1Pool.changeStakeWeight(this.signers.alice.address, 2, toWei(900).mul(2e6));
+
+      const newAliceStakeWeight = toWei(600).mul(2e6);
+      const newBobStakeWeight = toWei(600).mul(2e6);
+      const newTotalV1UsersWeight = await v1Pool.usersLockingWeight();
+      const newTotalV2UsersWeight = await pool.globalWeight();
+      const totalExpectedRewards1 =
+        1000 *
+        Number(ILV_PER_SECOND) *
+        (poolWeight / totalWeight) *
+        (Number(newAliceStakeWeight.add(newBobStakeWeight)) / Number(newTotalV1UsersWeight.add(newTotalV2UsersWeight)));
+
+      const { pendingYield: alicePendingYield1 } = await pool.pendingRewards(this.signers.alice.address);
+      const { pendingYield: bobPendingYield1 } = await pool.pendingRewards(this.signers.bob.address);
+
+      await pool.connect(this.signers.alice).claimYieldRewards(true);
+      await pool.connect(this.signers.bob).claimYieldRewards(true);
+
+      const aliceSILVBalance1 = await this.silv.balanceOf(this.signers.alice.address);
+      const bobSILVBalance1 = await this.silv.balanceOf(this.signers.bob.address);
+
+      expect(
+        Number(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards0.toString())).slice(0, 5)),
+      ).to.be.closeTo(Number(ethers.utils.formatEther(alicePendingYield0).slice(0, 5)), 0.01);
+      expect(
+        Number(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards0.toString())).slice(0, 5)),
+      ).to.be.closeTo(Number(ethers.utils.formatEther(bobPendingYield0).slice(0, 5)), 0.01);
+      expect(Number(ethers.utils.formatEther(alicePendingYield1.add(bobPendingYield1)).slice(0, 5))).to.be.closeTo(
+        Number(ethers.utils.formatEther(ethers.BigNumber.from(totalExpectedRewards1.toString())).slice(0, 5)),
+        0.001,
+      );
+      expect(Number(ethers.utils.formatEther(alicePendingYield1).slice(0, 5))).to.be.closeTo(
+        Number(ethers.utils.formatEther(bobPendingYield1).slice(0, 5)),
+        0.001,
+      );
+      expect(aliceSILVBalance1.sub(aliceSILVBalance0)).to.be.equal(alicePendingYield1);
+      expect(bobSILVBalance1.sub(bobSILVBalance0)).to.be.equal(bobPendingYield1);
+    });
   };
 }
 
@@ -382,22 +555,22 @@ export function mintV1Yield(): () => void {
       const ilvBalance0 = await this.ilv.balanceOf(this.signers.alice.address);
 
       await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
-      await this.ilvPool.connect(this.signers.alice).mintV1Yield(1);
+      await this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([1]);
 
       const ilvBalance1 = await this.ilv.balanceOf(this.signers.alice.address);
       expect(ilvBalance1.sub(ilvBalance0)).to.be.equal(toWei(500));
     });
     it("should revert if stake !isYield", async function () {
       await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
-      await expect(this.ilvPool.connect(this.signers.alice).mintV1Yield(0)).reverted;
+      await expect(this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([0])).reverted;
     });
     it("should revert if lockedUntil > _now256", async function () {
-      await expect(this.ilvPool.connect(this.signers.alice).mintV1Yield(1)).reverted;
+      await expect(this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([1])).reverted;
     });
     it("should revert if yield is already minted", async function () {
       await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
-      await this.ilvPool.connect(this.signers.alice).mintV1Yield(1);
-      await expect(this.ilvPool.connect(this.signers.alice).mintV1Yield(1)).reverted;
+      await this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([1]);
+      await expect(this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([1])).reverted;
     });
     it("should mint multiple v1 yield stake", async function () {
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
@@ -1012,6 +1185,7 @@ export function claimYieldRewardsMultiple(): () => void {
 
       await this.ilvPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
+      await this.factory.setNow256(INIT_TIME + 1000);
 
       const { pendingYield: ilvPoolPendingYield } = await this.ilvPool.pendingRewards(this.signers.alice.address);
       const { pendingYield: lpPoolPendingYield } = await this.lpPool.pendingRewards(this.signers.alice.address);
@@ -1035,6 +1209,7 @@ export function claimYieldRewardsMultiple(): () => void {
 
       await this.ilvPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
+      await this.factory.setNow256(INIT_TIME + 1000);
 
       const { pendingYield: ilvPoolPendingYield } = await this.ilvPool.pendingRewards(this.signers.alice.address);
       const { pendingYield: lpPoolPendingYield } = await this.lpPool.pendingRewards(this.signers.alice.address);
@@ -1057,6 +1232,7 @@ export function claimYieldRewardsMultiple(): () => void {
 
       await this.ilvPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
+      await this.factory.setNow256(INIT_TIME + 1000);
 
       const { pendingYield: ilvPoolPendingYield } = await this.ilvPool.pendingRewards(this.signers.alice.address);
       const { pendingYield: lpPoolPendingYield } = await this.lpPool.pendingRewards(this.signers.alice.address);
@@ -1080,6 +1256,7 @@ export function claimYieldRewardsMultiple(): () => void {
 
       await this.ilvPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
+      await this.factory.setNow256(INIT_TIME + 1000);
 
       await expect(
         this.ilvPool
@@ -1096,6 +1273,7 @@ export function claimYieldRewardsMultiple(): () => void {
 
       await this.lpPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
+      await this.factory.setNow256(INIT_TIME + 1000);
 
       await expect(
         this.lpPool.connect(this.signers.alice).claimYieldRewardsFromRouter(this.signers.alice.address, false),
@@ -1195,6 +1373,7 @@ export function pendingYield(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(1);
+      await this.factory.setNow256(1);
 
       const { pendingYield } = await pool.pendingRewards(this.signers.alice.address);
 
@@ -1208,6 +1387,7 @@ export function pendingYield(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(INIT_TIME + 10);
+      await this.factory.setNow256(INIT_TIME + 10);
 
       const totalWeight = await this.factory.totalWeight();
       const poolWeight = await pool.weight();
@@ -1229,6 +1409,7 @@ export function pendingYield(usingPool: string): () => void {
       await pool.connect(this.signers.bob).stakeAndLock(toWei(100), ONE_YEAR * 2);
 
       await pool.setNow256(INIT_TIME + 10);
+      await this.factory.setNow256(INIT_TIME + 10);
 
       const totalWeight = await this.factory.totalWeight();
       const poolWeight = await pool.weight();
@@ -1252,6 +1433,7 @@ export function pendingYield(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeFlexible(toWei(10));
 
       await pool.setNow256(INIT_TIME + 50);
+      await this.factory.setNow256(INIT_TIME + 50);
 
       const { pendingYield: aliceYield0 } = await pool.pendingRewards(this.signers.alice.address);
 
@@ -1267,6 +1449,7 @@ export function pendingYield(usingPool: string): () => void {
       const expectedBobYield0 = 0;
 
       await pool.setNow256(INIT_TIME + 200);
+      await this.factory.setNow256(INIT_TIME + 200);
 
       const { pendingYield: aliceYield1 } = await pool.pendingRewards(this.signers.alice.address);
       const { pendingYield: bobYield1 } = await pool.pendingRewards(this.signers.bob.address);
@@ -1308,6 +1491,7 @@ export function pendingYield(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakeFlexible(toWei(100));
 
       await pool.setNow256(INIT_TIME + 20);
+      await this.factory.setNow256(INIT_TIME + 20);
 
       const expectedYield0 = ILV_PER_SECOND.mul(20).mul(poolWeight).div(totalWeight);
 

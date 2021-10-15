@@ -33,6 +33,15 @@ contract CorePoolV1Mock is ICorePoolV1 {
         }
     }
 
+    function changeStakeWeight(
+        address _user,
+        uint256 _stakeId,
+        uint256 _newWeight
+    ) external {
+        usersLockingWeight = usersLockingWeight - users[_user][_stakeId].weight + _newWeight;
+        users[_user][_stakeId].weight = _newWeight;
+    }
+
     function getDeposit(address _from, uint256 _stakeId)
         external
         view
