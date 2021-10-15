@@ -37,22 +37,48 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         bool isFlashPool;
     }
 
+    /**
+     * @dev ILV/second determines yield farming reward base
+     *      used by the yield pools controlled by the factory.
+     */
     uint192 public ilvPerSecond;
 
+    /**
+     * @dev The yield is distributed proportionally to pool weights;
+     *      total weight is here to help in determining the proportion.
+     */
     uint32 public totalWeight;
 
+    /**
+     * @dev ILV/second decreases by 3% every seconds/update
+     *      an update is triggered by executing `updateILVPerSecond` public function.
+     */
     uint32 public secondsPerUpdate;
 
+    /**
+     * @dev End time is the last timestamp when ILV/second can be decreased;
+     *      it is implied that yield farming stops after that timestamp.
+     */
     uint32 public endTime;
 
+    /**
+     * @dev Each time the ILV/second ratio gets updated, the timestamp
+     *      when the operation has occurred gets recorded into `lastRatioUpdate`.
+     * @dev This timestamp is then used to check if seconds/update `secondsPerUpdate`
+     *      has passed when decreasing yield reward by 3%.
+     */
     uint32 public lastRatioUpdate;
 
+    /// @dev ILV token address.
     address public ilv;
 
+    /// @dev sILV token address
     address public silv;
 
+    /// @dev Maps pool token address (like ILV) -> pool address (like core pool instance).
     mapping(address => address) public pools;
 
+    /// @dev Keeps track of registered pool addresses, maps pool address -> exists flag.
     mapping(address => bool) public poolExists;
 
     /**
@@ -73,7 +99,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     );
 
     /**
-     * @dev Fired in changePoolWeight()
+     * @dev Fired in `changePoolWeight()`.
      *
      * @param by an address which executed an action
      * @param poolAddress deployed pool instance address
@@ -82,7 +108,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     event LogChangePoolWeight(address indexed by, address indexed poolAddress, uint32 weight);
 
     /**
-     * @dev Fired in updateILVPerSecond()
+     * @dev Fired in `updateILVPerSecond()`.
      *
      * @param by an address which executed an action
      * @param newIlvPerSecond new ILV/second value
@@ -90,7 +116,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     event LogUpdateILVPerSecond(address indexed by, uint256 newIlvPerSecond);
 
     /**
-     * @dev Fired in setEndTime()
+     * @dev Fired in `setEndTime()`.
      *
      * @param by an address which executed the action
      * @param endTime new endTime value
@@ -135,11 +161,26 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         endTime = _endTime;
     }
 
+    /**
+     * @notice Given a pool token retrieves corresponding pool address.
+     *
+     * @dev A shortcut for `pools` mapping.
+     *
+     * @param poolToken pool token address (like ILV) to query pool address for
+     * @return pool address for the token specified
+     */
     function getPoolAddress(address poolToken) external view returns (address) {
         // read the mapping and return
         return address(pools[poolToken]);
     }
 
+    /**
+     * @notice Reads pool information for the pool defined by its pool token address,
+     *      designed to simplify integration with the front ends.
+     *
+     * @param _poolToken pool token address to query pool information for.
+     * @return pool information packed in a PoolData struct.
+     */
     function getPoolData(address _poolToken) public view returns (PoolData memory) {
         // get the pool address from the mapping
         ICorePool pool = ICorePool(pools[_poolToken]);
@@ -157,6 +198,12 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         return PoolData({ poolToken: poolToken, poolAddress: address(pool), weight: weight, isFlashPool: isFlashPool });
     }
 
+    /**
+     * @dev Verifies if `secondsPerUpdate` has passed since last ILV/second
+     *      ratio update and if ILV/second reward can be decreased by 3%.
+     *
+     * @return true if enough time has passed and `updateILVPerSecond` can be executed.
+     */
     function shouldUpdateRatio() public view returns (bool) {
         // if yield farming period has ended
         if (_now256() > endTime) {
@@ -168,6 +215,13 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         return _now256() >= lastRatioUpdate + secondsPerUpdate;
     }
 
+    /**
+     * @dev Registers an already deployed pool instance within the factory.
+     *
+     * @dev Can be executed by the pool factory owner only.
+     *
+     * @param pool address of the already deployed pool instance
+     */
     function registerPool(address pool) public onlyOwner {
         // read pool information from the pool smart contract
         // via the pool interface (ICorePool)
@@ -185,6 +239,10 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         emit LogRegisterPool(msg.sender, poolToken, address(pool), weight, isFlashPool);
     }
 
+    /**
+     * @notice Decreases ILV/second reward by 3%, can be executed
+     *      no more than once per `secondsPerUpdate` seconds.
+     */
     function updateILVPerSecond() external {
         // checks if ratio can be updated i.e. if seconds/update have passed
         require(shouldUpdateRatio(), "too frequent");
@@ -199,6 +257,16 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         emit LogUpdateILVPerSecond(msg.sender, ilvPerSecond);
     }
 
+    /**
+     * @dev Mints ILV tokens; executed by ILV Pool only.
+     *
+     * @dev Requires factory to have ROLE_TOKEN_CREATOR permission
+     *      on the ILV ERC20 token instance.
+     *
+     * @param _to an address to mint tokens to
+     * @param _value amount of ILV tokens to mint
+     * @param _useSILV whether ILV or sILV should be minted
+     */
     function mintYieldTo(
         address _to,
         uint256 _value,
@@ -214,6 +282,13 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         }
     }
 
+    /**
+     * @dev Changes the weight of the pool;
+     *      executed by the pool itself or by the factory owner.
+     *
+     * @param pool address of the pool to change weight for
+     * @param weight new weight value to set to
+     */
     function changePoolWeight(address pool, uint32 weight) external {
         // verify function is executed either by factory owner or by the pool itself
         require(msg.sender == owner() || poolExists[msg.sender]);
@@ -235,6 +310,6 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         emit LogSetEndTime(msg.sender, _endTime);
     }
 
-    /// @inheritdoc UUPSUpgradeable
+    /// @dev See `CorePool._authorizeUpgrade()`
     function _authorizeUpgrade(address) internal override onlyOwner {}
 }
