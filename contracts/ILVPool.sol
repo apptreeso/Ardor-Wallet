@@ -11,7 +11,13 @@ import { ICorePoolV1 } from "./interfaces/ICorePoolV1.sol";
 import { SushiLPPool } from "./SushiLPPool.sol";
 
 /**
- * @dev ILV Pool contract to be deployed.
+ * @title ILV Pool
+ *
+ * @dev ILV Pool contract to be deployed, with all base contracts inherited.
+ * @dev Extends functionality working as a router to SushiLP Pool and deployed flash pools.
+ *      through functions like `claimYieldRewardsMultiple()` and `claimVaultRewardsMultiple()`,
+ *      ILV Pool is trusted by other pools and verified by the factory to aggregate functions
+ *      and add quality of life features for stakers.
  */
 contract ILVPool is V2Migrator {
     using Errors for bytes4;
@@ -19,15 +25,31 @@ contract ILVPool is V2Migrator {
     using SafeERC20 for IERC20;
 
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
-    ///      if a v1 yield has already been minted by v2 contract
+    ///      if a v1 yield has already been minted by v2 contract.
     mapping(address => mapping(uint256 => bool)) public v1YieldMinted;
 
+    /**
+     * @dev Fired in `claimYieldRewardsMultiple()`.
+     *
+     * @param from staker address
+     * @param pools address array of pools to be claimed
+     * @param useSILV whether claims should use SILV or ILV
+     */
     event LogClaimYieldRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
+
+    /**
+     * @dev Fired in `claimVaultRewardsMultiple()`.
+     *
+     * @param from staker address
+     * @param pools address array of pools to be claimed
+     */
     event LogClaimVaultRewardsMultiple(address indexed from, address[] pool);
+
+    // TODO: change to merkle tree migration
     event LogMigrateWeights(address indexed by, uint256 numberOfUsers, uint248 totalWeight);
 
     /**
-     * @dev logs mintV1Yield()
+     * @dev logs `mintV1Yield()`.
      *
      * @param from user address
      * @param stakeIds array of v1 yield ids
@@ -36,7 +58,7 @@ contract ILVPool is V2Migrator {
      */
     event LogV1YieldMintedMultiple(address indexed from, uint256[] stakeIds, uint256 value);
 
-    /// @dev see __V2Migrator_init
+    /// @dev Calls `__V2Migrator_init()`.
     function initialize(
         address _ilv,
         address _silv,
@@ -52,8 +74,9 @@ contract ILVPool is V2Migrator {
 
     /**
      * @dev Executed by other core pools and flash pools
-     *      as part of yield rewards processing logic (`_claimYieldRewards` function)
-     * @dev Executed when _useSILV is false and pool is not an ILV pool - see `IlluviumPoolBase._processRewards`
+     *      as part of yield rewards processing logic (`_claimYieldRewards()` function).
+     * @dev Executed when _useSILV is false and pool is not an ILV pool -
+     *      see `CorePool._processRewards()`.
      *
      * @param _staker an address which stakes (the yield reward)
      * @param _value amount to be staked (yield reward amount)
@@ -94,11 +117,11 @@ contract ILVPool is V2Migrator {
     }
 
     /**
-     * @dev calls multiple pools claimYieldRewardsFromRouter() in order to claim yield
+     * @dev Calls multiple pools claimYieldRewardsFromRouter() in order to claim yield
      * in 1 transaction.
      *
      * @notice ILV pool works as a router for claiming multiple pools registered
-     *         in the factory
+     *         in the factory.
      *
      * @param _pools array of pool addresses
      * @param _useSILV array of bool values telling if the pool should claim reward
@@ -126,7 +149,7 @@ contract ILVPool is V2Migrator {
     }
 
     /**
-     * @dev calls multiple pools claimVaultRewardsFromRouter() in order to claim yield
+     * @dev Calls multiple pools claimVaultRewardsFromRouter() in order to claim yield
      * in 1 transaction.
      *
      * @notice ILV pool works as a router for claiming multiple pools registered
@@ -154,20 +177,7 @@ contract ILVPool is V2Migrator {
         emit LogClaimVaultRewardsMultiple(msg.sender, _pools);
     }
 
-    /**
-     * @notice can be called only by the factory controller
-     * @notice the purpose of this function is to migrate yield weights from v1
-     *         in 1 single operation per user so we don't need to store each v1 yield
-     *         staked. `mintV1Yield()` function is used to mint v1 yield in v2 instead of using
-     *         v1 unstake function.
-     *
-     * @dev adds weight to an address according to how much weight the user
-     *      had in yield accumulated in staking v1.
-     *
-     * @param _users an array of v1 users addresses
-     * @param _yieldWeights an array of v1 yield weights to be added to users
-     * @param _totalWeight total value of weight to be migrated
-     */
+    /// @dev TODO: remove function and use MerkleTree approach in V2Migrator.
     function migrateWeights(
         address[] calldata _users,
         uint248[] calldata _yieldWeights,
@@ -197,10 +207,10 @@ contract ILVPool is V2Migrator {
     }
 
     /**
-     * @dev aggregates in one single mint call multiple yield stakeIds from v1
+     * @dev Aggregates in one single mint call multiple yield stakeIds from v1.
      * @dev reads v1 ILV pool to execute checks, if everything is correct, it stores
      *      in memory total amount of yield to be minted and calls the PoolFactory to mint
-     *      it to msg.sender
+     *      it to msg.sender.
      *
      * @param _stakeIds array of yield ids in v1 from msg.sender user
      */
