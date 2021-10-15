@@ -4,7 +4,6 @@ pragma solidity 0.8.4;
 import { Stake } from "../libraries/Stake.sol";
 
 interface ICorePool {
-    /// @dev Data structure representing token holder using a pool
     function users(address _user)
         external
         view

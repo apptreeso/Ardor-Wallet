@@ -7,7 +7,6 @@ import { Timestamp } from "./base/Timestamp.sol";
 // import { CorePool } from "./CorePool.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 import { IERC20Mintable } from "./interfaces/IERC20Mintable.sol";
-import { IFactory } from "./interfaces/IFactory.sol";
 
 import "hardhat/console.sol";
 
@@ -19,10 +18,10 @@ import "hardhat/console.sol";
  *      to mint yield rewards, access pool-related info, update weights, etc.
  *
  * @notice The factory is authorized (via its owner) to register new pools, change weights
- *      of the existing pools, removing the pools (by changing their weights to zero)
+ *      of the existing pools, removing the pools (by changing their weights to zero).
  *
  * @dev The factory requires ROLE_TOKEN_CREATOR permission on the ILV token to mint yield
- *      (see `mintYieldTo` function)
+ *      (see `mintYieldTo` function).
  *
  */
 contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {

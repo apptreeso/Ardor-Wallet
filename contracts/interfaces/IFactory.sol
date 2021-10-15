@@ -4,18 +4,6 @@ pragma solidity 0.8.4;
 import { ICorePool } from "./ICorePool.sol";
 
 interface IFactory {
-    /// @dev Auxiliary data structure used only in getPoolData() view function
-    struct PoolData {
-        // @dev pool token address (like ILV)
-        address poolToken;
-        // @dev pool address (like deployed core pool instance)
-        address poolAddress;
-        // @dev pool weight (200 for ILV pools, 800 for ILV/ETH pools - set during deployment)
-        uint32 weight;
-        // @dev flash pool flag
-        bool isFlashPool;
-    }
-
     function owner() external view returns (address);
 
     /**
@@ -87,7 +75,15 @@ interface IFactory {
      * @param _poolToken pool token address to query pool information for
      * @return pool information packed in a PoolData struct
      */
-    function getPoolData(address _poolToken) external view returns (PoolData memory);
+    function getPoolData(address _poolToken)
+        external
+        view
+        returns (
+            address,
+            address,
+            uint32,
+            bool
+        );
 
     /**
      * @dev Verifies if `secondsPerUpdate` has passed since last ILV/second
