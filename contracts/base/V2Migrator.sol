@@ -74,9 +74,10 @@ abstract contract V2Migrator is CorePool {
             );
             fnSelector.verifyState(lockedFrom <= _v1StakeMaxPeriod, i * 3);
             fnSelector.verifyState(lockedFrom > 0 && !isYield, i * 3 + 1);
-            fnSelector.verifyState(v1StakesMigrated[msg.sender][_stakeIds[i]] == 0, i * 3 + 2);
+            fnSelector.verifyState(v1StakesWeights[msg.sender][_stakeIds[i]] == 0, i * 3 + 2);
 
-            v1StakesMigrated[msg.sender][_stakeIds[i]] = _weight;
+            v1StakesWeights[msg.sender][_stakeIds[i]] = _weight;
+            v1StakesWeightsOriginal[msg.sender][_stakeIds[i]] = _weight;
             totalV1WeightAdded += _weight;
             user.v1IdsLength++;
             user.v1StakesIds[i] = _stakeIds[i];

@@ -59,7 +59,13 @@ abstract contract CorePool is
 
     /// @dev maps `keccak256(userAddress,stakeId)` to a uint256 value that tells
     ///      a v1 locked stake weight that has already been migrated to v2
-    mapping(address => mapping(uint256 => uint256)) public v1StakesMigrated;
+    ///      and is updated through _useV1Weight
+    mapping(address => mapping(uint256 => uint256)) public v1StakesWeights;
+
+    /// @dev maps `keccak256(userAddress,stakeId)` to a uint256 value that tells
+    ///      a v1 locked stake weight that has already been migrated to v2
+    ///      and keeps the original weight migrated
+    mapping(address => mapping(uint256 => uint256)) public v1StakesWeightsOriginal;
 
     /// @dev Link to sILV ERC20 Token instance
     address public silv;
@@ -299,7 +305,7 @@ abstract contract CorePool is
                 uint256 stakeId = user.v1StakesIds[i];
                 (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, stakeId);
 
-                uint256 storedWeight = v1StakesMigrated[_staker][stakeId];
+                uint256 storedWeight = v1StakesWeights[_staker][stakeId];
 
                 previousTotalV1Weight += storedWeight;
                 totalV1Weight += _weight <= storedWeight ? _weight : storedWeight;
@@ -589,28 +595,62 @@ abstract contract CorePool is
         emit LogUpdateStakeLock(msg.sender, _stakeId, stakeLockedFrom, _lockedUntil);
     }
 
-    function fillStakeId(uint256 _v1StakeId, uint256 _stakeIdPosition) external {
+    /**
+     * @dev Allows an user that is currently in v1 with locked tokens, that have
+     *      just been unlocked, to transfer to v2 and keep the same weight that was
+     *      used in v1.
+     *
+     * @param _v1StakeId id of a stake in v1 migrated to v2
+     * @param _stakeIdPosition position of the desired stake id in the user.v1StakesIds
+     *                         array
+     */
+    function fillV1StakeId(uint256 _v1StakeId, uint256 _stakeIdPosition) external {
         User storage user = users[msg.sender];
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = CorePool(this).fillStakeId.selector;
-        uint256 v1StakeWeight = v1StakesMigrated[msg.sender][_v1StakeId];
-        // if v1StakeWeight == 1 it means it has been migrated but completely unstaked.
-        fnSelector.verifyState(v1StakeWeight > 1, 0);
+        bytes4 fnSelector = CorePool(this).fillV1StakeId.selector;
+        uint256 v1StakeWeight = v1StakesWeightsOriginal[msg.sender][_v1StakeId];
 
+        // checks if v1StakeId has already been filled
+        fnSelector.verifyState(v1StakeWeight > 0, 0);
+
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+
+        // and process current pending rewards if any
+        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+
+        // queries v1 data
         (uint256 _tokenAmount, , uint64 _lockedFrom, uint64 _lockedUntil, bool _isYield) = ICorePoolV1(corePoolV1)
             .getDeposit(msg.sender, _v1StakeId);
+        // checks if user unstaked almost all of the tokens in order to fill the v1 stake id
+        fnSelector.verifyState(_tokenAmount == 1, 1);
+        // retrieves original stake value by using v1 _lockedUntil and _lockedFrom, and comparing
+        // to the weight originally stored in this contract during migration
+        uint112 v1StakeValue = uint112(
+            v1StakeWeight /
+                (((_lockedUntil - _lockedFrom) * Stake.WEIGHT_MULTIPLIER) / 365 days + Stake.WEIGHT_MULTIPLIER)
+        );
+
+        // makes sure stake coming from v1 isn't yield, even though it's already
+        // verified before migration
         assert(!_isYield);
 
+        // delete v1StakeId and original v1 stake weight
         delete user.v1StakesIds[_stakeIdPosition];
+        delete v1StakesWeightsOriginal[msg.sender][_v1StakeId];
+        // adds v1 stake data to user struct
+        user.totalWeight += uint248(v1StakeWeight);
         user.stakes.push(
-            Stake.Data({
-                value: uint112(_tokenAmount),
-                lockedFrom: _lockedFrom,
-                lockedUntil: _lockedUntil,
-                isYield: false,
-                fromV1: true
-            })
+            Stake.Data({ value: v1StakeValue, lockedFrom: 0, lockedUntil: 0, isYield: false, fromV1: true })
         );
+        // gas savings
+        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
+        // resets rewards
+        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
+
+        // transfers poolTokens from msg.sender
+        IERC20(poolToken).safeTransferFrom(msg.sender, address(this), v1StakeValue);
     }
 
     /**
@@ -1194,6 +1234,7 @@ abstract contract CorePool is
      */
     function _useV1Weight(address _staker)
         internal
+        view
         returns (
             uint256 totalV1Weight,
             uint256 subYieldRewards,
@@ -1214,15 +1255,7 @@ abstract contract CorePool is
                 uint256 stakeId = user.v1StakesIds[i];
                 (, uint256 _weight, , , ) = ICorePoolV1(corePoolV1).getDeposit(_staker, stakeId);
 
-                uint256 storedWeight = v1StakesMigrated[_staker][stakeId];
-
-                // checks if v1 stake _weight has changed (we ignore if user increased weight)
-                if (storedWeight > _weight) {
-                    // if deposit has been completely unstaked in v1, set stake id weight to 1
-                    // so we can keep track that it has been already migrated.
-                    // otherwise just returns _weight
-                    v1StakesMigrated[_staker][stakeId] = _weight == 0 ? 1 : _weight;
-                }
+                uint256 storedWeight = v1StakesWeights[_staker][stakeId];
 
                 previousTotalV1Weight += storedWeight;
                 totalV1Weight += _weight <= storedWeight ? _weight : storedWeight;
