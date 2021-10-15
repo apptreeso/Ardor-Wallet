@@ -11,6 +11,7 @@ import { Errors } from "../libraries/Errors.sol";
 import { Stake } from "../libraries/Stake.sol";
 import { IILVPool } from "../interfaces/IILVPool.sol";
 import { IFactory } from "../interfaces/IFactory.sol";
+import { ICorePool } from "../interfaces/ICorePool.sol";
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 
 import "hardhat/console.sol";

@@ -5,27 +5,6 @@ import { Stake } from "../libraries/Stake.sol";
 
 interface ICorePool {
     /// @dev Data structure representing token holder using a pool
-    struct User {
-        /// @dev Total staked amount in flexible mode
-        uint128 flexibleBalance;
-        /// @dev pending yield rewards to be claimed
-        uint128 pendingYield;
-        /// @dev pending revenue distribution to be claimed
-        uint128 pendingRevDis;
-        /// @dev Total weight
-        uint248 totalWeight;
-        /// @dev number of v1StakesIds
-        uint8 v1IdsLength;
-        /// @dev Auxiliary variable for yield calculation
-        uint256 subYieldRewards;
-        /// @dev Auxiliary variable for vault rewards calculation
-        uint256 subVaultRewards;
-        /// @dev An array of holder's stakes
-        Stake.Data[] stakes;
-        /// @dev A mapping of holder's stakes ids in V1
-        mapping(uint256 => uint256) v1StakesIds;
-    }
-
     function users(address _user)
         external
         view
