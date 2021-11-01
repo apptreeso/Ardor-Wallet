@@ -4,6 +4,7 @@ pragma solidity 0.8.4;
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 import { ErrorHandler } from "../libraries/ErrorHandler.sol";
 import { Stake } from "../libraries/Stake.sol";
+import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { CorePool } from "./CorePool.sol";
 
 /**
@@ -21,8 +22,11 @@ abstract contract V2Migrator is CorePool {
     using ErrorHandler for bytes4;
     using Stake for uint256;
 
-    /// @dev stores maximum timestamp of a v1 stake accepted in v2
+    /// @dev stores maximum timestamp of a v1 stake accepted in v2.
     uint256 public v1StakeMaxPeriod;
+
+    /// @dev stores merkle root related to users yield weight in v1.
+    bytes32 public merkleRoot;
 
     /**
      * @dev logs `migrateLockedStake()`
