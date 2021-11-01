@@ -109,9 +109,16 @@ abstract contract V2Migrator is CorePool {
         emit LogMigrateLockedStake(msg.sender, _stakeIds);
     }
 
-    function migrateYieldWeight(bytes32[] _proof, bytes32 _expectedRoot, bytes32 _leaf) external {
+    function migrateYieldWeight(
+        bytes32[] calldata _proof,
+        bytes32 _expectedRoot,
+        bytes32 _leaf
+    ) external {
+        // input validation
         bytes4 fnSelector = V2Migrator(address(this)).migrateYieldWeight.selector;
-
         fnSelector.verifyInput(_expectedRoot == merkleRoot, 1);
+
+        // checks if proof is valid
+        fnSelector.verifyState(MerkleProof.verify(_proof, _expectedRoot, _leaf), 0);
     }
 }
