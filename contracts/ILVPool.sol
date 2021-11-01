@@ -45,9 +45,6 @@ contract ILVPool is V2Migrator {
      */
     event LogClaimVaultRewardsMultiple(address indexed from, address[] pools);
 
-    // TODO: change to merkle tree migration
-    event LogMigrateWeights(address indexed by, uint256 numberOfUsers, uint248 totalWeight);
-
     /**
      * @dev logs `mintV1Yield()`.
      *
@@ -175,35 +172,6 @@ contract ILVPool is V2Migrator {
         }
 
         emit LogClaimVaultRewardsMultiple(msg.sender, _pools);
-    }
-
-    /// @dev TODO: remove function and use MerkleTree approach in V2Migrator.
-    function migrateWeights(
-        address[] calldata _users,
-        uint248[] calldata _yieldWeights,
-        uint248 _totalWeight
-    ) external {
-        // checks caller is factory.owner()
-        _requireIsFactoryController();
-        // checks if parameters are valid
-        ILVPool(this).migrateWeights.selector.verifyInput(_users.length == _yieldWeights.length, 0);
-
-        // will be used to check if weights were added as expected
-        uint248 totalWeight;
-
-        // checks each weight at `_yieldWeights` array and adds to v2 user
-        for (uint256 i = 0; i < _users.length; i++) {
-            User storage user = users[_users[i]];
-            user.totalWeight += _yieldWeights[i];
-
-            totalWeight += _yieldWeights[i];
-        }
-
-        // makes sure total weight migrated is valid
-        assert(totalWeight == _totalWeight);
-
-        // emits an event
-        emit LogMigrateWeights(msg.sender, _users.length, totalWeight);
     }
 
     /**

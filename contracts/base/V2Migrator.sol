@@ -108,4 +108,10 @@ abstract contract V2Migrator is CorePool {
         // emit an event
         emit LogMigrateLockedStake(msg.sender, _stakeIds);
     }
+
+    function migrateYieldWeight(bytes32[] _proof, bytes32 _expectedRoot, bytes32 _leaf) external {
+        bytes4 fnSelector = V2Migrator(address(this)).migrateYieldWeight.selector;
+
+        fnSelector.verifyInput(_expectedRoot == merkleRoot, 1);
+    }
 }
