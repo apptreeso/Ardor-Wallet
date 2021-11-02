@@ -48,12 +48,5 @@ interface IFactory {
         bool _useSILV
     ) external;
 
-    /**
-     * @dev Changes the weight of the pool;
-     *      executed by the pool itself or by the factory owner
-     *
-     * @param pool address of the pool to change weight for
-     * @param weight new weight value to set to
-     */
     function changePoolWeight(ICorePool pool, uint32 weight) external;
 }

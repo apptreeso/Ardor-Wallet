@@ -69,16 +69,29 @@ abstract contract V2Migrator is CorePool {
      *
      * @param _stakeIds array of v1 stake ids
      */
-    function migrateLockedStake(uint256[] calldata _stakeIds) external {
+    function migrateFromV1(
+        bytes32[] calldata _proof,
+        bytes32 _expectedRoot,
+        uint248 _yieldWeight,
+        uint256[] calldata _stakeIds
+    ) external {
         User storage user = users[msg.sender];
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = V2Migrator(this).migrateFromV1.selector;
 
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
         // update user state
         _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
 
-        // we're using selector to simplify input and state validation
-        bytes4 fnSelector = V2Migrator(this).migrateLockedStake.selector;
+        // checks if user is migrating yield weights
+        if (_yieldWeight != 0) {
+            // compute leaf and verify merkle proof
+            bytes32 leaf = keccak256(abi.encodePacked(msg.sender, _yieldWeight));
+            MerkleProof.verify(_proof, _expectedRoot, leaf);
+
+            user.totalWeight += _yieldWeight;
+        }
 
         uint256 totalV1WeightAdded;
 
@@ -107,18 +120,5 @@ abstract contract V2Migrator is CorePool {
 
         // emit an event
         emit LogMigrateLockedStake(msg.sender, _stakeIds);
-    }
-
-    function migrateYieldWeight(
-        bytes32[] calldata _proof,
-        bytes32 _expectedRoot,
-        bytes32 _leaf
-    ) external {
-        // input validation
-        bytes4 fnSelector = V2Migrator(address(this)).migrateYieldWeight.selector;
-        fnSelector.verifyInput(_expectedRoot == merkleRoot, 1);
-
-        // checks if proof is valid
-        fnSelector.verifyState(MerkleProof.verify(_proof, _expectedRoot, _leaf), 0);
     }
 }
