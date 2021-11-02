@@ -32,17 +32,18 @@ abstract contract V2Migrator is CorePool {
      * @dev logs `migrateLockedStake()`
      *
      * @param from user address
+     * @param yieldWeightMigrated total amount of weight coming from yield in v1
      * @param stakeIds array of locked stakes ids
      *
      */
-    event LogMigrateLockedStake(address indexed from, uint256[] stakeIds);
+    event LogMigrateFromV1(address indexed from, uint256 yieldWeightMigrated, uint256[] stakeIds);
 
     /**
      * @dev V2Migrator initializer function
      *
      * @param _corePoolV1 v1 core pool address
      * @param _v1StakeMaxPeriod max timestamp that we accept _lockedFrom values
-     *                         in v1 stakes.
+     *                         in v1 stakes
      *
      */
     function __V2Migrator_init(
@@ -67,6 +68,8 @@ abstract contract V2Migrator is CorePool {
      *
      * @dev Only `msg.sender` can migrate v1 stakes to v2.
      *
+     * @param _yieldWeight total amount of yield weight in v1 stored in the users
+     *                     merkle tree
      * @param _stakeIds array of v1 stake ids
      */
     function migrateFromV1(
