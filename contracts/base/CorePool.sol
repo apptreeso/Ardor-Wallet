@@ -242,6 +242,7 @@ abstract contract CorePool is
      * @param _ilv ILV ERC20 Token address
      * @param _silv sILV ERC20 Token address
      * @param _poolToken token the pool operates on, for example ILV or ILV/ETH pair
+     * @param _corePoolV1 v1 core pool address
      * @param _factory PoolFactory contract address
      * @param _initTime initial timestamp used to calculate the rewards
      *      note: _initTime is set to the future effectively meaning _sync() calls will do nothing
@@ -253,6 +254,7 @@ abstract contract CorePool is
         address _ilv,
         address _silv,
         address _poolToken,
+        address _corePoolV1,
         address _factory,
         uint64 _initTime,
         uint32 _weight
@@ -262,6 +264,7 @@ abstract contract CorePool is
         bytes4 fnSelector = 0x243f7620;
         // verify the inputs
         fnSelector.verifyNonZeroInput(uint160(_poolToken), 2);
+        fnSelector.verifyNonZeroInput(uint160(_corePoolV1), 3);
         fnSelector.verifyNonZeroInput(_initTime, 4);
         fnSelector.verifyNonZeroInput(_weight, 5);
 
@@ -273,6 +276,7 @@ abstract contract CorePool is
         ilv = _ilv;
         silv = _silv;
         poolToken = _poolToken;
+        corePoolV1 = _corePoolV1;
         weight = _weight;
 
         // init the dependent internal state variables

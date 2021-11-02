@@ -41,25 +41,28 @@ abstract contract V2Migrator is CorePool {
     /**
      * @dev V2Migrator initializer function
      *
-     * @param _corePoolV1 v1 core pool address
+
      * @param _v1StakeMaxPeriod max timestamp that we accept _lockedFrom values
      *                         in v1 stakes
+     * @param _merkleRoot root of v1 users yield weight merkle tree
      *
      */
     function __V2Migrator_init(
         address _ilv,
         address _silv,
         address _poolToken,
+        address _corePoolV1,
         address _factory,
         uint64 _initTime,
         uint32 _weight,
-        address _corePoolV1,
-        uint256 _v1StakeMaxPeriod
+        uint256 _v1StakeMaxPeriod,
+        bytes32 _merkleRoot
     ) internal initializer {
-        __CorePool_init(_ilv, _silv, _poolToken, _factory, _initTime, _weight);
+        __CorePool_init(_ilv, _silv, _poolToken, _corePoolV1, _factory, _initTime, _weight);
 
         corePoolV1 = _corePoolV1;
         v1StakeMaxPeriod = _v1StakeMaxPeriod;
+        merkleRoot = _merkleRoot;
     }
 
     /**
@@ -122,6 +125,6 @@ abstract contract V2Migrator is CorePool {
         user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
 
         // emit an event
-        emit LogMigrateLockedStake(msg.sender, _stakeIds);
+        emit LogMigrateFromV1(msg.sender, _yieldWeight, _stakeIds);
     }
 }
