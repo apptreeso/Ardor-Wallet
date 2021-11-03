@@ -64,6 +64,7 @@ const config: HardhatUserConfig = {
         mnemonic,
       },
       chainId: chainIds.hardhat,
+      allowUnlimitedContractSize: true,
     },
     goerli: getChainConfig("goerli"),
     kovan: getChainConfig("kovan"),
