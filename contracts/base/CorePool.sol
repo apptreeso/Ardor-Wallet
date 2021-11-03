@@ -1280,7 +1280,6 @@ abstract contract CorePool is
      */
     function _useV1Weight(address _staker)
         internal
-        view
         returns (
             uint256 totalV1Weight,
             uint256 subYieldRewards,
@@ -1305,6 +1304,15 @@ abstract contract CorePool is
 
                 previousTotalV1Weight += storedWeight;
                 totalV1Weight += _weight <= storedWeight ? _weight : storedWeight;
+
+                // if _weight has updated in v1 to a lower value, we also update
+                // stored weight in v2 for next calculations
+                if (storedWeight > _weight) {
+                    // if deposit has been completely unstaked in v1, set stake id weight to 1
+                    // so we can keep track that it has been already migrated.
+                    // otherwise just update value to _weight
+                    v1StakesWeights[_staker][stakeId] = _weight == 0 ? 1 : _weight;
+                }
             }
         }
 
@@ -1343,12 +1351,12 @@ abstract contract CorePool is
      *      and returns equivalent value using most recent v1 weight.
      *
      * @dev This function is very important in order to keep calculations correct even
-     *      after an user unstakes.
+     *      after an user unstakes in v1.
      *
      * @dev If an user in v1 unstakes before claiming yield in v2, it will be considered
      *      as if the user has been accumulating yield and revenue distributions
      *      with most recent weight since the last user.subYieldRewards and
-     *       ser.subVaultRewards update.
+     *      user.subVaultRewards update.
      * @dev v1 stake token amount of a given stakeId can never increase in v1 contracts.
      *         this way we are safe of attacks by adding more tokens in v1 and having
      *         a higher accumulation of yield and revenue distributions
