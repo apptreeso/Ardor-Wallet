@@ -49,11 +49,10 @@ contract ILVPool is V2Migrator {
      * @dev logs `mintV1Yield()`.
      *
      * @param from user address
-     * @param stakeIds array of v1 yield ids
      * @param value number of ILV tokens minted
      *
      */
-    event LogV1YieldMintedMultiple(address indexed from, uint256[] stakeIds, uint256 value);
+    event LogV1YieldMintedMultiple(address indexed from, uint256 value);
 
     /// @dev Calls `__V2Migrator_init()`.
     function initialize(
@@ -215,6 +214,6 @@ contract ILVPool is V2Migrator {
 
         factory.mintYieldTo(msg.sender, amountToMint, false);
 
-        emit LogV1YieldMintedMultiple(msg.sender, _stakeIds, amountToMint);
+        emit LogV1YieldMintedMultiple(msg.sender, amountToMint);
     }
 }
