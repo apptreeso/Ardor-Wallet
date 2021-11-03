@@ -29,23 +29,6 @@ contract ILVPool is V2Migrator {
     mapping(address => mapping(uint256 => bool)) public v1YieldMinted;
 
     /**
-     * @dev Fired in `claimYieldRewardsMultiple()`.
-     *
-     * @param from staker address
-     * @param pools address array of pools to be claimed
-     * @param useSILV whether claims should use SILV or ILV
-     */
-    event LogClaimYieldRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
-
-    /**
-     * @dev Fired in `claimVaultRewardsMultiple()`.
-     *
-     * @param from staker address
-     * @param pools address array of pools to be claimed
-     */
-    event LogClaimVaultRewardsMultiple(address indexed from, address[] pools);
-
-    /**
      * @dev logs `mintV1Yield()`.
      *
      * @param from user address
@@ -151,8 +134,6 @@ contract ILVPool is V2Migrator {
                 SushiLPPool(pool).claimYieldRewardsFromRouter(msg.sender, _useSILV[i]);
             }
         }
-
-        emit LogClaimYieldRewardsMultiple(msg.sender, _pools, _useSILV);
     }
 
     /**
@@ -180,8 +161,6 @@ contract ILVPool is V2Migrator {
                 SushiLPPool(pool).claimVaultRewardsFromRouter(msg.sender);
             }
         }
-
-        emit LogClaimVaultRewardsMultiple(msg.sender, _pools);
     }
 
     /**

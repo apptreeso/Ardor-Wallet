@@ -5,6 +5,7 @@ import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 import { ErrorHandler } from "../libraries/ErrorHandler.sol";
 import { Stake } from "../libraries/Stake.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import { CorePool } from "./CorePool.sol";
 
 /**
@@ -21,12 +22,15 @@ import { CorePool } from "./CorePool.sol";
 abstract contract V2Migrator is CorePool {
     using ErrorHandler for bytes4;
     using Stake for uint256;
+    using BitMaps for BitMaps.BitMap;
 
     /// @dev stores maximum timestamp of a v1 stake accepted in v2.
     uint256 public v1StakeMaxPeriod;
 
     /// @dev stores merkle root related to users yield weight in v1.
     bytes32 public merkleRoot;
+
+    BitMaps.BitMap private _usersMigrated;
 
     /**
      * @dev logs `migrateLockedStake()`
@@ -77,6 +81,7 @@ abstract contract V2Migrator is CorePool {
      */
     function migrateFromV1(
         bytes32[] calldata _proof,
+        uint256 _index,
         uint248 _yieldWeight,
         uint256[] calldata _stakeIds
     ) external {
@@ -92,11 +97,15 @@ abstract contract V2Migrator is CorePool {
 
         // checks if user is migrating yield weights
         if (_yieldWeight != 0) {
+            fnSelector.verifyAccess(!_usersMigrated.get(_index));
+
             // compute leaf and verify merkle proof
-            bytes32 leaf = keccak256(abi.encodePacked(msg.sender, _yieldWeight));
+            bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight));
             MerkleProof.verify(_proof, merkleRoot, leaf);
 
             user.totalWeight += _yieldWeight;
+            // set user as claimed in bitmap
+            _usersMigrated.set(_index);
         }
 
         uint256 totalV1WeightAdded;
