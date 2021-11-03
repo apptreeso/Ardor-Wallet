@@ -33,10 +33,10 @@ abstract contract V2Migrator is CorePool {
      *
      * @param from user address
      * @param yieldWeightMigrated total amount of weight coming from yield in v1
-     * @param stakeIds array of locked stakes ids
+     * @param totalV1WeightAdded total amount of weight coming from locked stakes in v1
      *
      */
-    event LogMigrateFromV1(address indexed from, uint256 yieldWeightMigrated, uint256[] stakeIds);
+    event LogMigrateFromV1(address indexed from, uint256 yieldWeightMigrated, uint256 totalV1WeightAdded);
 
     /**
      * @dev V2Migrator initializer function
@@ -77,10 +77,10 @@ abstract contract V2Migrator is CorePool {
      */
     function migrateFromV1(
         bytes32[] calldata _proof,
-        bytes32 _expectedRoot,
         uint248 _yieldWeight,
         uint256[] calldata _stakeIds
     ) external {
+        _requireNotPaused();
         User storage user = users[msg.sender];
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = V2Migrator(this).migrateFromV1.selector;
@@ -94,7 +94,7 @@ abstract contract V2Migrator is CorePool {
         if (_yieldWeight != 0) {
             // compute leaf and verify merkle proof
             bytes32 leaf = keccak256(abi.encodePacked(msg.sender, _yieldWeight));
-            MerkleProof.verify(_proof, _expectedRoot, leaf);
+            MerkleProof.verify(_proof, merkleRoot, leaf);
 
             user.totalWeight += _yieldWeight;
         }
@@ -125,6 +125,6 @@ abstract contract V2Migrator is CorePool {
         user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
 
         // emit an event
-        emit LogMigrateFromV1(msg.sender, _yieldWeight, _stakeIds);
+        emit LogMigrateFromV1(msg.sender, _yieldWeight, totalV1WeightAdded);
     }
 }

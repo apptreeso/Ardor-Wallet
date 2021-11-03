@@ -1385,7 +1385,7 @@ abstract contract CorePool is
      * @dev eDAO multisig is responsible by handling upgrades and executing other
      *      admin actions approved by the Council.
      */
-    function _authorizeUpgrade(address) internal override {
+    function _authorizeUpgrade(address) internal view override {
         // checks caller is factory.owner()
         _requireIsFactoryController();
     }
