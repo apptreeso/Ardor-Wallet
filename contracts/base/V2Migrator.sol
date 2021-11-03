@@ -70,6 +70,17 @@ abstract contract V2Migrator is CorePool {
     }
 
     /**
+     * @dev Returns whether an user of a given _index in the bitmap has already
+     *      migrated v1 yield weight stored in the merkle tree or not.
+     *
+     * @param _index user index in the bitmap, can be checked in the off-chain
+     *               merkle tree
+     */
+    function hasMigratedYield(uint256 _index) public view returns (bool) {
+        return _usersMigrated.get(_index);
+    }
+
+    /**
      * @dev Reads v1 core pool locked stakes data (by looping through the `_stakeIds` array),
      *      checks if it's a valid v1 stake to migrate and save the id to v2 user struct.
      *
@@ -97,7 +108,7 @@ abstract contract V2Migrator is CorePool {
 
         // checks if user is migrating yield weights
         if (_yieldWeight != 0) {
-            fnSelector.verifyAccess(!_usersMigrated.get(_index));
+            fnSelector.verifyAccess(!hasMigratedYield(_index));
 
             // compute leaf and verify merkle proof
             bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight));
