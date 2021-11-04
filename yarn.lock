@@ -8955,7 +8955,7 @@ fsevents@~2.1.1:
   dependencies:
     prelude-ls: ^1.2.1
     type-check: ~0.4.0
-  checksum: 12c5021c859bd0f5248561bf139121f0358285ec545ebf48bb3d346820d5c61a4309535c7f387ed7d84361cf821e124ce346c6b7cef8ee09a67c1473b46d0fc4
+  checksum: 12c5021c859bd0f5248561bf139121f0358285ec545ebf48bb3d346820d5c61a4309535c7f387ed7d84361cf821e204ce346c6b7cef8ee09a67c1473b46d0fc4
   languageName: node
   linkType: hard
 

@@ -40,9 +40,9 @@ library Stake {
     uint256 internal constant MAX_STAKE_PERIOD = 730 days;
 
     /**
-     * @dev Rewards per weight are stored multiplied by 1e12 as uint.
+     * @dev Rewards per weight are stored multiplied by 1e20 as uint.
      */
-    uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e12;
+    uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e20;
 
     /**
      * @dev When we know beforehand that staking is done for yield instead of

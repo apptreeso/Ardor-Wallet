@@ -575,7 +575,7 @@ describe("FlashPool", function () {
       const expectedLastYieldDistribution = ethers.BigNumber.from(FLASH_INIT_TIME + 10);
       const expectedYieldRewardsPerToken = ILV_PER_SECOND.mul(10)
         .mul(poolWeight)
-        .mul(1e12)
+        .mul(1e18)
         .div(totalWeight)
         .div(toWei(100));
 
@@ -615,7 +615,7 @@ describe("FlashPool", function () {
       const expectedLastYieldDistribution = ethers.BigNumber.from(END_TIME);
       const expectedYieldRewardsPerToken = ILV_PER_SECOND.mul(END_TIME - FLASH_INIT_TIME)
         .mul(poolWeight)
-        .mul(1e12)
+        .mul(1e18)
         .div(totalWeight)
         .div(toWei(100));
 
