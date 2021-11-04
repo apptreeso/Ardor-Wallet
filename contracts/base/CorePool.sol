@@ -192,29 +192,35 @@ abstract contract CorePool is
     /**
      * @dev Fired in `_claimYieldRewards()`.
      *
+     * @param by an address which claimed the rewards (staker or ilv pool contract
+     *            in case of a multiple claim call)
      * @param from an address which received the yield
      * @param sILV flag indicating if reward was paid (minted) in sILV
      * @param stakeId id of the new stake created (0 if sILV = true)
      * @param value value of yield paid
      */
-    event LogClaimYieldRewards(address indexed from, bool sILV, uint256 stakeId, uint256 value);
+    event LogClaimYieldRewards(address indexed by, address indexed from, bool sILV, uint256 stakeId, uint256 value);
 
     /**
      * @dev Fired in `_claimVaultRewards()`.
      *
+     * @param by an address which claimed the rewards (staker or ilv pool contract
+     *            in case of a multiple claim call)
      * @param from an address which received the yield
      * @param value value of yield paid
      */
-    event LogClaimVaultRewards(address indexed from, uint256 value);
+    event LogClaimVaultRewards(address indexed by, address indexed from, uint256 value);
 
     /**
      * @dev Fired in `_processRewards()`.
      *
+     * @param by an address which processed the rewards (staker or ilv pool contract
+     *            in case of a multiple claim call)
      * @param from an address which received the yield
      * @param yieldValue value of yield processed
      * @param revDisValue value of revenue distribution processed
      */
-    event LogProcessRewards(address indexed from, uint256 yieldValue, uint256 revDisValue);
+    event LogProcessRewards(address indexed by, address indexed from, uint256 yieldValue, uint256 revDisValue);
 
     /**
      * @dev fired in `migrateUser()`.
@@ -1157,7 +1163,7 @@ abstract contract CorePool is
         user.pendingRevDis += uint128(pendingRevDis);
 
         // emit an event
-        emit LogProcessRewards(_staker, pendingYield, pendingRevDis);
+        emit LogProcessRewards(msg.sender, _staker, pendingYield, pendingRevDis);
     }
 
     /**
@@ -1227,7 +1233,7 @@ abstract contract CorePool is
         user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
 
         // emit an event
-        emit LogClaimYieldRewards(_staker, _useSILV, (user.stakes.length - 1), pendingYieldToClaim);
+        emit LogClaimYieldRewards(msg.sender, _staker, _useSILV, (user.stakes.length - 1), pendingYieldToClaim);
     }
 
     /**
@@ -1260,7 +1266,7 @@ abstract contract CorePool is
         IERC20(ilv).safeTransfer(_staker, pendingRevDis);
 
         // emit an event
-        emit LogClaimVaultRewards(_staker, pendingRevDis);
+        emit LogClaimVaultRewards(msg.sender, _staker, pendingRevDis);
     }
 
     /**
