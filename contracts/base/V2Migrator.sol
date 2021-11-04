@@ -33,7 +33,7 @@ abstract contract V2Migrator is CorePool {
     BitMaps.BitMap private _usersMigrated;
 
     /**
-     * @dev logs `migrateLockedStake()`
+     * @dev logs `migrateFromV1()`
      *
      * @param from user address
      * @param yieldWeightMigrated total amount of weight coming from yield in v1
@@ -75,6 +75,7 @@ abstract contract V2Migrator is CorePool {
      *
      * @param _index user index in the bitmap, can be checked in the off-chain
      *               merkle tree
+     * @return whether user has already migrated yield weights or not
      */
     function hasMigratedYield(uint256 _index) public view returns (bool) {
         return _usersMigrated.get(_index);
