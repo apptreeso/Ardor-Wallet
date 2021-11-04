@@ -137,10 +137,11 @@ abstract contract CorePool is
      * @dev Fired in _stakeAndLock() and stakeAsPool() in ILVPool contract.
      * @param by address that executed the stake function (user or pool)
      * @param from token holder address, the tokens will be returned to that address
+     * @param stakeId id of the new stake created
      * @param value value of tokens staked
      * @param lockUntil timestamp indicating when tokens should unlock (max 2 years)
      */
-    event LogStakeAndLock(address indexed by, address indexed from, uint256 value, uint64 lockUntil);
+    event LogStakeAndLock(address indexed by, address indexed from, uint256 stakeId, uint256 value, uint64 lockUntil);
 
     /**
      * @dev Fired in _updateStakeLock() and updateStakeLock().
@@ -193,9 +194,10 @@ abstract contract CorePool is
      *
      * @param from an address which received the yield
      * @param sILV flag indicating if reward was paid (minted) in sILV
+     * @param stakeId id of the new stake created (0 if sILV = true)
      * @param value value of yield paid
      */
-    event LogClaimYieldRewards(address indexed from, bool sILV, uint256 value);
+    event LogClaimYieldRewards(address indexed from, bool sILV, uint256 stakeId, uint256 value);
 
     /**
      * @dev Fired in `_claimVaultRewards()`.
@@ -856,7 +858,7 @@ abstract contract CorePool is
             isYield: false,
             fromV1: false
         });
-        // stake ID is an index of the stake in `stakes` array
+        // pushes new stake to `stakes` array
         user.stakes.push(stake);
 
         // update user record
@@ -878,7 +880,7 @@ abstract contract CorePool is
         IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         // emit an event
-        emit LogStakeAndLock(msg.sender, msg.sender, _value, lockUntil);
+        emit LogStakeAndLock(msg.sender, msg.sender, (user.stakes.length - 1), _value, lockUntil);
     }
 
     /**
@@ -1225,7 +1227,7 @@ abstract contract CorePool is
         user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
 
         // emit an event
-        emit LogClaimYieldRewards(_staker, _useSILV, pendingYieldToClaim);
+        emit LogClaimYieldRewards(_staker, _useSILV, (user.stakes.length - 1), pendingYieldToClaim);
     }
 
     /**
