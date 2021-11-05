@@ -220,7 +220,7 @@ export function migrateUser(usingPool: string): () => void {
 
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
-      await this.ilvPool.migrateWeights(
+      await this.ilvPool.migrateFromV1(
         [this.signers.carol.address],
         [users[2].deposits[0].weight.add(users[2].deposits[1].weight).add(users[2].deposits[2].weight)],
         users[2].deposits[0].weight.add(users[2].deposits[1].weight).add(users[2].deposits[2].weight),
@@ -543,7 +543,7 @@ export function mintV1Yield(): () => void {
     beforeEach(async function () {
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
-      await this.ilvPool.migrateWeights(
+      await this.ilvPool.migrateFromV1(
         [this.signers.alice.address],
         [users[0].deposits[1].weight],
         users[0].deposits[1].weight,
@@ -575,7 +575,7 @@ export function mintV1Yield(): () => void {
     it("should mint multiple v1 yield stake", async function () {
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
-      await this.ilvPool.migrateWeights(
+      await this.ilvPool.migrateFromV1(
         [this.signers.carol.address],
         [users[2].deposits[0].weight.add(users[2].deposits[1].weight).add(users[2].deposits[2].weight)],
         users[2].deposits[0].weight.add(users[2].deposits[1].weight).add(users[2].deposits[2].weight),
@@ -595,7 +595,7 @@ export function mintV1Yield(): () => void {
     it("should revert minting multiple yield stakes if already minted", async function () {
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
-      await this.ilvPool.migrateWeights(
+      await this.ilvPool.migrateFromV1(
         [this.signers.carol.address],
         [users[2].deposits[0].weight.add(users[2].deposits[1].weight).add(users[2].deposits[2].weight)],
         users[2].deposits[0].weight.add(users[2].deposits[1].weight).add(users[2].deposits[2].weight),
@@ -608,7 +608,7 @@ export function mintV1Yield(): () => void {
     it("should revert if passing !isYield _stakeId", async function () {
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
-      await this.ilvPool.migrateWeights(
+      await this.ilvPool.migrateFromV1(
         [this.signers.alice.address],
         [users[0].deposits[0].weight.add(users[0].deposits[1].weight).add(users[0].deposits[2].weight)],
         users[0].deposits[0].weight.add(users[0].deposits[1].weight).add(users[0].deposits[2].weight),
@@ -620,7 +620,7 @@ export function mintV1Yield(): () => void {
     it("should revert on mintYieldMultiple if yield is locked", async function () {
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
-      await this.ilvPool.migrateWeights(
+      await this.ilvPool.migrateFromV1(
         [this.signers.alice.address],
         [users[0].deposits[0].weight.add(users[0].deposits[1].weight).add(users[0].deposits[2].weight)],
         users[0].deposits[0].weight.add(users[0].deposits[1].weight).add(users[0].deposits[2].weight),
