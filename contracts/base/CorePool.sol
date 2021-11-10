@@ -127,13 +127,6 @@ abstract contract CorePool is
     bool public constant isFlashPool = false;
 
     /**
-     * @dev Fired in `stakeFlexible()`.
-     * @param from token holder address, the tokens will be returned to that address
-     * @param value value of tokens staked
-     */
-    event LogStakeFlexible(address indexed from, uint256 value);
-
-    /**
      * @dev Fired in _stakeAndLock() and stakeAsPool() in ILVPool contract.
      * @param by address that executed the stake function (user or pool)
      * @param from token holder address, the tokens will be returned to that address
@@ -152,23 +145,6 @@ abstract contract CorePool is
      * @param lockedUntil updated stake locked until timestamp value
      */
     event LogUpdateStakeLock(address indexed from, uint256 stakeId, uint64 lockedFrom, uint64 lockedUntil);
-
-    /**
-     * @dev Fired in `unstakeFlexible()`.
-     *
-     * @param to address receiving the tokens (user)
-     * @param value number of tokens unstaked
-     */
-    event LogUnstakeFlexible(address indexed to, uint256 value);
-
-    /**
-     * @dev Fired in `unstakeFlexible()`.
-     *
-     * @param to address receiving the tokens (user)
-     * @param totalValue number of tokens unstaked
-     * @param unstakingYield whether function call was to mint ILV (yield) or not
-     */
-    event LogUnstakeLockedMultiple(address indexed to, uint256 totalValue, bool unstakingYield);
 
     /**
      * @dev Fired in `unstakeLocked()`.
@@ -477,57 +453,6 @@ abstract contract CorePool is
         _requireNotPaused();
         // delegate call to an internal function
         _stakeAndLock(msg.sender, _value, _lockDuration);
-    }
-
-    /**
-     * @dev Stakes poolTokens without lock.
-     * @dev We use standard weight for flexible stakes (since it's never locked).
-     *
-     * @param _value number of tokens to stake
-     */
-    function stakeFlexible(uint256 _value) external updatePool nonReentrant {
-        _requireNotPaused();
-
-        // validate input is set
-        CorePool(this).stakeFlexible.selector.verifyNonZeroInput(_value, 0);
-
-        // get a link to user data struct, we will write to it later
-        User storage user = users[msg.sender];
-        // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-
-        // process current pending rewards if any
-        if (user.totalWeight > 0) {
-            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
-        }
-
-        // no need to calculate locking weight, flexible stake never locks
-        uint256 stakeWeight = Stake.WEIGHT_MULTIPLIER * _value;
-
-        // makes sure stakeWeight is valid
-        assert(stakeWeight > 0);
-
-        // update user record
-        user.flexibleBalance += uint128(_value);
-        user.totalWeight += uint248(stakeWeight);
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-
-        // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
-
-        // update global variable
-        globalWeight += stakeWeight;
-        // update reserve count
-        poolTokenReserve += _value;
-
-        // transfer `_value`
-        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
-
-        // emit an event
-        emit LogStakeFlexible(msg.sender, _value);
     }
 
     /**
@@ -887,43 +812,6 @@ abstract contract CorePool is
 
         // emit an event
         emit LogStakeAndLock(msg.sender, msg.sender, (user.stakes.length - 1), _value, lockUntil);
-    }
-
-    /**
-     * @notice Unstakes pool tokens that have been staked in flexible mode.
-     *
-     * @dev Subtracts `_value` from `user.flexibleBalance`.
-     *
-     * @param _value number of tokens to unstake
-     */
-
-    function unstakeFlexible(uint256 _value) external updatePool {
-        // we're using selector to simplify input and state validation
-        bytes4 fnSelector = CorePool(this).unstakeFlexible.selector;
-
-        // verify a value is set
-        fnSelector.verifyNonZeroInput(_value, 0);
-        // get a link to user data struct, we will write to it later
-        User storage user = users[msg.sender];
-        // verify available balance
-        fnSelector.verifyInput(user.flexibleBalance >= _value, 0);
-
-        // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        // and process current pending rewards if any
-        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
-
-        // updates user data in storage
-        user.flexibleBalance -= uint128(_value);
-        user.totalWeight -= uint248(_value * Stake.WEIGHT_MULTIPLIER);
-        // update reserve count
-        poolTokenReserve -= _value;
-
-        // finally, transfers `_value` poolTokens
-        IERC20(poolToken).safeTransfer(msg.sender, _value);
-
-        // emit an event
-        emit LogUnstakeFlexible(msg.sender, _value);
     }
 
     /**
