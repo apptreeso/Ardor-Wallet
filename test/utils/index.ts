@@ -1,4 +1,3 @@
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
