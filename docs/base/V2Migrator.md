@@ -12,13 +12,13 @@ and v1 total yield weights by data stored in a merkle tree using merkle proofs.
 
 V2Migrator initializer function
 
-### `migrateLockedStake(uint256[] _stakeIds)` (external)
+### `migrateFromV1([], 0, 0, uint256[] _stakeIds)` (external)
 
 Reads v1 core pool locked stakes data (by looping through the `_stakeIds` array),
 checks if it's a valid v1 stake to migrate and save the id to v2 user struct.
 
 Only `msg.sender` can migrate v1 stakes to v2.
 
-### `LogMigrateLockedStake(address from, uint256[] stakeIds)`
+### `LogmigrateFromV1([], 0, 0, address from, uint256[] stakeIds)`
 
-logs `migrateLockedStake()`
+logs `migrateFromV1([], 0, 0, )`

@@ -46,8 +46,8 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     /// @dev Used to calculate yield rewards
     uint256 public yieldRewardsPerToken;
 
-    /// @dev Rewards per token are stored multiplied by 1e12 as uint
-    uint256 internal constant REWARD_PER_TOKEN_MULTIPLIER = 1e12;
+    /// @dev Rewards per token are stored multiplied by 1e18 as uint
+    uint256 internal constant REWARD_PER_TOKEN_MULTIPLIER = 1e18;
 
     /// @dev Flag indicating pool type, false means "core pool"
     bool public constant isFlashPool = true;
@@ -504,7 +504,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address) internal override {
+    function _authorizeUpgrade(address) internal view override {
         // checks caller is factory.owner()
         _requireIsFactoryController();
     }

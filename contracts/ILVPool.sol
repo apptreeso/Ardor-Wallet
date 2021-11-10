@@ -29,34 +29,13 @@ contract ILVPool is V2Migrator {
     mapping(address => mapping(uint256 => bool)) public v1YieldMinted;
 
     /**
-     * @dev Fired in `claimYieldRewardsMultiple()`.
-     *
-     * @param from staker address
-     * @param pools address array of pools to be claimed
-     * @param useSILV whether claims should use SILV or ILV
-     */
-    event LogClaimYieldRewardsMultiple(address indexed from, address[] pools, bool[] useSILV);
-
-    /**
-     * @dev Fired in `claimVaultRewardsMultiple()`.
-     *
-     * @param from staker address
-     * @param pools address array of pools to be claimed
-     */
-    event LogClaimVaultRewardsMultiple(address indexed from, address[] pools);
-
-    // TODO: change to merkle tree migration
-    event LogMigrateWeights(address indexed by, uint256 numberOfUsers, uint248 totalWeight);
-
-    /**
      * @dev logs `mintV1Yield()`.
      *
      * @param from user address
-     * @param stakeIds array of v1 yield ids
      * @param value number of ILV tokens minted
      *
      */
-    event LogV1YieldMintedMultiple(address indexed from, uint256[] stakeIds, uint256 value);
+    event LogV1YieldMintedMultiple(address indexed from, uint256 value);
 
     /// @dev Calls `__V2Migrator_init()`.
     function initialize(
@@ -67,9 +46,20 @@ contract ILVPool is V2Migrator {
         uint64 _initTime,
         uint32 _weight,
         address _corePoolV1,
-        uint256 _v1StakeMaxPeriod
+        uint256 _v1StakeMaxPeriod,
+        bytes32 _merkleRoot
     ) external initializer {
-        __V2Migrator_init(_ilv, _silv, _poolToken, _factory, _initTime, _weight, _corePoolV1, _v1StakeMaxPeriod);
+        __V2Migrator_init(
+            _ilv,
+            _silv,
+            _poolToken,
+            _corePoolV1,
+            _factory,
+            _initTime,
+            _weight,
+            _v1StakeMaxPeriod,
+            _merkleRoot
+        );
     }
 
     /**
@@ -113,7 +103,7 @@ contract ILVPool is V2Migrator {
         // update `poolTokenReserve` only if this is a LP Core Pool (stakeAsPool can be executed only for LP pool)
         poolTokenReserve += _value;
 
-        emit LogStakeAndLock(msg.sender, _staker, _value, uint64(_now256() + 365 days));
+        emit LogStakeAndLock(msg.sender, _staker, (user.stakes.length - 1), _value, uint64(_now256() + 365 days));
     }
 
     /**
@@ -144,8 +134,6 @@ contract ILVPool is V2Migrator {
                 SushiLPPool(pool).claimYieldRewardsFromRouter(msg.sender, _useSILV[i]);
             }
         }
-
-        emit LogClaimYieldRewardsMultiple(msg.sender, _pools, _useSILV);
     }
 
     /**
@@ -173,37 +161,6 @@ contract ILVPool is V2Migrator {
                 SushiLPPool(pool).claimVaultRewardsFromRouter(msg.sender);
             }
         }
-
-        emit LogClaimVaultRewardsMultiple(msg.sender, _pools);
-    }
-
-    /// @dev TODO: remove function and use MerkleTree approach in V2Migrator.
-    function migrateWeights(
-        address[] calldata _users,
-        uint248[] calldata _yieldWeights,
-        uint248 _totalWeight
-    ) external {
-        // checks caller is factory.owner()
-        _requireIsFactoryController();
-        // checks if parameters are valid
-        ILVPool(this).migrateWeights.selector.verifyInput(_users.length == _yieldWeights.length, 0);
-
-        // will be used to check if weights were added as expected
-        uint248 totalWeight;
-
-        // checks each weight at `_yieldWeights` array and adds to v2 user
-        for (uint256 i = 0; i < _users.length; i++) {
-            User storage user = users[_users[i]];
-            user.totalWeight += _yieldWeights[i];
-
-            totalWeight += _yieldWeights[i];
-        }
-
-        // makes sure total weight migrated is valid
-        assert(totalWeight == _totalWeight);
-
-        // emits an event
-        emit LogMigrateWeights(msg.sender, _users.length, totalWeight);
     }
 
     /**
@@ -236,6 +193,6 @@ contract ILVPool is V2Migrator {
 
         factory.mintYieldTo(msg.sender, amountToMint, false);
 
-        emit LogV1YieldMintedMultiple(msg.sender, _stakeIds, amountToMint);
+        emit LogV1YieldMintedMultiple(msg.sender, amountToMint);
     }
 }

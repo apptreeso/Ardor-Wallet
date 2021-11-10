@@ -27,7 +27,6 @@ import {
   V1_STAKE_MAX_PERIOD,
   toWei,
   toAddress,
-  getPool,
 } from "./utils";
 import {
   upgradePools,
@@ -39,11 +38,9 @@ import {
   updateStakeLock,
   stakeAndLock,
   sync,
-  stakeFlexible,
   pendingYield,
   claimYieldRewards,
   claimYieldRewardsMultiple,
-  unstakeFlexible,
   unstakeLocked,
   unstakeLockedMultiple,
   migrateUser,
@@ -139,10 +136,6 @@ describe("CorePools", function () {
     context("ILV Pool", stakeAndLock("ILV"));
     context("Sushi LP Pool", stakeAndLock("LP"));
   });
-  describe("#stakeFlexible", function () {
-    context("ILV Pool", stakeFlexible("ILV"));
-    context("Sushi LP Pool", stakeFlexible("LP"));
-  });
   describe("#pendingYield", function () {
     context("ILV Pool", pendingYield("ILV"));
     context("Sushi LP Pool", pendingYield("LP"));
@@ -155,10 +148,6 @@ describe("CorePools", function () {
   describe("#unstakeLocked", function () {
     context("ILV Pool", unstakeLocked("ILV"));
     context("Sushi LP Pool", unstakeLocked("LP"));
-  });
-  describe("#unstakeFlexible", function () {
-    context("ILV Pool", unstakeFlexible("ILV"));
-    context("Sushi LP Pool", unstakeFlexible("LP"));
   });
   describe("#sync", function () {
     context("ILV Pool", sync("ILV"));
