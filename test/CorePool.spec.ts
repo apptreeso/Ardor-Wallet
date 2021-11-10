@@ -41,7 +41,6 @@ import {
   pendingYield,
   claimYieldRewards,
   claimYieldRewardsMultiple,
-  unstakeFlexible,
   unstakeLocked,
   unstakeLockedMultiple,
   migrateUser,
@@ -149,10 +148,6 @@ describe("CorePools", function () {
   describe("#unstakeLocked", function () {
     context("ILV Pool", unstakeLocked("ILV"));
     context("Sushi LP Pool", unstakeLocked("LP"));
-  });
-  describe("#unstakeFlexible", function () {
-    context("ILV Pool", unstakeFlexible("ILV"));
-    context("Sushi LP Pool", unstakeFlexible("LP"));
   });
   describe("#sync", function () {
     context("ILV Pool", sync("ILV"));

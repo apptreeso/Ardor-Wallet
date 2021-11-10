@@ -1122,58 +1122,6 @@ export function unstakeLocked(usingPool: string): () => void {
   };
 }
 
-export function unstakeFlexible(usingPool: string): () => void {
-  return function () {
-    it("should unstake flexible", async function () {
-      const token = getToken(this.ilv, this.lp, usingPool);
-      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
-
-      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakeFlexible(toWei(1000));
-
-      await pool.connect(this.signers.alice).unstakeFlexible(toWei(1000));
-
-      const poolBalance = await pool.balanceOf(this.signers.alice.address);
-
-      expect(poolBalance.toNumber()).to.be.equal(0);
-    });
-    it("should revert unstaking 0", async function () {
-      const token = getToken(this.ilv, this.lp, usingPool);
-      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
-
-      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakeFlexible(toWei(1000));
-
-      await expect(pool.connect(this.signers.alice).unstakeFlexible(0)).reverted;
-    });
-    it("should revert unstaking more than allowed", async function () {
-      const token = getToken(this.ilv, this.lp, usingPool);
-      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
-
-      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakeFlexible(toWei(1000));
-
-      await expect(pool.connect(this.signers.alice).unstakeFlexible(toWei(1001))).reverted;
-    });
-    it("should process rewards on unstake", async function () {
-      const token = getToken(this.ilv, this.lp, usingPool);
-      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
-
-      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakeFlexible(toWei(1000));
-
-      await pool.setNow256(INIT_TIME + 1);
-      await pool.connect(this.signers.alice).unstakeFlexible(toWei(1));
-      const { pendingYield } = await pool.users(this.signers.alice.address);
-
-      const poolWeight = await pool.weight();
-      const totalWeight = await this.factory.totalWeight();
-
-      expect(pendingYield).to.be.equal(ILV_PER_SECOND.mul(poolWeight).div(totalWeight));
-    });
-  };
-}
-
 export function claimYieldRewardsMultiple(): () => void {
   return function () {
     it("should correctly claim multiple pools as ILV", async function () {
