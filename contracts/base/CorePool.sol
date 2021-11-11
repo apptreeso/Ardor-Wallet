@@ -965,8 +965,6 @@ abstract contract CorePool is
             // otherwise just return tokens back to holder
             IERC20(poolToken).safeTransfer(msg.sender, valueToUnstake);
         }
-
-        emit LogUnstakeLockedMultiple(msg.sender, valueToUnstake, _unstakingYield);
     }
 
     /**

@@ -4,19 +4,7 @@ import chai from "chai";
 import chaiSubset from "chai-subset";
 import { solidity } from "ethereum-waffle";
 
-import {
-  ILV_PER_SECOND,
-  INIT_TIME,
-  END_TIME,
-  ONE_YEAR,
-  toWei,
-  toAddress,
-  getToken,
-  getPool,
-  getV1Pool,
-  getUsers0,
-  getUsers1,
-} from "./utils";
+import { ONE_YEAR, toWei, getUsers0 } from "./utils";
 
 const { MaxUint256, AddressZero } = ethers.constants;
 
