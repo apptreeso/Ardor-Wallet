@@ -42,6 +42,8 @@ export const getV1Pool = (
 
 export const ONE_YEAR = 31536000;
 
+export const ONE_MONTH = 2592000;
+
 export const getUsers0 = (addresses: string[]) => [
   {
     userAddress: addresses[0],

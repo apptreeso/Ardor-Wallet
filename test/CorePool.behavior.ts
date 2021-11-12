@@ -9,6 +9,7 @@ import {
   INIT_TIME,
   END_TIME,
   ONE_YEAR,
+  ONE_MONTH,
   toWei,
   toAddress,
   getToken,
@@ -714,7 +715,7 @@ export function sync(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stake(toWei(100));
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_MONTH);
 
       await pool.setNow256(INIT_TIME + 10);
       await pool.sync();
@@ -758,7 +759,7 @@ export function sync(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakeFlexible(toWei(100));
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_MONTH);
 
       await pool.setNow256(END_TIME + 100);
       await pool.sync();
@@ -786,7 +787,7 @@ export function sync(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakeFlexible(toWei(100));
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_MONTH);
 
       await pool.setNow256(END_TIME - 100);
       await this.factory.setNow256(END_TIME - 100);
@@ -1378,7 +1379,7 @@ export function pendingYield(usingPool: string): () => void {
       const totalWeight = await this.factory.totalWeight();
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakeFlexible(toWei(10));
+      await pool.connect(this.signers.alice).stake(toWei(10), ONE_MONTH);
 
       await pool.setNow256(INIT_TIME + 50);
       await this.factory.setNow256(INIT_TIME + 50);
@@ -1436,7 +1437,7 @@ export function pendingYield(usingPool: string): () => void {
       const totalWeight = await this.factory.totalWeight();
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakeFlexible(toWei(100));
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_MONTH);
 
       await pool.setNow256(INIT_TIME + 20);
       await this.factory.setNow256(INIT_TIME + 20);
