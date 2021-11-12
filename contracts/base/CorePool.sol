@@ -127,14 +127,14 @@ abstract contract CorePool is
     bool public constant isFlashPool = false;
 
     /**
-     * @dev Fired in _stakeAndLock() and stakeAsPool() in ILVPool contract.
+     * @dev Fired in _stake() and stakeAsPool() in ILVPool contract.
      * @param by address that executed the stake function (user or pool)
      * @param from token holder address, the tokens will be returned to that address
      * @param stakeId id of the new stake created
      * @param value value of tokens staked
      * @param lockUntil timestamp indicating when tokens should unlock (max 2 years)
      */
-    event LogStakeAndLock(address indexed by, address indexed from, uint256 stakeId, uint256 value, uint64 lockUntil);
+    event LogStake(address indexed by, address indexed from, uint256 stakeId, uint256 value, uint64 lockUntil);
 
     /**
      * @dev Fired in updateStakeLock().
@@ -449,10 +449,10 @@ abstract contract CorePool is
      * @param _value value of tokens to stake
      * @param _lockDuration stake duration as unix timestamp
      */
-    function stakeAndLock(uint256 _value, uint64 _lockDuration) external nonReentrant {
+    function stake(uint256 _value, uint64 _lockDuration) external nonReentrant {
         _requireNotPaused();
         // delegate call to an internal function
-        _stakeAndLock(msg.sender, _value, _lockDuration);
+        _stake(msg.sender, _value, _lockDuration);
     }
 
     /**
@@ -747,7 +747,7 @@ abstract contract CorePool is
      * @param _value value of tokens to stake
      * @param _lockDuration stake period as unix timestamp; zero means no locking
      */
-    function _stakeAndLock(
+    function _stake(
         address _staker,
         uint256 _value,
         uint64 _lockDuration
@@ -811,7 +811,7 @@ abstract contract CorePool is
         IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         // emit an event
-        emit LogStakeAndLock(msg.sender, msg.sender, (user.stakes.length - 1), _value, lockUntil);
+        emit LogStake(msg.sender, msg.sender, (user.stakes.length - 1), _value, lockUntil);
     }
 
     /**

@@ -36,7 +36,7 @@ import {
   migrationTests,
   mintV1Yield,
   updateStakeLock,
-  stakeAndLock,
+  stake,
   sync,
   pendingYield,
   claimYieldRewards,
@@ -132,9 +132,9 @@ describe("CorePools", function () {
     context("ILV Pool", getPoolData("ILV"));
     context("Sushi LP Pool", getPoolData("LP"));
   });
-  describe("#stakeAndLock", function () {
-    context("ILV Pool", stakeAndLock("ILV"));
-    context("Sushi LP Pool", stakeAndLock("LP"));
+  describe("#stake", function () {
+    context("ILV Pool", stake("ILV"));
+    context("Sushi LP Pool", stake("LP"));
   });
   describe("#pendingYield", function () {
     context("ILV Pool", pendingYield("ILV"));

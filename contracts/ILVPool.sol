@@ -103,7 +103,7 @@ contract ILVPool is V2Migrator {
         // update `poolTokenReserve` only if this is a LP Core Pool (stakeAsPool can be executed only for LP pool)
         poolTokenReserve += _value;
 
-        emit LogStakeAndLock(msg.sender, _staker, (user.stakes.length - 1), _value, uint64(_now256() + 365 days));
+        emit LogStake(msg.sender, _staker, (user.stakes.length - 1), _value, uint64(_now256() + 365 days));
     }
 
     /**

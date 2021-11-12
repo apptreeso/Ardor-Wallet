@@ -62,7 +62,7 @@ Returns number of stakes for the given address. Allows iteration over stakes.
 
 See `getStake()`.
 
-### `stakeAndLock(uint256 _value, uint64 _lockDuration)` (external)
+### `stake(uint256 _value, uint64 _lockDuration)` (external)
 
 Stakes specified value of tokens for the specified value of time,
 and pays pending yield rewards if any.
@@ -145,7 +145,7 @@ V1 weight is kept the same used in v1, as a bonus to V1 stakers.
 pending values retured are used by `_processRewards()` calls, which means
 we aren't counting `user.pendingYield` and `user.pendingRevDis` here.
 
-### `_stakeAndLock(address _staker, uint256 _value, uint64 _lockDuration)` (internal)
+### `_stake(address _staker, uint256 _value, uint64 _lockDuration)` (internal)
 
 Used internally, mostly by children implementations, see `stake()`.
 
@@ -238,9 +238,9 @@ admin actions approved by the Council.
 
 Fired in `stakeFlexible()`.
 
-### `LogStakeAndLock(address by, address from, uint256 value, uint64 lockUntil)`
+### `LogStake(address by, address from, uint256 value, uint64 lockUntil)`
 
-Fired in \_stakeAndLock() and stakeAsPool() in ILVPool contract.
+Fired in \_stake() and stakeAsPool() in ILVPool contract.
 
 ### `LogUpdateStakeLock(address from, uint256 stakeId, uint64 lockedFrom, uint64 lockedUntil)`
 
