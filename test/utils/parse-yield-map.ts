@@ -1,5 +1,5 @@
 import { BigNumber, utils } from "ethers";
-import BalanceTree from "./balance-tree";
+import YieldTree from "./yield-tree";
 
 const { isAddress, getAddress } = utils;
 
@@ -25,7 +25,7 @@ interface MerkleDistributorInfo {
 type OldFormat = { [account: string]: number | string };
 type NewFormat = { address: string; earnings: string; reasons: string };
 
-export function parseBalanceMap(balances: OldFormat | NewFormat[]): MerkleDistributorInfo {
+export function parseYieldMap(balances: OldFormat | NewFormat[]): MerkleDistributorInfo {
   // if balances are in an old format, process them
   const balancesInNewFormat: NewFormat[] = Array.isArray(balances)
     ? balances
@@ -61,7 +61,7 @@ export function parseBalanceMap(balances: OldFormat | NewFormat[]): MerkleDistri
   const sortedAddresses = Object.keys(dataByAddress).sort();
 
   // construct a tree
-  const tree = new BalanceTree(
+  const tree = new YieldTree(
     sortedAddresses.map(address => ({ account: address, amount: dataByAddress[address].amount })),
   );
 

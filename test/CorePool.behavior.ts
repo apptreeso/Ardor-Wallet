@@ -11,13 +11,13 @@ import {
   ONE_YEAR,
   ONE_MONTH,
   toWei,
-  toAddress,
   getToken,
   getPool,
   getV1Pool,
   getUsers0,
   getUsers1,
 } from "./utils";
+import YieldTree from "./utils/yield-tree";
 import { ILVPoolUpgrade, SushiLPPoolUpgrade, PoolFactoryUpgrade } from "../types";
 
 const { MaxUint256, AddressZero } = ethers.constants;

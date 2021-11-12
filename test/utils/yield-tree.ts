@@ -1,12 +1,12 @@
 import MerkleTree from "./merkle-tree";
 import { BigNumber, utils } from "ethers";
 
-export default class BalanceTree {
+export default class YieldTree {
   private readonly tree: MerkleTree;
   constructor(balances: { account: string; amount: BigNumber }[]) {
     this.tree = new MerkleTree(
       balances.map(({ account, amount }, index) => {
-        return BalanceTree.toNode(index, account, amount);
+        return YieldTree.toNode(index, account, amount);
       }),
     );
   }
@@ -18,7 +18,7 @@ export default class BalanceTree {
     proof: Buffer[],
     root: Buffer,
   ): boolean {
-    let pair = BalanceTree.toNode(index, account, amount);
+    let pair = YieldTree.toNode(index, account, amount);
     for (const item of proof) {
       pair = MerkleTree.combinedHash(pair, item);
     }
@@ -40,6 +40,6 @@ export default class BalanceTree {
 
   // returns the hex bytes32 values of the proof
   public getProof(index: number | BigNumber, account: string, amount: BigNumber): string[] {
-    return this.tree.getHexProof(BalanceTree.toNode(index, account, amount));
+    return this.tree.getHexProof(YieldTree.toNode(index, account, amount));
   }
 }
