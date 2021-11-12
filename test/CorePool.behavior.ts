@@ -697,10 +697,12 @@ export function sync(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stake(toWei(100), ONE_MONTH);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR / 10);
 
       await pool.setNow256(INIT_TIME + 10);
       await pool.sync();
+
+      console.log(Number((await pool.users(this.signers.alice.address)).totalWeight));
 
       const poolWeight = await pool.weight();
       const totalWeight = await this.factory.totalWeight();
@@ -713,6 +715,8 @@ export function sync(usingPool: string): () => void {
         .mul(poolWeight)
         .mul(1e6)
         .div(totalWeight)
+        .div(toWei(100))
+        .mul(toWei(95))
         .div(toWei(100));
 
       expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
@@ -741,11 +745,13 @@ export function sync(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stake(toWei(100), ONE_MONTH);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR / 10);
 
       await pool.setNow256(END_TIME + 100);
+      await this.factory.setNow256(END_TIME + 100);
       await pool.sync();
       await pool.setNow256(END_TIME + 200);
+      await this.factory.setNow256(END_TIME + 200);
       await pool.sync();
 
       const poolWeight = await pool.weight();
@@ -759,6 +765,8 @@ export function sync(usingPool: string): () => void {
         .mul(poolWeight)
         .mul(1e6)
         .div(totalWeight)
+        .div(toWei(100))
+        .mul(toWei(95))
         .div(toWei(100));
 
       expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);

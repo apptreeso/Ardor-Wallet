@@ -42,7 +42,7 @@ library Stake {
     /**
      * @dev Rewards per weight are stored multiplied by 1e20 as uint.
      */
-    uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e20;
+    uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e12;
 
     /**
      * @dev When we know beforehand that staking is done for yield instead of
