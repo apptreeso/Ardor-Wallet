@@ -46,20 +46,9 @@ contract ILVPool is V2Migrator {
         uint64 _initTime,
         uint32 _weight,
         address _corePoolV1,
-        uint256 _v1StakeMaxPeriod,
-        bytes32 _merkleRoot
+        uint256 _v1StakeMaxPeriod
     ) external initializer {
-        __V2Migrator_init(
-            _ilv,
-            _silv,
-            _poolToken,
-            _corePoolV1,
-            _factory,
-            _initTime,
-            _weight,
-            _v1StakeMaxPeriod,
-            _merkleRoot
-        );
+        __V2Migrator_init(_ilv, _silv, _poolToken, _corePoolV1, _factory, _initTime, _weight, _v1StakeMaxPeriod);
     }
 
     /**
