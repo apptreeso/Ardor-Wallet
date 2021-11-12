@@ -294,8 +294,8 @@ export function sendILVRewards(): () => void {
 
       const totalILVInPools = ilvPoolILVBalance0.add(lpPoolILVBalance0);
 
-      const ilvPoolShare = ilvPoolILVBalance0.mul(1e20).div(totalILVInPools);
-      const lpPoolShare = lpPoolILVBalance0.mul(1e20).div(totalILVInPools);
+      const ilvPoolShare = ilvPoolILVBalance0.mul(toWei(100)).div(totalILVInPools);
+      const lpPoolShare = lpPoolILVBalance0.mul(toWei(100)).div(totalILVInPools);
 
       await this.vault.sendILVRewards(0, 0, 0);
 
@@ -344,8 +344,8 @@ export function sendILVRewards(): () => void {
       );
       const totalILVInPools = ilvPoolILVBalance0.add(lpPoolILVBalance);
 
-      const ilvPoolShare = ilvPoolILVBalance0.mul(1e20).div(totalILVInPools);
-      const lpPoolShare = lpPoolILVBalance.mul(1e20).div(totalILVInPools);
+      const ilvPoolShare = ilvPoolILVBalance0.mul(toWei(100)).div(totalILVInPools);
+      const lpPoolShare = lpPoolILVBalance.mul(toWei(100)).div(totalILVInPools);
 
       const ilvPoolILVReceived1 = await this.ilv.balanceOf(this.ilvPool.address);
       const lpPoolILVReceived1 = await this.ilv.balanceOf(this.lpPool.address);

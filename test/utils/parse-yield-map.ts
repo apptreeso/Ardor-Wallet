@@ -13,7 +13,7 @@ interface MerkleDistributorInfo {
   claims: {
     [account: string]: {
       index: number;
-      amount: string;
+      weight: string;
       proof: string[];
       flags?: {
         [flag: string]: boolean;
@@ -38,7 +38,7 @@ export function parseYieldMap(balances: OldFormat | NewFormat[]): MerkleDistribu
       );
 
   const dataByAddress = balancesInNewFormat.reduce<{
-    [address: string]: { amount: BigNumber; flags?: { [flag: string]: boolean } };
+    [address: string]: { weight: BigNumber; flags?: { [flag: string]: boolean } };
   }>((memo, { address: account, earnings, reasons }) => {
     if (!isAddress(account)) {
       throw new Error(`Found invalid address: ${account}`);
@@ -46,7 +46,7 @@ export function parseYieldMap(balances: OldFormat | NewFormat[]): MerkleDistribu
     const parsed = getAddress(account);
     if (memo[parsed]) throw new Error(`Duplicate address: ${parsed}`);
     const parsedNum = BigNumber.from(earnings);
-    if (parsedNum.lte(0)) throw new Error(`Invalid amount for account: ${account}`);
+    if (parsedNum.lte(0)) throw new Error(`Invalid weight for account: ${account}`);
 
     const flags = {
       isSOCKS: reasons.includes("socks"),
@@ -54,7 +54,7 @@ export function parseYieldMap(balances: OldFormat | NewFormat[]): MerkleDistribu
       isUser: reasons.includes("user"),
     };
 
-    memo[parsed] = { amount: parsedNum, ...(reasons === "" ? {} : { flags }) };
+    memo[parsed] = { weight: parsedNum, ...(reasons === "" ? {} : { flags }) };
     return memo;
   }, {});
 
@@ -62,25 +62,25 @@ export function parseYieldMap(balances: OldFormat | NewFormat[]): MerkleDistribu
 
   // construct a tree
   const tree = new YieldTree(
-    sortedAddresses.map(address => ({ account: address, amount: dataByAddress[address].amount })),
+    sortedAddresses.map(address => ({ account: address, weight: dataByAddress[address].weight })),
   );
 
   // generate claims
   const claims = sortedAddresses.reduce<{
-    [address: string]: { amount: string; index: number; proof: string[]; flags?: { [flag: string]: boolean } };
+    [address: string]: { weight: string; index: number; proof: string[]; flags?: { [flag: string]: boolean } };
   }>((memo, address, index) => {
-    const { amount, flags } = dataByAddress[address];
+    const { weight, flags } = dataByAddress[address];
     memo[address] = {
       index,
-      amount: amount.toHexString(),
-      proof: tree.getProof(index, address, amount),
+      weight: weight.toHexString(),
+      proof: tree.getProof(index, address, weight),
       ...(flags ? { flags } : {}),
     };
     return memo;
   }, {});
 
   const tokenTotal: BigNumber = sortedAddresses.reduce<BigNumber>(
-    (memo, key) => memo.add(dataByAddress[key].amount),
+    (memo, key) => memo.add(dataByAddress[key].weight),
     BigNumber.from(0),
   );
 

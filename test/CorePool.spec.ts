@@ -84,6 +84,7 @@ describe("CorePools", function () {
       [this.ilv.address, this.silv.address, ILV_PER_SECOND, SECONDS_PER_UPDATE, INIT_TIME, END_TIME],
       { kind: "uups" },
     )) as PoolFactoryMock;
+
     this.ilvPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.ilv.address);
     this.lpPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.lp.address);
     this.ilvPool = (await upgrades.deployProxy(
@@ -100,6 +101,7 @@ describe("CorePools", function () {
       ],
       { kind: "uups" },
     )) as ILVPoolMock;
+
     this.lpPool = (await upgrades.deployProxy(
       this.SushiLPPool,
       [
@@ -114,7 +116,6 @@ describe("CorePools", function () {
       ],
       { kind: "uups" },
     )) as SushiLPPoolMock;
-
     await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
     await this.factory.connect(this.signers.deployer).registerPool(this.lpPool.address);
 

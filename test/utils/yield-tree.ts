@@ -14,11 +14,11 @@ export default class YieldTree {
   public static verifyProof(
     index: number | BigNumber,
     account: string,
-    amount: BigNumber,
+    weight: BigNumber,
     proof: Buffer[],
     root: Buffer,
   ): boolean {
-    let pair = YieldTree.toNode(index, account, amount);
+    let pair = YieldTree.toNode(index, account, weight);
     for (const item of proof) {
       pair = MerkleTree.combinedHash(pair, item);
     }
@@ -26,10 +26,10 @@ export default class YieldTree {
     return pair.equals(root);
   }
 
-  // keccak256(abi.encode(index, account, amount))
-  public static toNode(index: number | BigNumber, account: string, amount: BigNumber): Buffer {
+  // keccak256(abi.encode(index, account, weight))
+  public static toNode(index: number | BigNumber, account: string, weight: BigNumber): Buffer {
     return Buffer.from(
-      utils.solidityKeccak256(["uint256", "address", "uint256"], [index, account, amount]).substr(2),
+      utils.solidityKeccak256(["uint256", "address", "uint256"], [index, account, weight]).substr(2),
       "hex",
     );
   }
@@ -39,7 +39,7 @@ export default class YieldTree {
   }
 
   // returns the hex bytes32 values of the proof
-  public getProof(index: number | BigNumber, account: string, amount: BigNumber): string[] {
-    return this.tree.getHexProof(YieldTree.toNode(index, account, amount));
+  public getProof(index: number | BigNumber, account: string, weight: BigNumber): string[] {
+    return this.tree.getHexProof(YieldTree.toNode(index, account, weight));
   }
 }
