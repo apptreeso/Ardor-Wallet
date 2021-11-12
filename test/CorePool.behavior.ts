@@ -278,6 +278,23 @@ export function migrationTests(usingPool: string): () => void {
       const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
       await v1Pool.setUsers(users);
+
+      this.tree = new YieldTree([
+        {
+          account: this.signers.alice.address,
+          weight: toWei(2000),
+        },
+        {
+          account: this.signers.bob.address,
+          weight: toWei(10000),
+        },
+        {
+          account: this.signers.carol.address,
+          weight: toWei(4000),
+        },
+      ]);
+      await this.ilvPool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
+      await this.lpPool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
     });
     context("#migrateLockedStake", function () {
       it("should migrate locked stakes - alice", async function () {

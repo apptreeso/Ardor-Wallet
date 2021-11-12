@@ -3,10 +3,10 @@ import { BigNumber, utils } from "ethers";
 
 export default class YieldTree {
   private readonly tree: MerkleTree;
-  constructor(balances: { account: string; amount: BigNumber }[]) {
+  constructor(yieldWeights: { account: string; weight: BigNumber }[]) {
     this.tree = new MerkleTree(
-      balances.map(({ account, amount }, index) => {
-        return YieldTree.toNode(index, account, amount);
+      yieldWeights.map(({ account, weight }, index) => {
+        return YieldTree.toNode(index, account, weight);
       }),
     );
   }
