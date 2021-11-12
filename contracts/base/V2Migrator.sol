@@ -45,10 +45,8 @@ abstract contract V2Migrator is CorePool {
     /**
      * @dev V2Migrator initializer function
      *
-
      * @param _v1StakeMaxPeriod max timestamp that we accept _lockedFrom values
      *                         in v1 stakes
-     *
      */
     function __V2Migrator_init(
         address _ilv,
@@ -66,6 +64,11 @@ abstract contract V2Migrator is CorePool {
         v1StakeMaxPeriod = _v1StakeMaxPeriod;
     }
 
+    /**
+     * @dev Sets the yield weight tree root.
+     *
+     * @param _merkleRoot 32 bytes tree root.
+     */
     function setMerkleRoot(bytes32 _merkleRoot) external {
         _requireIsFactoryController();
         merkleRoot = _merkleRoot;
