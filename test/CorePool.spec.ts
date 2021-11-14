@@ -127,52 +127,52 @@ describe("CorePools", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
-  // describe("Upgrades", upgradePools());
-  // describe("#setEndTime", setEndTime());
-  // describe("#getPoolData", function () {
-  //   context("ILV Pool", getPoolData("ILV"));
-  //   context("Sushi LP Pool", getPoolData("LP"));
-  // });
-  // describe("#stake", function () {
-  //   context("ILV Pool", stake("ILV"));
-  //   context("Sushi LP Pool", stake("LP"));
-  // });
-  // describe("#pendingYield", function () {
-  //   context("ILV Pool", pendingYield("ILV"));
-  //   context("Sushi LP Pool", pendingYield("LP"));
-  // });
-  // describe("#claimYieldRewards", function () {
-  //   context("ILV Pool", claimYieldRewards("ILV"));
-  //   context("Sushi LP Pool", claimYieldRewards("LP"));
-  // });
-  // describe("#claimYieldRewardsMultiple", claimYieldRewardsMultiple());
-  // describe("#unstakeLocked", function () {
-  //   context("ILV Pool", unstakeLocked("ILV"));
-  //   context("Sushi LP Pool", unstakeLocked("LP"));
-  // });
+  describe("Upgrades", upgradePools());
+  describe("#setEndTime", setEndTime());
+  describe("#getPoolData", function () {
+    context("ILV Pool", getPoolData("ILV"));
+    context("Sushi LP Pool", getPoolData("LP"));
+  });
+  describe("#stake", function () {
+    context("ILV Pool", stake("ILV"));
+    context("Sushi LP Pool", stake("LP"));
+  });
+  describe("#pendingYield", function () {
+    context("ILV Pool", pendingYield("ILV"));
+    context("Sushi LP Pool", pendingYield("LP"));
+  });
+  describe("#claimYieldRewards", function () {
+    context("ILV Pool", claimYieldRewards("ILV"));
+    context("Sushi LP Pool", claimYieldRewards("LP"));
+  });
+  describe("#claimYieldRewardsMultiple", claimYieldRewardsMultiple());
+  describe("#unstakeLocked", function () {
+    context("ILV Pool", unstakeLocked("ILV"));
+    context("Sushi LP Pool", unstakeLocked("LP"));
+  });
   describe("#sync", function () {
     context("ILV Pool", sync("ILV"));
     context("Sushi LP Pool", sync("LP"));
   });
-  // describe("#updateStakeLock", function () {
-  //   context("ILV Pool", updateStakeLock("ILV"));
-  //   context("Sushi LP Pool", updateStakeLock("LP"));
-  // });
-  // describe("#setWeight", function () {
-  //   context("ILV Pool", setWeight("ILV"));
-  //   context("Sushi LP Pool", setWeight("LP"));
-  // });
-  // describe("#migrateUser", function () {
-  //   context("ILV Pool", migrateUser("ILV"));
-  //   context("Sushi LP Pool", migrateUser("LP"));
-  // });
-  // describe("#unstakeLockedMultiple", function () {
-  //   context("ILV Pool", unstakeLockedMultiple("ILV"));
-  //   context("Sushi LP Pool", unstakeLockedMultiple("LP"));
-  // });
-  // describe("Migration tests", function () {
-  //   context("ILV Pool", migrationTests("ILV"));
-  //   context("Sushi LP Pool", migrationTests("LP"));
-  //   context("Mint yield", mintV1Yield());
-  // });
+  describe("#updateStakeLock", function () {
+    context("ILV Pool", updateStakeLock("ILV"));
+    context("Sushi LP Pool", updateStakeLock("LP"));
+  });
+  describe("#setWeight", function () {
+    context("ILV Pool", setWeight("ILV"));
+    context("Sushi LP Pool", setWeight("LP"));
+  });
+  describe("#migrateUser", function () {
+    context("ILV Pool", migrateUser("ILV"));
+    context("Sushi LP Pool", migrateUser("LP"));
+  });
+  describe("#unstakeLockedMultiple", function () {
+    context("ILV Pool", unstakeLockedMultiple("ILV"));
+    context("Sushi LP Pool", unstakeLockedMultiple("LP"));
+  });
+  describe("Migration tests", function () {
+    context("ILV Pool", migrationTests("ILV"));
+    context("Sushi LP Pool", migrationTests("LP"));
+    context("Mint yield", mintV1Yield());
+  });
 });

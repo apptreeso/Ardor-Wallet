@@ -719,8 +719,14 @@ export function sync(usingPool: string): () => void {
         .mul(toWei(95))
         .div(toWei(100));
 
-      expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
-      expect(expectedYieldRewardsPerWeight).to.be.equal(yieldRewardsPerWeight);
+      expect(Number(ethers.utils.formatEther(expectedLastYieldDistribution))).to.be.closeTo(
+        Number(ethers.utils.formatEther(lastYieldDistribution)),
+        0.001,
+      );
+      expect(Number(ethers.utils.formatEther(expectedYieldRewardsPerWeight))).to.be.closeTo(
+        Number(ethers.utils.formatEther(yieldRewardsPerWeight)),
+        0.001,
+      );
     });
     it("should sync pool state with totalStaked = 0", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
@@ -769,8 +775,14 @@ export function sync(usingPool: string): () => void {
         .mul(toWei(95))
         .div(toWei(100));
 
-      expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
-      expect(expectedYieldRewardsPerWeight).to.be.equal(yieldRewardsPerWeight);
+      expect(Number(ethers.utils.formatEther(expectedLastYieldDistribution))).to.be.closeTo(
+        Number(ethers.utils.formatEther(lastYieldDistribution)),
+        0.001,
+      );
+      expect(Number(ethers.utils.formatEther(expectedYieldRewardsPerWeight))).to.be.closeTo(
+        Number(ethers.utils.formatEther(yieldRewardsPerWeight)),
+        0.001,
+      );
     });
     it("should update ilv per second after secondsPerUpdate", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
