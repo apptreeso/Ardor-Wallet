@@ -52,8 +52,6 @@ abstract contract CorePool is
 
     /// @dev Data structure representing token holder using a pool.
     struct User {
-        /// @dev Total staked amount in flexible mode
-        uint128 flexibleBalance;
         /// @dev pending yield rewards to be claimed
         uint128 pendingYield;
         /// @dev pending revenue distribution to be claimed
@@ -363,7 +361,7 @@ abstract contract CorePool is
 
     /**
      * @notice Returns total staked token balance for the given address.
-     * @dev loops through stakes and adds flexible balance to return total balance.
+     * @dev loops through stakes and returns total balance.
      *
      * @param _user an address to query balance for
      * @return balance total staked token balance
@@ -373,10 +371,8 @@ abstract contract CorePool is
         uint256 balanceInStakes;
 
         for (uint256 i = 0; i < user.stakes.length; i++) {
-            balanceInStakes += user.stakes[i].value;
+            balance += user.stakes[i].value;
         }
-
-        balance = balanceInStakes + user.flexibleBalance;
     }
 
     /**
@@ -486,12 +482,10 @@ abstract contract CorePool is
         );
 
         User storage previousUser = users[msg.sender];
-        newUser.flexibleBalance = previousUser.flexibleBalance;
         newUser.pendingYield = previousUser.pendingYield;
         newUser.totalWeight = previousUser.totalWeight;
         newUser.subYieldRewards = uint256(previousUser.totalWeight).weightToReward(yieldRewardsPerWeight);
         newUser.subVaultRewards = uint256(previousUser.totalWeight).weightToReward(vaultRewardsPerWeight);
-        delete previousUser.flexibleBalance;
         delete previousUser.pendingYield;
         delete previousUser.totalWeight;
         delete previousUser.stakes;
