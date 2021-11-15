@@ -37,7 +37,7 @@ library Stake {
     /**
      * @dev Maximum period that someone can lock a stake for.
      */
-    uint256 internal constant MAX_STAKE_PERIOD = 730 days;
+    uint256 internal constant MAX_STAKE_PERIOD = 365 days;
 
     /**
      * @dev Rewards per weight are stored multiplied by 1e20 as uint.
