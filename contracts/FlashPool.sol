@@ -25,42 +25,45 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         uint256 subYieldRewards;
     }
 
-    /// @dev Token holder storage, maps token holder address to their data record
+    /// @dev Token holder storage, maps token holder address to their data record.
     mapping(address => User) public users;
 
-    /// @dev Link to sILV ERC20 Token instance
+    /// @dev Link to sILV ERC20 Token instance.
     address public silv;
 
-    /// @dev Link to ILV ERC20 Token instance
+    /// @dev Link to ILV ERC20 Token instance.
     address public ilv;
 
-    /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair
+    /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair.
     address public poolToken;
 
-    /// @dev Pool weight, 200 for ILV pool or 800 for ILV/ETH
+    /// @dev Flash pool ending timestamp.
+    uint64 public endTime;
+
+    /// @dev Pool weight, 200 for ILV pool or 800 for ILV/ETH.
     uint32 public weight;
 
-    /// @dev Timestamp of the last yield distribution event
+    /// @dev Timestamp of the last yield distribution event.
     uint64 public lastYieldDistribution;
 
-    /// @dev Used to calculate yield rewards
+    /// @dev Used to calculate yield rewards.
     uint256 public yieldRewardsPerToken;
 
-    /// @dev Rewards per token are stored multiplied by 1e18 as uint
+    /// @dev Rewards per token are stored multiplied by 1e18 as uint.
     uint256 internal constant REWARD_PER_TOKEN_MULTIPLIER = 1e18;
 
-    /// @dev Flag indicating pool type, false means "core pool"
+    /// @dev Flag indicating pool type, false means "core pool".
     bool public constant isFlashPool = true;
 
     /**
-     * @dev Fired in stake()
+     * @dev Fired in stake().
      * @param from token holder address, the tokens will be returned to that address
      * @param value value of tokens staked
      */
     event LogStake(address indexed from, uint256 value);
 
     /**
-     * @dev Fired in unstake()
+     * @dev Fired in unstake().
      *
      * @param to address receiving the tokens (user)
      * @param value number of tokens unstaked
@@ -68,7 +71,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     event LogUnstake(address indexed to, uint256 value);
 
     /**
-     * @dev Fired in _sync(), sync() and dependent functions (stake, unstake, etc.)
+     * @dev Fired in _sync(), sync() and dependent functions (stake, unstake, etc.).
      *
      * @param by an address which performed an operation
      * @param yieldRewardsPerToken updated yield rewards per token value
@@ -77,7 +80,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     event LogSync(address indexed by, uint256 yieldRewardsPerToken, uint64 lastYieldDistribution);
 
     /**
-     * @dev Fired in _claimYieldRewards()
+     * @dev Fired in _claimYieldRewards().
      *
      * @param from an address which received the yield
      * @param sILV flag indicating if reward was paid (minted) in sILV
@@ -86,7 +89,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     event LogClaimYieldRewards(address indexed from, bool sILV, uint256 value);
 
     /**
-     * @dev Fired in _processRewards()
+     * @dev Fired in _processRewards().
      *
      * @param from an address which received the yield
      * @param value value of yield paid
@@ -94,7 +97,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     event LogProcessRewards(address indexed from, uint256 value);
 
     /**
-     * @dev Fired in setWeight()
+     * @dev Fired in setWeight().
      *
      * @param by an address which performed an operation, always a factory
      * @param fromVal old pool weight value
@@ -103,7 +106,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     event LogSetWeight(address indexed by, uint32 fromVal, uint32 toVal);
 
     /**
-     * @dev fired in migrateUser()
+     * @dev fired in migrateUser().
      *
      * @param from user asking migration
      * @param to new user address
@@ -117,7 +120,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     }
 
     /**
-     * @dev Initializes a new flash pool
+     * @dev Initializes a new flash pool.
      *
      * @param _ilv ILV ERC20 Token address
      * @param _silv sILV ERC20 Token address
@@ -171,9 +174,9 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // if smart contract state was not updated recently, `yieldRewardsPerToken` value
         // is outdated and we need to recalculate it in order to calculate pending rewards correctly
         if (_now256() > lastYieldDistribution && totalStaked != 0) {
-            uint256 endTime = factory.endTime();
-            uint256 multiplier = _now256() > endTime
-                ? endTime - lastYieldDistribution
+            uint256 _endTime = factory.endTime();
+            uint256 multiplier = _now256() > _endTime
+                ? _endTime - lastYieldDistribution
                 : _now256() - lastYieldDistribution;
             uint256 ilvRewards = (multiplier * weight * factory.ilvPerSecond()) / factory.totalWeight();
 
@@ -197,6 +200,17 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      */
     function balanceOf(address _user) external view returns (uint256 balance) {
         balance = users[_user].balance;
+    }
+
+    /**
+     * @notice Checks if flash pool has ended. Flash pool is considered "disabled"
+     *      once time reaches its "end time".
+     *
+     * @return true if pool is disabled, false otherwise
+     */
+    function isPoolDisabled() public view returns (bool) {
+        // verify the pool expiration condition and return the result
+        return _now256() >= endTime;
     }
 
     /**
@@ -372,6 +386,17 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *      updates factory state via `updateILVPerSecond`
      */
     function _sync() internal virtual {
+        // if pool is disabled/expired
+        if (isPoolDisabled()) {
+            // if weight is not yet set
+            if (weight != 0) {
+                // set the pool weight (sets both factory and local values)
+                factory.changePoolWeight(address(this), 0);
+            }
+            // and exit
+            return;
+        }
+
         // gas savings
         IFactory _factory = factory;
         // update ILV per second value in factory if required
@@ -381,8 +406,8 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
 
         // check bound conditions and if these are not met -
         // exit silently, without emitting an event
-        uint256 endTime = _factory.endTime();
-        if (lastYieldDistribution >= endTime) {
+        uint256 _endTime = _factory.endTime();
+        if (lastYieldDistribution >= _endTime) {
             return;
         }
         if (_now256() <= lastYieldDistribution) {
@@ -396,7 +421,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         }
 
         // to calculate the reward we need to know how many seconds passed, and reward per second
-        uint256 currentTimestamp = _now256() > endTime ? endTime : _now256();
+        uint256 currentTimestamp = _now256() > _endTime ? _endTime : _now256();
         uint256 secondsPassed = currentTimestamp - lastYieldDistribution;
         uint256 ilvPerSecond = _factory.ilvPerSecond();
 

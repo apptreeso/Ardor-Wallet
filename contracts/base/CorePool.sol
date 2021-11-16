@@ -368,7 +368,6 @@ abstract contract CorePool is
      */
     function balanceOf(address _user) external view returns (uint256 balance) {
         User storage user = users[_user];
-        uint256 balanceInStakes;
 
         for (uint256 i = 0; i < user.stakes.length; i++) {
             balance += user.stakes[i].value;
@@ -445,7 +444,7 @@ abstract contract CorePool is
      * @param _value value of tokens to stake
      * @param _lockDuration stake duration as unix timestamp
      */
-    function stake(uint256 _value, uint64 _lockDuration) external nonReentrant {
+    function stakeTokens(uint256 _value, uint64 _lockDuration) external nonReentrant {
         _requireNotPaused();
         // delegate call to an internal function
         _stake(msg.sender, _value, _lockDuration);

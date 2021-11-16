@@ -1439,7 +1439,7 @@ export function pendingYield(usingPool: string): () => void {
       const totalWeight = await this.factory.totalWeight();
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stake(toWei(100), ONE_MONTH );
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_MONTH);
 
       await pool.setNow256(INIT_TIME + 20);
       await this.factory.setNow256(INIT_TIME + 20);
