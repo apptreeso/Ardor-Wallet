@@ -303,10 +303,10 @@ export function sendILVRewards(): () => void {
       const lpPoolILVReceived1 = await this.ilv.balanceOf(this.lpPool.address);
 
       expect(ethers.utils.formatEther(ilvPoolILVReceived1.sub(ilvPoolILVReceived0)).slice(0, 6)).to.be.equal(
-        ethers.utils.formatEther(ilvPoolShare.mul(vaultILVBalance).div(1e20)).slice(0, 6),
+        ethers.utils.formatEther(ilvPoolShare.mul(vaultILVBalance).div(toWei(100))).slice(0, 6),
       );
       expect(ethers.utils.formatEther(lpPoolILVReceived1.sub(lpPoolILVReceived0)).slice(0, 6)).to.be.equal(
-        ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(1e20)).slice(0, 6),
+        ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(toWei(100))).slice(0, 6),
       );
     });
     it("should buy and distribute ilv revenue in the same transaction", async function () {
@@ -351,10 +351,10 @@ export function sendILVRewards(): () => void {
       const lpPoolILVReceived1 = await this.ilv.balanceOf(this.lpPool.address);
 
       expect(ethers.utils.formatEther(ilvPoolILVReceived1.sub(ilvPoolILVReceived0)).slice(0, 6)).to.be.equal(
-        ethers.utils.formatEther(ilvPoolShare.mul(vaultILVBalance).div(1e20)).slice(0, 6),
+        ethers.utils.formatEther(ilvPoolShare.mul(vaultILVBalance).div(toWei(100))).slice(0, 6),
       );
       expect(ethers.utils.formatEther(lpPoolILVReceived1.sub(lpPoolILVReceived0)).slice(0, 6)).to.be.equal(
-        ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(1e20)).slice(0, 6),
+        ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(toWei(100))).slice(0, 6),
       );
     });
     it("should send ilv rewards twice", async function () {
