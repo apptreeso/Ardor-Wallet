@@ -444,7 +444,7 @@ abstract contract CorePool is
      * @param _value value of tokens to stake
      * @param _lockDuration stake duration as unix timestamp
      */
-    function stakeTokens(uint256 _value, uint64 _lockDuration) external nonReentrant {
+    function stakePoolToken(uint256 _value, uint64 _lockDuration) external nonReentrant {
         _requireNotPaused();
         // delegate call to an internal function
         _stake(msg.sender, _value, _lockDuration);
@@ -530,11 +530,11 @@ abstract contract CorePool is
 
         // verify locked from and locked until values
         if (stakeLockedFrom == 0) {
-            fnSelector.verifyInput(_lockedUntil - _now256() <= 730 days, 1);
+            fnSelector.verifyInput(_lockedUntil - _now256() <= Stake.MAX_STAKE_PERIOD, 1);
             stakeLockedFrom = uint64(_now256());
             stake.lockedFrom = stakeLockedFrom;
         } else {
-            fnSelector.verifyInput(_lockedUntil - stakeLockedFrom <= 730 days, 1);
+            fnSelector.verifyInput(_lockedUntil - stakeLockedFrom <= Stake.MAX_STAKE_PERIOD, 1);
         }
 
         // update locked until value, calculate new weight
@@ -751,7 +751,7 @@ abstract contract CorePool is
 
         // validate the inputs
         fnSelector.verifyNonZeroInput(_value, 0);
-        fnSelector.verifyInput(_lockDuration > 0 && _lockDuration <= 730 days, 2);
+        fnSelector.verifyInput(_lockDuration > 0 && _lockDuration <= Stake.MAX_STAKE_PERIOD, 2);
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
@@ -768,7 +768,7 @@ abstract contract CorePool is
 
         // stake weight formula rewards for locking
         uint256 stakeWeight = (((lockUntil - _now256()) * Stake.WEIGHT_MULTIPLIER) /
-            730 days +
+            Stake.MAX_STAKE_PERIOD +
             Stake.WEIGHT_MULTIPLIER) * _value;
 
         // makes sure stakeWeight is valid

@@ -414,7 +414,7 @@ describe("FlashPool", function () {
   describe("#claimYieldRewardsMultiple", function () {
     it("should correctly claim multiple pools as ILV", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR * 2);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
@@ -437,7 +437,7 @@ describe("FlashPool", function () {
     });
     it("should correctly claim multiple pools as sILV", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR * 2);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
@@ -459,7 +459,7 @@ describe("FlashPool", function () {
     });
     it("should correctly claim multiple pools as ILV and sILV", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR * 2);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
@@ -482,7 +482,7 @@ describe("FlashPool", function () {
     });
     it("should revert if claiming invalid pool", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR * 2);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
@@ -498,7 +498,7 @@ describe("FlashPool", function () {
     });
     it("should revert if claiming from invalid address", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR * 2);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
