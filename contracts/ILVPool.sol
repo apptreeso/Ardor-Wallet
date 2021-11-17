@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { V2Migrator } from "./base/V2Migrator.sol";
 import { ErrorHandler } from "./libraries/ErrorHandler.sol";
 import { Stake } from "./libraries/Stake.sol";
@@ -22,7 +23,7 @@ import { SushiLPPool } from "./SushiLPPool.sol";
 contract ILVPool is V2Migrator {
     using ErrorHandler for bytes4;
     using Stake for uint256;
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     ///      if a v1 yield has already been minted by v2 contract.

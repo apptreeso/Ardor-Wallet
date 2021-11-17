@@ -6,15 +6,15 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { Timestamp } from "./base/Timestamp.sol";
 import { FactoryControlled } from "./base/FactoryControlled.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { IILVPool } from "./interfaces/IILVPool.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 
 import "hardhat/console.sol";
 
 contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgradeable, PausableUpgradeable, Timestamp {
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     struct User {
         /// @dev Total staked amount
@@ -169,7 +169,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // `newYieldRewardsPerToken` will store stored or recalculated value for `yieldRewardsPerToken`
         uint256 newYieldRewardsPerToken;
 
-        uint256 totalStaked = IERC20(poolToken).balanceOf(address(this));
+        uint256 totalStaked = IERC20Upgradeable(poolToken).balanceOf(address(this));
 
         // if smart contract state was not updated recently, `yieldRewardsPerToken` value
         // is outdated and we need to recalculate it in order to calculate pending rewards correctly
@@ -236,11 +236,11 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // gas savings
         address _poolToken = poolToken;
         // read the current balance
-        uint256 previousBalance = IERC20(_poolToken).balanceOf(address(this));
+        uint256 previousBalance = IERC20Upgradeable(_poolToken).balanceOf(address(this));
         // transfer `_value`; note: some types of tokens may get burnt here
-        IERC20(_poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
+        IERC20Upgradeable(_poolToken).transferFrom(address(msg.sender), address(this), _value);
         // read new balance, usually this is just the difference `previousBalance - _value`
-        uint256 newBalance = IERC20(_poolToken).balanceOf(address(this));
+        uint256 newBalance = IERC20Upgradeable(_poolToken).balanceOf(address(this));
         // calculate real value taking into account deflation
         uint256 addedValue = newBalance - previousBalance;
 
@@ -373,7 +373,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         user.balance -= uint128(_value);
 
         // finally, transfers `_value` poolTokens
-        IERC20(poolToken).safeTransfer(msg.sender, _value);
+        IERC20Upgradeable(poolToken).transfer(msg.sender, _value);
 
         // emit an event
         emit LogUnstake(msg.sender, _value);
@@ -413,7 +413,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         if (_now256() <= lastYieldDistribution) {
             return;
         }
-        uint256 totalStaked = IERC20(poolToken).balanceOf(address(this));
+        uint256 totalStaked = IERC20Upgradeable(poolToken).balanceOf(address(this));
         // if pool token balance is zero - update only `lastYieldDistribution` and exit
         if (totalStaked == 0) {
             lastYieldDistribution = uint64(_now256());

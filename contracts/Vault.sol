@@ -3,7 +3,7 @@ pragma solidity 0.8.4;
 
 import { ICorePool } from "./interfaces/ICorePool.sol";
 import { ICorePoolV1 } from "./interfaces/ICorePoolV1.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import { IUniswapV2Router02 } from "./interfaces/IUniswapV2Router02.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
@@ -43,7 +43,7 @@ contract Vault is Ownable {
     /**
      * @dev Link to IlluviumERC20 token deployed instance
      */
-    IERC20 public ilv;
+    IERC20Upgradeable public ilv;
 
     /**
      * @dev Fired in _swapEthForIlv() and sendIlvRewards() (via swapEthForIlv)
@@ -102,7 +102,7 @@ contract Vault is Ownable {
 
         // assign the values
         sushiRouter = IUniswapV2Router02(_sushiRouter);
-        ilv = IERC20(_ilv);
+        ilv = IERC20Upgradeable(_ilv);
     }
 
     /**
@@ -265,7 +265,7 @@ contract Vault is Ownable {
         //    where lpAmount is amount of LP tokens in the pool,
         //    and lpTotal is total LP tokens supply
         uint256 lpAmount = ICorePool(_pairPool).poolTokenReserve();
-        uint256 lpTotal = IERC20(ICorePool(_pairPool).poolToken()).totalSupply();
+        uint256 lpTotal = IERC20Upgradeable(ICorePool(_pairPool).poolToken()).totalSupply();
         // uint256 lpShare = lpAmount / lpTotal; - this will always be zero due to int rounding down,
         // therefore we don't calculate the share, but apply it to the calculations below
 

@@ -702,8 +702,6 @@ export function sync(usingPool: string): () => void {
       await pool.setNow256(INIT_TIME + 10);
       await pool.sync();
 
-      console.log(Number((await pool.users(this.signers.alice.address)).totalWeight));
-
       const poolWeight = await pool.weight();
       const totalWeight = await this.factory.totalWeight();
 
@@ -1393,7 +1391,7 @@ export function pendingYield(usingPool: string): () => void {
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.bob).stakePoolToken(toWei(5000), ONE_YEAR);
 
-      const totalInPool = toWei(10 * 1e6).add(toWei(5000 * 2e6));
+      const totalInPool = toWei(10 * 1.1e6).add(toWei(5000 * 2e6));
 
       const { pendingYield: bobYield0 } = await pool.pendingRewards(this.signers.bob.address);
 
@@ -1408,7 +1406,7 @@ export function pendingYield(usingPool: string): () => void {
       const expectedAliceYield1 = Number(
         ethers.utils.formatEther(
           ILV_PER_SECOND.mul(150)
-            .mul(toWei(10 * 1e6))
+            .mul(toWei(10 * 1.1e6))
             .div(totalInPool)
             .mul(poolWeight)
             .div(totalWeight)
@@ -1426,10 +1424,13 @@ export function pendingYield(usingPool: string): () => void {
         ),
       ).toFixed(3);
 
-      expect(expectedAliceYield0).to.be.equal(aliceYield0);
-      expect(expectedAliceYield1).to.be.equal(Number(ethers.utils.formatEther(aliceYield1)).toFixed(3));
+      expect(Number(ethers.utils.formatEther(expectedAliceYield0))).to.be.closeTo(
+        Number(ethers.utils.formatEther(aliceYield0)),
+        0.01,
+      );
+      expect(Number(expectedAliceYield1)).to.be.closeTo(Number(ethers.utils.formatEther(aliceYield1)), 0.01);
       expect(expectedBobYield0).to.be.equal(bobYield0);
-      expect(expectedBobYield1).to.be.equal(Number(ethers.utils.formatEther(bobYield1)).toFixed(3));
+      expect(Number(expectedBobYield1)).to.be.closeTo(Number(ethers.utils.formatEther(bobYield1)), 0.01);
     });
     it("should not accumulate yield after endTime", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
@@ -1464,9 +1465,18 @@ export function pendingYield(usingPool: string): () => void {
 
       const { pendingYield: aliceYield2 } = await pool.pendingRewards(this.signers.alice.address);
 
-      expect(expectedYield0).to.be.equal(aliceYield0);
-      expect(expectedYield1).to.be.equal(aliceYield1);
-      expect(expectedYield1).to.be.equal(aliceYield2);
+      expect(Number(ethers.utils.formatEther(expectedYield0))).to.be.closeTo(
+        Number(ethers.utils.formatEther(aliceYield0)),
+        0.001,
+      );
+      expect(Number(ethers.utils.formatEther(expectedYield1))).to.be.closeTo(
+        Number(ethers.utils.formatEther(aliceYield1)),
+        0.001,
+      );
+      expect(Number(ethers.utils.formatEther(expectedYield1))).to.be.closeTo(
+        Number(ethers.utils.formatEther(aliceYield2)),
+        0.001,
+      );
     });
   };
 }

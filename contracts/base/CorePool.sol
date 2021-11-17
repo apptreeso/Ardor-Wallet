@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -45,7 +46,7 @@ abstract contract CorePool is
     PausableUpgradeable,
     Timestamp
 {
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     using Stake for Stake.Data;
     using ErrorHandler for bytes4;
     using Stake for uint256;
@@ -446,7 +447,7 @@ abstract contract CorePool is
      */
     function stakePoolToken(uint256 _value, uint64 _lockDuration) external nonReentrant {
         _requireNotPaused();
-        // delegate call to an internal function
+        // calls internal function
         _stake(msg.sender, _value, _lockDuration);
     }
 
@@ -618,7 +619,7 @@ abstract contract CorePool is
         user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
 
         // transfers poolTokens from msg.sender
-        IERC20(poolToken).safeTransferFrom(msg.sender, address(this), v1StakeValue);
+        IERC20Upgradeable(poolToken).safeTransferFrom(msg.sender, address(this), v1StakeValue);
     }
 
     /**
@@ -633,7 +634,7 @@ abstract contract CorePool is
      */
     function sync() external {
         _requireNotPaused();
-        // delegate call to an internal function
+        // calls internal function
         _sync();
     }
 
@@ -680,7 +681,7 @@ abstract contract CorePool is
 
         vaultRewardsPerWeight += _value.rewardPerWeight(globalWeight);
 
-        IERC20(ilv).safeTransferFrom(msg.sender, address(this), _value);
+        IERC20Upgradeable(ilv).safeTransferFrom(msg.sender, address(this), _value);
 
         emit LogReceiveVaultRewards(msg.sender, _value);
     }
@@ -801,7 +802,7 @@ abstract contract CorePool is
         poolTokenReserve += _value;
 
         // transfer `_value`
-        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
+        IERC20Upgradeable(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         // emit an event
         emit LogStake(msg.sender, msg.sender, (user.stakes.length - 1), _value, lockUntil);
@@ -875,7 +876,7 @@ abstract contract CorePool is
             factory.mintYieldTo(msg.sender, _value, false);
         } else {
             // otherwise just return tokens back to holder
-            IERC20(poolToken).safeTransfer(msg.sender, _value);
+            IERC20Upgradeable(poolToken).safeTransfer(msg.sender, _value);
         }
 
         // emit an event
@@ -893,6 +894,7 @@ abstract contract CorePool is
      *                        i.e if we're minting ILV or transferring pool tokens
      */
     function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
+        uint256 start = gasleft();
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).unstakeLockedMultiple.selector;
 
@@ -911,6 +913,8 @@ abstract contract CorePool is
             Stake.Data storage stake = user.stakes[_stakeId];
             // checks if stake is unlocked already
             fnSelector.verifyState(_now256() > stake.lockedUntil, i * 3);
+            // checks if unstaking value is valid
+            fnSelector.verifyNonZeroInput(_value, 1);
             // stake structure may get deleted, so we save isYield flag to be able to use it
             // we also save stakeValue for gas savings
             (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
@@ -956,7 +960,7 @@ abstract contract CorePool is
             factory.mintYieldTo(msg.sender, valueToUnstake, false);
         } else {
             // otherwise just return tokens back to holder
-            IERC20(poolToken).safeTransfer(msg.sender, valueToUnstake);
+            IERC20Upgradeable(poolToken).safeTransfer(msg.sender, valueToUnstake);
         }
     }
 
@@ -1142,7 +1146,7 @@ abstract contract CorePool is
         // subYieldRewards and subVaultRewards needs to be updated on every `_processRewards` call
         user.subVaultRewards = uint256(user.totalWeight).weightToReward(vaultRewardsPerWeight);
 
-        IERC20(ilv).safeTransfer(_staker, pendingRevDis);
+        IERC20Upgradeable(ilv).safeTransfer(_staker, pendingRevDis);
 
         // emit an event
         emit LogClaimVaultRewards(msg.sender, _staker, pendingRevDis);

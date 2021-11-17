@@ -798,8 +798,8 @@ __metadata:
     "@ethersproject/providers": ^5.4.3
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@nomiclabs/hardhat-waffle": ^2.0.1
-    "@openzeppelin/contracts": ^4.2.0
-    "@openzeppelin/contracts-upgradeable": ^4.3.0
+    "@openzeppelin/contracts": ^4.3.3
+    "@openzeppelin/contracts-upgradeable": ^4.3.3
     "@openzeppelin/hardhat-upgrades": ^1.10.0
     "@typechain/ethers-v5": ^7.0.1
     "@typechain/hardhat": ^2.2.0
@@ -996,14 +996,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openzeppelin/contracts-upgradeable@npm:^4.3.0":
+"@openzeppelin/contracts-upgradeable@npm:^4.3.3":
   version: 4.3.3
   resolution: "@openzeppelin/contracts-upgradeable@npm:4.3.3"
   checksum: 08081761b6e92f858e6c50518eb8c728227832863ddffeb0288a36379fc121e26aac4084dd02260fdd990510b193b874946cf4096d0b0dcd31762eb1bed9947c
   languageName: node
   linkType: hard
 
-"@openzeppelin/contracts@npm:^4.2.0":
+"@openzeppelin/contracts@npm:^4.3.3":
   version: 4.3.3
   resolution: "@openzeppelin/contracts@npm:4.3.3"
   checksum: 73eb23e7acc8531931076d11251629bdc8579c99ef921a3facbd8abf7b860bc214c97a4bd56cd67db7c9d1db837765132640f24987aac8097a13960bb41ca6d1
