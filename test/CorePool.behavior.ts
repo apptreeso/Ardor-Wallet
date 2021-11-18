@@ -19,6 +19,7 @@ import {
 } from "./utils";
 import YieldTree from "./utils/yield-tree";
 import { ILVPoolUpgrade, SushiLPPoolUpgrade, PoolFactoryUpgrade } from "../types";
+import { throws } from "assert";
 
 const { MaxUint256, AddressZero } = ethers.constants;
 
@@ -208,20 +209,42 @@ export function migrateUser(usingPool: string): () => void {
       await expect(pool.connect(this.signers.alice).migrateUser(this.signers.bob.address)).reverted;
     });
     it("should revert if newUser v1IdsLength > 0", async function () {
-      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilv.connect(this.signers.carol).approve(this.ilvPool.address, MaxUint256);
+      await this.ilvPool.connect(this.signers.carol).stakePoolToken(toWei(100), ONE_YEAR);
 
       await this.ilvPool.setNow256(INIT_TIME + 100);
       await this.factory.setNow256(INIT_TIME + 100);
 
-      await this.ilvPool.connect(this.signers.alice).claimYieldRewards(false);
+      await this.ilvPool.connect(this.signers.carol).claimYieldRewards(false);
 
       await this.ilvPool.setNow256(INIT_TIME + 200);
       await this.factory.setNow256(INIT_TIME + 200);
 
+      this.tree = new YieldTree([
+        {
+          account: this.signers.alice.address,
+          weight: toWei(2000),
+        },
+        {
+          account: this.signers.bob.address,
+          weight: toWei(10000),
+        },
+        {
+          account: this.signers.carol.address,
+          weight: toWei(4000),
+        },
+      ]);
+      await this.ilvPool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
+      await this.lpPool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
+
+
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
-      await expect(this.ilvPool.connect(this.signers.alice).migrateUser(this.signers.carol.address)).reverted;
+      await this.ilvPoolV1.setUsers(users);
+
+      await this.ilvPool.connect(this.signers.alice).migrateFromV1([], 0, 0, [0, 2]);
+
+      await expect(this.ilvPool.connect(this.signers.carol).migrateUser(this.signers.alice.address)).reverted;
     });
   };
 }
@@ -538,23 +561,6 @@ export function mintV1Yield(): () => void {
     beforeEach(async function () {
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
-      this.tree = new YieldTree([
-        {
-          account: this.signers.alice.address,
-          weight: toWei(2000),
-        },
-        {
-          account: this.signers.bob.address,
-          weight: toWei(10000),
-        },
-        {
-          account: this.signers.carol.address,
-          weight: toWei(4000),
-        },
-      ]);
-      await this.ilvPool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
-      await this.lpPool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
-
       await this.ilvPoolV1.setUsers(users);
     });
 
@@ -594,20 +600,17 @@ export function mintV1Yield(): () => void {
       );
     });
     it("should revert minting multiple yield stakes if already minted", async function () {
-      const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
       await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
       await this.ilvPool.connect(this.signers.carol).mintV1YieldMultiple([0, 1, 2]);
       await expect(this.ilvPool.connect(this.signers.carol).mintV1YieldMultiple([0, 1, 2])).reverted;
     });
     it("should revert if passing !isYield _stakeId", async function () {
-      const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
       await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
       await expect(this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([0, 1, 2])).reverted;
     });
     it("should revert on mintYieldMultiple if yield is locked", async function () {
-      const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
       await this.ilvPool.setNow256(INIT_TIME);
       await expect(this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([0, 1, 2])).reverted;
