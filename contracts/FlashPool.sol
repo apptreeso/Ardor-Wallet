@@ -137,6 +137,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         address _poolToken,
         address _factory,
         uint64 _initTime,
+        uint64 _endTime,
         uint32 _weight
     ) external initializer {
         require(_poolToken != address(0), "pool token address not set");
@@ -155,6 +156,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
 
         // init the dependent internal state variables
         lastYieldDistribution = _initTime;
+        endTime = _endTime;
     }
 
     /**
@@ -210,7 +212,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      */
     function isPoolDisabled() public view returns (bool) {
         // verify the pool expiration condition and return the result
-        return _now256() >= endTime;
+        return _now256() > endTime;
     }
 
     /**
@@ -344,6 +346,17 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     }
 
     /**
+     * @dev Updates flash pool ending timestamp.
+     *
+     * @param _newEndTime new flash pool end time
+     */
+    function setEndTime(uint64 _newEndTime) external {
+        _requireIsFactoryController();
+
+        endTime = _newEndTime;
+    }
+
+    /**
      * @dev Similar to public pendingYieldRewards, but performs calculations based on
      *      current smart contract state only, not taking into account any additional
      *      time which might have passed.
@@ -386,22 +399,22 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *      updates factory state via `updateILVPerSecond`
      */
     function _sync() internal virtual {
-        // if pool is disabled/expired
-        if (isPoolDisabled()) {
-            // if weight is not yet set
-            if (weight != 0) {
-                // set the pool weight (sets both factory and local values)
-                factory.changePoolWeight(address(this), 0);
-            }
-            // and exit
-            return;
-        }
-
         // gas savings
         IFactory _factory = factory;
         // update ILV per second value in factory if required
         if (_factory.shouldUpdateRatio()) {
             _factory.updateILVPerSecond();
+        }
+
+        // if pool is disabled/expired
+        if (isPoolDisabled()) {
+            // if weight is not yet set
+            if (weight != 0) {
+                // set the pool weight (sets both factory and local values)
+                _factory.changePoolWeight(address(this), 0);
+            }
+            // and exit
+            return;
         }
 
         // check bound conditions and if these are not met -

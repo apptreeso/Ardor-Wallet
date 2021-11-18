@@ -894,7 +894,6 @@ abstract contract CorePool is
      *                        i.e if we're minting ILV or transferring pool tokens
      */
     function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
-        uint256 start = gasleft();
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).unstakeLockedMultiple.selector;
 

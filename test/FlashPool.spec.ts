@@ -92,6 +92,7 @@ describe("FlashPool", function () {
         this.flashToken.address,
         this.factory.address,
         FLASH_INIT_TIME,
+        END_TIME,
         FLASH_POOL_WEIGHT,
       ],
       { kind: "uups" },
@@ -127,6 +128,7 @@ describe("FlashPool", function () {
             this.flashToken.address,
             AddressZero,
             FLASH_INIT_TIME,
+            END_TIME,
             FLASH_POOL_WEIGHT,
           ],
           { kind: "uups" },
@@ -601,13 +603,15 @@ describe("FlashPool", function () {
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
 
-      await this.flashPool.setNow256(END_TIME + 100);
-      await this.flashPool.sync();
-      await this.flashPool.setNow256(END_TIME + 200);
-      await this.flashPool.sync();
-
       const poolWeight = await this.flashPool.weight();
       const totalWeight = await this.factory.totalWeight();
+
+      await this.flashPool.setNow256(END_TIME);
+      await this.flashPool.sync();
+      await this.factory.setNow256(END_TIME + 100);
+      await this.flashPool.setNow256(END_TIME + 200);
+      await this.factory.setNow256(END_TIME + 200);
+      await this.flashPool.sync();
 
       const lastYieldDistribution = await this.flashPool.lastYieldDistribution();
       const yieldRewardsPerToken = await this.flashPool.yieldRewardsPerToken();
