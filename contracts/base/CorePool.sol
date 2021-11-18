@@ -156,6 +156,15 @@ abstract contract CorePool is
     event LogUnstakeLocked(address indexed to, uint256 stakeId, uint256 value, bool isYield);
 
     /**
+     * @dev Fired in `unstakeLockedMultiple()`.
+     *
+     * @param to address receiving the tokens (user)
+     * @param totalValue total number of tokens unstaked
+     * @param unstakingYield whether unstaked tokens had isYield flag true or false
+     */
+    event LogUnstakeLockedMultiple(address indexed to, uint256 totalValue, bool unstakingYield);
+
+    /**
      * @dev Fired in `_sync()`, `sync()` and dependent functions (stake, unstake, etc.).
      *
      * @param by an address which performed an operation
@@ -961,6 +970,8 @@ abstract contract CorePool is
             // otherwise just return tokens back to holder
             IERC20Upgradeable(poolToken).safeTransfer(msg.sender, valueToUnstake);
         }
+
+        emit LogUnstakeLockedMultiple(msg.sender, valueToUnstake, _unstakingYield);
     }
 
     /**
