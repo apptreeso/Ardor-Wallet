@@ -19,7 +19,6 @@ import {
 } from "./utils";
 import YieldTree from "./utils/yield-tree";
 import { ILVPoolUpgrade, SushiLPPoolUpgrade, PoolFactoryUpgrade } from "../types";
-import { throws } from "assert";
 
 const { MaxUint256, AddressZero } = ethers.constants;
 
@@ -27,6 +26,53 @@ chai.use(solidity);
 chai.use(chaiSubset);
 
 const { expect } = chai;
+
+export function merkleTreeTests(usingPool: string): () => void {
+  return function () {
+    beforeEach(async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+
+      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+
+      await v1Pool.setUsers(users);
+
+      this.tree = new YieldTree([
+        {
+          account: this.signers.alice.address,
+          weight: toWei(2000),
+        },
+        {
+          account: this.signers.bob.address,
+          weight: toWei(10000),
+        },
+        {
+          account: this.signers.carol.address,
+          weight: toWei(4000),
+        },
+      ]);
+      console.log(this.tree.getHexRoot());
+      await pool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
+    });
+    it("should validate a merkle proof correctly", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const proof = this.tree.getProof(1, this.signers.bob.address, toWei(10000));
+
+      const node = YieldTree.toNode(1, this.signers.bob.address, toWei(10000));
+      const validated = YieldTree.verifyProof(
+        1,
+        this.signers.bob.address,
+        toWei(10000),
+        proof.map(el => Buffer.from(el.slice(2), "hex")),
+        Buffer.from(this.tree.getHexRoot().slice(2), "hex"),
+      );
+      console.log(await pool.merkleRoot());
+      console.log(validated);
+
+      await pool.connect(this.signers.bob).migrateFromV1(proof, 1, toWei(10000), []);
+    });
+  };
+}
 
 export function upgradePools(): () => void {
   return function () {
@@ -219,24 +265,6 @@ export function migrateUser(usingPool: string): () => void {
 
       await this.ilvPool.setNow256(INIT_TIME + 200);
       await this.factory.setNow256(INIT_TIME + 200);
-
-      this.tree = new YieldTree([
-        {
-          account: this.signers.alice.address,
-          weight: toWei(2000),
-        },
-        {
-          account: this.signers.bob.address,
-          weight: toWei(10000),
-        },
-        {
-          account: this.signers.carol.address,
-          weight: toWei(4000),
-        },
-      ]);
-      await this.ilvPool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
-      await this.lpPool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
-
 
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
@@ -600,18 +628,15 @@ export function mintV1Yield(): () => void {
       );
     });
     it("should revert minting multiple yield stakes if already minted", async function () {
-
       await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
       await this.ilvPool.connect(this.signers.carol).mintV1YieldMultiple([0, 1, 2]);
       await expect(this.ilvPool.connect(this.signers.carol).mintV1YieldMultiple([0, 1, 2])).reverted;
     });
     it("should revert if passing !isYield _stakeId", async function () {
-
       await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR + 1);
       await expect(this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([0, 1, 2])).reverted;
     });
     it("should revert on mintYieldMultiple if yield is locked", async function () {
-
       await this.ilvPool.setNow256(INIT_TIME);
       await expect(this.ilvPool.connect(this.signers.alice).mintV1YieldMultiple([0, 1, 2])).reverted;
     });

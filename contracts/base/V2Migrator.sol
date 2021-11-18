@@ -116,8 +116,8 @@ abstract contract V2Migrator is CorePool {
             fnSelector.verifyAccess(!hasMigratedYield(_index));
 
             // compute leaf and verify merkle proof
-            bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight));
-            MerkleProof.verify(_proof, merkleRoot, leaf);
+            bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, uint256(_yieldWeight)));
+            require(MerkleProof.verify(_proof, merkleRoot, leaf));
 
             user.totalWeight += _yieldWeight;
             // set user as claimed in bitmap
