@@ -27,7 +27,7 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
-export function merkleTreeTests(usingPool: string): () => void {
+export function merkleTree(usingPool: string): () => void {
   return function () {
     beforeEach(async function () {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
@@ -54,22 +54,84 @@ export function merkleTreeTests(usingPool: string): () => void {
       console.log(this.tree.getHexRoot());
       await pool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
     });
+    it("returns the expected merkle root", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      const expectedRoot = this.tree.getHexRoot();
+      const root = await pool.merkleRoot();
+
+      expect(expectedRoot).to.be.equal(root);
+    });
     it("should validate a merkle proof correctly", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000));
+
+      await pool.connect(this.signers.alice).migrateFromV1(proof, 0, toWei(2000), [0, 2]);
+    });
+    it("should validate a merkle proof correctly without stakeIds", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000));
+
+      await pool.connect(this.signers.alice).migrateFromV1(proof, 0, toWei(2000), []);
+    });
+    it("should fail claiming twice", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000));
+
+      await pool.connect(this.signers.alice).migrateFromV1(proof, 0, toWei(2000), [0, 2]);
+      await expect(pool.connect(this.signers.alice).migrateFromV1(proof, 0, toWei(2000), [0, 2])).reverted;
+    });
+    it("should fail claiming twice without stakeIds array", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000));
+
+      await pool.connect(this.signers.alice).migrateFromV1(proof, 0, toWei(2000), [0, 2]);
+      await expect(pool.connect(this.signers.alice).migrateFromV1(proof, 0, toWei(2000), [0, 2])).reverted;
+    });
+    it("should fail with empty proof", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await expect(pool.connect(this.signers.alice).migrateFromV1([], 0, toWei(2000), [0, 2])).reverted;
+    });
+    it("should fail with invalid index - alice", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000));
+
+      await expect(pool.connect(this.signers.alice).migrateFromV1(proof, 1, toWei(2000), [0, 2])).reverted;
+    });
+    it("should fail with invalid index - bob", async function () {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
       const proof = this.tree.getProof(1, this.signers.bob.address, toWei(10000));
 
-      const node = YieldTree.toNode(1, this.signers.bob.address, toWei(10000));
-      const validated = YieldTree.verifyProof(
-        1,
-        this.signers.bob.address,
-        toWei(10000),
-        proof.map(el => Buffer.from(el.slice(2), "hex")),
-        Buffer.from(this.tree.getHexRoot().slice(2), "hex"),
-      );
-      console.log(await pool.merkleRoot());
-      console.log(validated);
+      await expect(pool.connect(this.signers.bob).migrateFromV1(proof, 2, toWei(10000), [])).reverted;
+    });
+    it("should fail with invalid msg.sender", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const proof = this.tree.getProof(1, this.signers.bob.address, toWei(10000));
 
-      await pool.connect(this.signers.bob).migrateFromV1(proof, 1, toWei(10000), []);
+      await expect(pool.connect(this.signers.carol).migrateFromV1(proof, 1, toWei(10000), [])).reverted;
+    });
+    it("should set hasMigratedYield correctly", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const proof0 = this.tree.getProof(0, this.signers.alice.address, toWei(2000));
+      const proof1 = this.tree.getProof(1, this.signers.bob.address, toWei(10000));
+
+      await pool.connect(this.signers.alice).migrateFromV1(proof0, 0, toWei(2000), [0, 2]);
+      await pool.connect(this.signers.bob).migrateFromV1(proof1, 1, toWei(10000), []);
+
+      const hasAliceMigrated = await pool.hasMigratedYield(0);
+      const hasBobMigratedYield = await pool.hasMigratedYield(1);
+      const hasCarolMigrated = await pool.hasMigratedYield(2);
+
+      expect(hasAliceMigrated).to.be.true;
+      expect(hasBobMigratedYield).to.be.true;
+      expect(hasCarolMigrated).to.be.false;
+    });
+    it("should not migrate more yield than allowed weight", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const proof = this.tree.getProof(2, this.signers.carol.address, toWei(4000));
+
+      await expect(pool.connect(this.signers.carol).migrateFromV1(proof, 0, toWei(4001), [])).reverted;
     });
   };
 }

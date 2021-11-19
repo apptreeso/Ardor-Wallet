@@ -44,7 +44,7 @@ import {
   unstakeLocked,
   unstakeLockedMultiple,
   migrateUser,
-  merkleTreeTests,
+  merkleTree,
 } from "./CorePool.behavior";
 
 chai.use(solidity);
@@ -178,7 +178,7 @@ describe("CorePools", function () {
   //   context("Mint yield", mintV1Yield());
   // });
   describe("Merkle tree tests", function () {
-    context("ILV Pool", merkleTreeTests("ILV"));
-    context("Sushi LP Pool", merkleTreeTests("LP"));
+    context("ILV Pool", merkleTree("ILV"));
+    context("Sushi LP Pool", merkleTree("LP"));
   });
 });
