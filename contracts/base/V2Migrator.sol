@@ -95,34 +95,16 @@ abstract contract V2Migrator is CorePool {
      *                     merkle tree
      * @param _stakeIds array of v1 stake ids
      */
-    function migrateFromV1(
-        bytes32[] calldata _proof,
-        uint256 _index,
-        uint248 _yieldWeight,
-        uint256[] calldata _stakeIds
-    ) external {
+    function _migrateLockedStakes(uint256[] calldata _stakeIds) external {
         _requireNotPaused();
         User storage user = users[msg.sender];
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = V2Migrator(this).migrateFromV1.selector;
+        bytes4 fnSelector = V2Migrator(this).migrateLockedStakes.selector;
 
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
         // update user state
         _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
-
-        // checks if user is migrating yield weights
-        if (_yieldWeight != 0) {
-            fnSelector.verifyAccess(!hasMigratedYield(_index));
-
-            // compute leaf and verify merkle proof
-            bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, uint256(_yieldWeight)));
-            require(MerkleProof.verify(_proof, merkleRoot, leaf));
-
-            user.totalWeight += _yieldWeight;
-            // set user as claimed in bitmap
-            _usersMigrated.set(_index);
-        }
 
         uint256 totalV1WeightAdded;
 
@@ -148,8 +130,5 @@ abstract contract V2Migrator is CorePool {
         // resets all rewards after migration
         user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
         user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
-
-        // emit an event
-        emit LogMigrateFromV1(msg.sender, _yieldWeight, totalV1WeightAdded);
     }
 }

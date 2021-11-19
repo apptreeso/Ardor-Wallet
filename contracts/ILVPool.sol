@@ -96,6 +96,24 @@ contract ILVPool is V2Migrator {
         emit LogStake(msg.sender, _staker, (user.stakes.length - 1), _value, uint64(_now256() + 365 days));
     }
 
+    function executeMigration(
+        bytes32[] calldata _proof,
+        uint256 _index,
+        uint248 _yieldWeight
+    ) external {
+        _requireNotPaused();
+
+        User storage user = users[msg.sender];
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = V2Migrator(this).migrateLockedStakes.selector;
+
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+        // update user state
+        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        _migrateYieldWeights(_proof, _index, _yieldWeight);
+    }
+
     /**
      * @dev Calls multiple pools claimYieldRewardsFromRouter() in order to claim yield
      * in 1 transaction.
@@ -184,5 +202,22 @@ contract ILVPool is V2Migrator {
         factory.mintYieldTo(msg.sender, amountToMint, false);
 
         emit LogV1YieldMintedMultiple(msg.sender, amountToMint);
+    }
+
+    function _migrateYieldWeights(
+        bytes32[] calldata _proof,
+        uint256 _index,
+        uint256 _yieldWeight
+    ) private {
+        bytes4 fnSelector = ILVPool(address(this)).migrateYieldWeights.selector;
+
+        fnSelector.verifyAccess(!hasMigratedYield(_index));
+        // compute leaf and verify merkle proof
+        bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight));
+        fnSelector.verifyInput(MerkleProof.verify(_proof, merkleRoot, leaf));
+
+        user.totalWeight += uint248(_yieldWeight);
+        // set user as claimed in bitmap
+        _usersMigrated.set(_index);
     }
 }
