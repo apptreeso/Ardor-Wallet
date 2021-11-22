@@ -175,7 +175,7 @@ end block), function doesn't throw and exits silently.
 ### `_claimYieldRewards(address _staker, bool _useSILV)` (internal)
 
 sILV is minted straight away to \_staker wallet, ILV is created as
-a new stake and locked for 365 days.
+a new stake and locked for Stake.MAX_STAKE_PERIOD.
 
 claims all pendingYield from \_staker using ILV or sILV.
 

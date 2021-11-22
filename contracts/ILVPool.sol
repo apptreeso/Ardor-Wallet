@@ -104,7 +104,7 @@ contract ILVPool is V2Migrator {
         Stake.Data memory newStake = Stake.Data({
             value: uint120(_value),
             lockedFrom: uint64(_now256()),
-            lockedUntil: uint64(_now256() + 365 days),
+            lockedUntil: uint64(_now256() + Stake.MAX_STAKE_PERIOD),
             isYield: true
         });
 
@@ -122,7 +122,13 @@ contract ILVPool is V2Migrator {
         // update `poolTokenReserve` only if this is a LP Core Pool (stakeAsPool can be executed only for LP pool)
         poolTokenReserve += _value;
 
-        emit LogStake(msg.sender, _staker, (user.stakes.length - 1), _value, uint64(_now256() + 365 days));
+        emit LogStake(
+            msg.sender,
+            _staker,
+            (user.stakes.length - 1),
+            _value,
+            uint64(_now256() + Stake.MAX_STAKE_PERIOD)
+        );
     }
 
     function executeMigration(

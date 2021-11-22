@@ -471,7 +471,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @dev claims all pendingYield from _staker using ILV or sILV
      *
      * @notice sILV is minted straight away to _staker wallet, ILV is created as
-     *         a new stake and locked for 365 days
+     *         a new stake and locked for Stake.MAX_STAKE_PERIOD
      *
      * @param _staker user address
      * @param _useSILV whether the user wants to claim ILV or sILV

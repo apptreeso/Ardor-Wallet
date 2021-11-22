@@ -542,7 +542,9 @@ abstract contract CorePool is
         // to the weight originally stored in this contract during migration
         uint120 v1StakeValue = uint120(
             v1StakesWeightsOriginal[msg.sender][_v1StakeId] /
-                (((_lockedUntil - _lockedFrom) * Stake.WEIGHT_MULTIPLIER) / 365 days + Stake.WEIGHT_MULTIPLIER)
+                (((_lockedUntil - _lockedFrom) * Stake.WEIGHT_MULTIPLIER) /
+                    Stake.MAX_STAKE_PERIOD +
+                    Stake.WEIGHT_MULTIPLIER)
         );
         // makes sure stake coming from v1 isn't yield, even though it's already
         // verified before migration
@@ -1007,7 +1009,7 @@ abstract contract CorePool is
      * @dev claims all pendingYield from _staker using ILV or sILV.
      *
      * @notice sILV is minted straight away to _staker wallet, ILV is created as
-     *         a new stake and locked for 365 days.
+     *         a new stake and locked for Stake.MAX_STAKE_PERIOD.
      *
      * @param _staker user address
      * @param _useSILV whether the user wants to claim ILV or sILV
@@ -1044,7 +1046,7 @@ abstract contract CorePool is
             Stake.Data memory newStake = Stake.Data({
                 value: uint120(pendingYieldToClaim),
                 lockedFrom: uint64(_now256()),
-                lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
+                lockedUntil: uint64(_now256() + Stake.MAX_STAKE_PERIOD), // staking yield for 1 year
                 isYield: true
             });
 
