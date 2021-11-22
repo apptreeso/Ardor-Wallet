@@ -19,6 +19,7 @@ import {
 } from "./utils";
 import YieldTree from "./utils/yield-tree";
 import { ILVPoolUpgrade, SushiLPPoolUpgrade, PoolFactoryUpgrade } from "../types";
+import { ppid } from "process";
 
 const { MaxUint256, AddressZero } = ethers.constants;
 
@@ -26,6 +27,19 @@ chai.use(solidity);
 chai.use(chaiSubset);
 
 const { expect } = chai;
+
+export function fillV1StakeId(usingPool: string): () => void {
+  return function () {
+    beforeEach(async function () {
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+
+      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+
+      await v1Pool.setUsers(users);
+    });
+    it("should fill a v1 stake id", async function () {});
+  };
+}
 
 export function merkleTree(): () => void {
   return function () {
@@ -256,7 +270,7 @@ export function migrateUser(usingPool: string): () => void {
 
       await expect(pool.connect(this.signers.alice).migrateUser(AddressZero)).reverted;
     });
-    it("should revert if newUser totalWeight = 0", async function () {
+    it("should revert if newUser totalWeight != 0", async function () {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
       const token = getToken(this.ilv, this.lp, usingPool);
 
@@ -277,23 +291,56 @@ export function migrateUser(usingPool: string): () => void {
       await expect(pool.connect(this.signers.alice).migrateUser(this.signers.bob.address)).reverted;
     });
 
-    it("should revert if newUser pendingYield = 0", async function () {
+    it("should revert if newUser stakes.length != 0", async function () {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
       const token = getToken(this.ilv, this.lp, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
 
+      await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.bob).stakePoolToken(toWei(100), ONE_YEAR);
+
       await pool.setNow256(INIT_TIME + 100);
       await this.factory.setNow256(INIT_TIME + 100);
+      await this.ilvPool.setNow256(INIT_TIME + 100);
 
       await pool.connect(this.signers.alice).claimYieldRewards(false);
 
-      await pool.setNow256(INIT_TIME + 200);
-      await this.factory.setNow256(INIT_TIME + 200);
+      await pool.connect(this.signers.bob).claimYieldRewards(false);
+
+      await pool.setNow256(INIT_TIME + 201 + ONE_YEAR);
+      await this.factory.setNow256(INIT_TIME + 201 + ONE_YEAR);
+      await this.ilvPool.setNow256(INIT_TIME + 201 + ONE_YEAR);
+
+      await pool.connect(this.signers.bob).unstakeLocked(0, toWei(100));
+      await this.ilvPool
+        .connect(this.signers.bob)
+        .unstakeLocked(
+          usingPool === "ILV" ? 1 : 0,
+          (
+            await this.ilvPool.getStake(this.signers.bob.address, usingPool === "ILV" ? 1 : 0)
+          ).value,
+        );
+
+      expect((await pool.users(this.signers.bob.address)).totalWeight).to.be.equal(0);
+      await expect(pool.connect(this.signers.alice).migrateUser(this.signers.bob.address)).reverted;
+    });
+    it("should revert if newUser subYieldRewards != 0", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const token = getToken(this.ilv, this.lp, usingPool);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
 
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.bob).stakePoolToken(toWei(100), ONE_YEAR);
+
+      await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
+      await this.ilvPool.setNow256(INIT_TIME + 100);
+
+      await pool.connect(this.signers.alice).claimYieldRewards(false);
 
       await pool.connect(this.signers.bob).claimYieldRewards(false);
 
@@ -1242,6 +1289,7 @@ export function claimYieldRewards(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await pool.connect(this.signers.alice).claimYieldRewards(false);
 
@@ -1266,8 +1314,12 @@ export function claimYieldRewards(usingPool: string): () => void {
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 100);
+      await this.ilvPool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await pool.connect(this.signers.alice).claimYieldRewards(false);
 
@@ -1277,10 +1329,10 @@ export function claimYieldRewards(usingPool: string): () => void {
       const balanceBeforeMint = await this.ilv.balanceOf(this.signers.alice.address);
 
       if (usingPool === "ILV") {
-        await pool.connect(this.signers.alice).unstakeLocked(1, expectedMintedYield);
+        await pool.connect(this.signers.alice).unstakeLocked(2, expectedMintedYield);
       } else {
         await this.ilvPool.setNow256(INIT_TIME + 101 + ONE_YEAR);
-        await this.ilvPool.connect(this.signers.alice).unstakeLocked(0, expectedMintedYield);
+        await this.ilvPool.connect(this.signers.alice).unstakeLocked(1, expectedMintedYield);
       }
 
       const balanceAfterMint = await this.ilv.balanceOf(this.signers.alice.address);
@@ -1298,6 +1350,7 @@ export function claimYieldRewards(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
 
       await pool.connect(this.signers.alice).claimYieldRewards(true);
 

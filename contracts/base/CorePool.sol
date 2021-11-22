@@ -485,6 +485,7 @@ abstract contract CorePool is
         fnSelector.verifyState(
             newUser.totalWeight == 0 &&
                 newUser.v1IdsLength == 0 &&
+                newUser.stakes.length == 0 &&
                 newUser.subYieldRewards == 0 &&
                 newUser.subVaultRewards == 0,
             0
