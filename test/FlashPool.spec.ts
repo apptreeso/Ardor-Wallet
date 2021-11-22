@@ -393,6 +393,16 @@ describe("FlashPool", function () {
         ethers.utils.formatEther(yieldStake.value).slice(0, 6),
       );
     });
+    it("should return if pendingYield = 0", async function () {
+      await this.flashToken.connect(this.signers.carol).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.carol).stake(toWei(100));
+
+      await this.flashPool.claimYieldRewards(false);
+
+      const carolStakesLength = await this.ilvPool.getStakesLength(this.signers.carol.address);
+
+      expect(carolStakesLength).to.be.equal(0);
+    });
     it("should mint sILV correctly", async function () {
       const poolWeight = await this.flashPool.weight();
       const totalWeight = await this.factory.totalWeight();
@@ -630,6 +640,7 @@ describe("FlashPool", function () {
       expect(flashPoolWeight0).to.be.equal(FLASH_POOL_WEIGHT);
       expect(flashPoolWeight1).to.be.equal(0);
       expect(flashPoolWeight2).to.be.equal(0);
+      expect(await this.flashPool.isPoolDisabled()).to.be.true;
       expect(expectedLastYieldDistribution).to.be.equal(lastYieldDistribution);
       expect(expectedYieldRewardsPerToken).to.be.equal(yieldRewardsPerToken);
     });
