@@ -140,6 +140,102 @@ export function fillV1StakeId(usingPool: string): () => void {
       );
       expect(stakeValueAfterUnstake).to.be.equal(0);
     });
+    it("should fill a v1 stake id, generate yield, unstake and generate yield again", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+      const token = getToken(this.ilv, this.lp, usingPool);
+
+      const poolWeight = await pool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      const v1StakeData = await v1Pool.getDeposit(this.signers.alice.address, 0);
+
+      await pool.setNow256(INIT_TIME + ONE_YEAR + 1);
+
+      if (usingPool === "ILV") {
+        await this.ilvPool.connect(this.signers.alice).executeMigration([], 0, 0, [0, 1]);
+      } else {
+        await this.lpPool.connect(this.signers.alice).migrateLockedStakes([0, 1]);
+      }
+
+      await v1Pool.changeStakeValue(this.signers.alice.address, 0, 0);
+      await v1Pool.changeStakeWeight(this.signers.alice.address, 0, 0);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).fillV1StakeId(0, 0, false);
+      const { pendingYield: pendingYield0 } = await pool.pendingRewards(this.signers.alice.address);
+
+      await pool.setNow256(INIT_TIME + ONE_YEAR + 101);
+      const aliceTotalWeight = toWei(1000e6);
+      const V2PoolGlobalWeight = await pool.globalWeight();
+      const V1PoolGlobalWeight = await v1Pool.usersLockingWeight();
+      const expectedPendingYieldTotal = ILV_PER_SECOND.mul(ONE_YEAR + 101)
+        .mul(poolWeight)
+        .mul(aliceTotalWeight)
+        .mul(toWei(100))
+        .div(totalWeight)
+        .div(V2PoolGlobalWeight.add(V1PoolGlobalWeight))
+        .div(toWei(100));
+      const expectedPendingYieldSinceFill = ILV_PER_SECOND.mul(100)
+        .mul(poolWeight)
+        .mul(aliceTotalWeight)
+        .mul(toWei(100))
+        .div(totalWeight)
+        .div(V2PoolGlobalWeight.add(V1PoolGlobalWeight))
+        .div(toWei(100));
+      const { pendingYield: pendingYield1 } = await pool.pendingRewards(this.signers.alice.address);
+
+      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR / 2);
+      const { pendingYield: pendingYieldStored1 } = await pool.users(this.signers.alice.address);
+
+      const v2StakeData = await pool.getStake(this.signers.alice.address, 0);
+
+      await pool.connect(this.signers.alice).unstakeLocked(0, v2StakeData.value.sub(toWei(100)));
+      await v1Pool.changeStakeValue(this.signers.alice.address, 1, toWei(200));
+      await v1Pool.changeStakeWeight(this.signers.alice.address, 1, toWei(400e6));
+
+      await pool.setNow256(INIT_TIME + ONE_YEAR + 251);
+
+      const newV2PoolGlobalWeight = await pool.globalWeight();
+      const newV1PoolGlobalWeight = await v1Pool.usersLockingWeight();
+      const expectedPendingYieldSinceUnstake = ILV_PER_SECOND.mul(150)
+        .mul(poolWeight)
+        .mul(toWei(750e6))
+        .mul(toWei(100))
+        .div(totalWeight)
+        .div(newV2PoolGlobalWeight.add(newV1PoolGlobalWeight))
+        .div(toWei(100));
+
+      const { pendingYield: pendingYield2 } = await pool.pendingRewards(this.signers.alice.address);
+
+      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      const { pendingYield: pendingYieldStored2 } = await pool.users(this.signers.alice.address);
+
+      expect(v1StakeData[0]).to.be.equal(v2StakeData.value);
+      expect(v1StakeData[2]).to.be.equal(v2StakeData.lockedFrom);
+      expect(v1StakeData[3]).to.be.equal(v2StakeData.lockedUntil);
+      expect(v1StakeData[4]).to.be.equal(v2StakeData.isYield);
+      expect(Number(ethers.utils.formatEther(expectedPendingYieldTotal))).to.be.closeTo(
+        Number(ethers.utils.formatEther(pendingYield1)),
+        0.01,
+      );
+      expect(Number(ethers.utils.formatEther(expectedPendingYieldTotal))).to.be.closeTo(
+        Number(ethers.utils.formatEther(pendingYieldStored1)),
+        0.01,
+      );
+      expect(Number(ethers.utils.formatEther(expectedPendingYieldSinceFill))).to.be.closeTo(
+        Number(ethers.utils.formatEther(pendingYield1.sub(pendingYield0))),
+        0.01,
+      );
+      expect(Number(ethers.utils.formatEther(expectedPendingYieldSinceUnstake))).to.be.closeTo(
+        Number(ethers.utils.formatEther(pendingYield2.sub(pendingYield1))),
+        0.01,
+      );
+      expect(Number(ethers.utils.formatEther(expectedPendingYieldSinceUnstake))).to.be.closeTo(
+        Number(ethers.utils.formatEther(pendingYieldStored2.sub(pendingYield1))),
+        0.01,
+      );
+    });
   };
 }
 
