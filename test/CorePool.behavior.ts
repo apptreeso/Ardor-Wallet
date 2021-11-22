@@ -16,10 +16,11 @@ import {
   getV1Pool,
   getUsers0,
   getUsers1,
+  getUsers2,
+  getTotalV1WeightMocked,
 } from "./utils";
 import YieldTree from "./utils/yield-tree";
 import { ILVPoolUpgrade, SushiLPPoolUpgrade, PoolFactoryUpgrade } from "../types";
-import { ppid } from "process";
 
 const { MaxUint256, AddressZero } = ethers.constants;
 
@@ -33,11 +34,95 @@ export function fillV1StakeId(usingPool: string): () => void {
     beforeEach(async function () {
       const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
 
-      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+      const users = getUsers2([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
       await v1Pool.setUsers(users);
     });
-    it("should fill a v1 stake id", async function () {});
+    it("should fill a v1 stake id", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+      const token = getToken(this.ilv, this.lp, usingPool);
+
+      const v1StakeData = await v1Pool.getDeposit(this.signers.alice.address, 0);
+
+      if (usingPool === "ILV") {
+        await this.ilvPool.connect(this.signers.alice).executeMigration([], 0, 0, [0, 1]);
+      } else {
+        await this.lpPool.connect(this.signers.alice).migrateLockedStakes([0, 1]);
+      }
+      // unlocks v1 tokens
+      await pool.setNow256(INIT_TIME + ONE_YEAR + 1);
+      await v1Pool.changeStakeValue(this.signers.alice.address, 0, 0);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).fillV1StakeId(0, 0, false);
+
+      const v2StakeData = await pool.getStake(this.signers.alice.address, 0);
+      const v2UserWeight = (await pool.users(this.signers.alice.address)).totalWeight;
+      const globalWeight = await pool.globalWeight();
+
+      expect(v1StakeData[0]).to.be.equal(v2StakeData.value);
+      expect(v1StakeData[1]).to.be.equal(v2UserWeight);
+      expect(v1StakeData[2]).to.be.equal(v2StakeData.lockedFrom);
+      expect(v1StakeData[3]).to.be.equal(v2StakeData.lockedUntil);
+      expect(v1StakeData[4]).to.be.equal(v2StakeData.isYield);
+      expect(globalWeight).to.be.equal(v2UserWeight);
+    });
+    it("should fill a v1 stake id, generate yield, and unstake", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+      const token = getToken(this.ilv, this.lp, usingPool);
+
+      const poolWeight = await pool.weight();
+      const totalWeight = await this.factory.totalWeight();
+
+      const v1StakeData = await v1Pool.getDeposit(this.signers.alice.address, 0);
+
+      await pool.setNow256(INIT_TIME + ONE_YEAR + 1);
+
+      if (usingPool === "ILV") {
+        await this.ilvPool.connect(this.signers.alice).executeMigration([], 0, 0, [0, 1]);
+      } else {
+        await this.lpPool.connect(this.signers.alice).migrateLockedStakes([0, 1]);
+      }
+
+      await v1Pool.changeStakeValue(this.signers.alice.address, 0, 0);
+      await v1Pool.changeStakeWeight(this.signers.alice.address, 0, 0);
+
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).fillV1StakeId(0, 0, false);
+
+      await pool.setNow256(INIT_TIME + ONE_YEAR + 101);
+      const aliceTotalWeight = toWei(1000e6);
+      const V2PoolGlobalWeight = await pool.globalWeight();
+      const v1PoolGlobalWeight = await v1Pool.usersLockingWeight();
+      const expectedPendingYield = ILV_PER_SECOND.mul(ONE_YEAR + 101)
+        .mul(poolWeight)
+        .mul(aliceTotalWeight)
+        .mul(toWei(100))
+        .div(totalWeight)
+        .div(V2PoolGlobalWeight.add(v1PoolGlobalWeight))
+        .div(toWei(100));
+      const { pendingYield } = await pool.pendingRewards(this.signers.alice.address);
+
+      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR / 2);
+      const { pendingYield: pendingYieldStored } = await pool.users(this.signers.alice.address);
+
+      const v2StakeData = await pool.getStake(this.signers.alice.address, 0);
+
+      expect(v1StakeData[0]).to.be.equal(v2StakeData.value);
+      expect(v1StakeData[2]).to.be.equal(v2StakeData.lockedFrom);
+      expect(v1StakeData[3]).to.be.equal(v2StakeData.lockedUntil);
+      expect(v1StakeData[4]).to.be.equal(v2StakeData.isYield);
+      expect(Number(ethers.utils.formatEther(expectedPendingYield))).to.be.closeTo(
+        Number(ethers.utils.formatEther(pendingYield)),
+        0.001,
+      );
+      expect(Number(ethers.utils.formatEther(expectedPendingYield))).to.be.closeTo(
+        Number(ethers.utils.formatEther(pendingYieldStored)),
+        0.001,
+      );
+    });
   };
 }
 
@@ -1088,16 +1173,24 @@ export function unstakeLocked(usingPool: string): () => void {
 
       const balance0 = await pool.balanceOf(this.signers.alice.address);
       const { value: value0 } = await pool.getStake(this.signers.alice.address, 0);
+      const { totalWeight: totalWeight0 } = await pool.users(this.signers.alice.address);
+      const globalWeight0 = await pool.globalWeight();
 
       await pool.connect(this.signers.alice).unstakeLocked(0, toWei(100));
 
       const balance1 = await pool.balanceOf(this.signers.alice.address);
       const { value: value1 } = await pool.getStake(this.signers.alice.address, 0);
+      const { totalWeight: totalWeight1 } = await pool.users(this.signers.alice.address);
+      const globalWeight1 = await pool.globalWeight();
 
       expect(balance0).to.be.equal(toWei(100));
       expect(value0).to.be.equal(toWei(100));
+      expect(totalWeight0).to.be.equal(toWei(200e6));
+      expect(totalWeight0).to.be.equal(globalWeight0);
       expect(balance1).to.be.equal(0);
       expect(value1).to.be.equal(0);
+      expect(totalWeight1).to.be.equal(0);
+      expect(totalWeight1).to.be.equal(globalWeight1);
     });
     it("should unstake locked tokens partially", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
@@ -1544,8 +1637,12 @@ export function stake(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
 
       const balance = await pool.balanceOf(this.signers.alice.address);
+      const { totalWeight } = await pool.users(this.signers.alice.address);
+      const globalWeight = await pool.globalWeight();
 
       expect(balance).to.be.equal(toWei(100));
+      expect(totalWeight).to.be.equal(toWei(200e6));
+      expect(totalWeight).to.be.equal(globalWeight);
     });
     it("should get correct stakesLength", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);

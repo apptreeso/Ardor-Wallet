@@ -42,6 +42,15 @@ contract CorePoolV1Mock is ICorePoolV1 {
         users[_user][_stakeId].weight = _newWeight;
     }
 
+    function changeStakeValue(
+        address _user,
+        uint256 _stakeId,
+        uint256 _newValue
+    ) external {
+        poolTokenReserve = poolTokenReserve - users[_user][_stakeId].tokenAmount + _newValue;
+        users[_user][_stakeId].tokenAmount = _newValue;
+    }
+
     function getDeposit(address _from, uint256 _stakeId)
         external
         view

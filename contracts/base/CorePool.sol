@@ -564,8 +564,8 @@ abstract contract CorePool is
         user.stakes.push(
             Stake.Data({
                 value: v1StakeValue,
-                lockedFrom: _boostWeight ? uint64(_now256()) : 0,
-                lockedUntil: _boostWeight ? uint64(_now256() + Stake.MAX_STAKE_PERIOD) : 0,
+                lockedFrom: _boostWeight ? uint64(_now256()) : _lockedFrom,
+                lockedUntil: _boostWeight ? uint64(_now256() + Stake.MAX_STAKE_PERIOD) : _lockedUntil,
                 isYield: false
             })
         );
@@ -574,6 +574,11 @@ abstract contract CorePool is
         // resets rewards
         user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
         user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
+
+        // update global variable
+        globalWeight += weightToUse;
+        // update reserve count
+        poolTokenReserve += v1StakeValue;
 
         // transfers poolTokens from msg.sender
         IERC20Upgradeable(poolToken).safeTransferFrom(msg.sender, address(this), v1StakeValue);

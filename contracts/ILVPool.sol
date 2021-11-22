@@ -143,8 +143,10 @@ contract ILVPool is V2Migrator {
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
         // update user state
         _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
-        _migrateYieldWeights(_proof, _index, _yieldWeight);
         _migrateLockedStakes(_stakeIds, v1WeightToAdd);
+        if (_yieldWeight > 0) {
+            _migrateYieldWeights(_proof, _index, _yieldWeight);
+        }
     }
 
     /**
