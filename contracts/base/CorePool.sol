@@ -761,7 +761,7 @@ abstract contract CorePool is
 
         // validate the inputs
         fnSelector.verifyNonZeroInput(_value, 0);
-        fnSelector.verifyInput(_lockDuration > 0 && _lockDuration <= Stake.MAX_STAKE_PERIOD, 2);
+        fnSelector.verifyInput(_lockDuration >= Stake.MIN_STAKE_PERIOD && _lockDuration <= Stake.MAX_STAKE_PERIOD, 2);
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];

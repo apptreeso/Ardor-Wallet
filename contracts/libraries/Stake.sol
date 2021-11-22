@@ -33,6 +33,10 @@ library Stake {
      *      is 0 (e.g stake flexible), then BASE_WEIGHT is used.
      */
     uint256 internal constant BASE_WEIGHT = 1e6;
+    /**
+     * @dev Minimum period that someone can lock a stake for.
+     */
+    uint256 internal constant MIN_STAKE_PERIOD = 30 days;
 
     /**
      * @dev Maximum period that someone can lock a stake for.
