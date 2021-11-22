@@ -534,13 +534,13 @@ abstract contract CorePool is
         // queries v1 data
         (uint256 _tokenAmount, , uint64 _lockedFrom, uint64 _lockedUntil, bool _isYield) = ICorePoolV1(corePoolV1)
             .getDeposit(msg.sender, _v1StakeId);
-        // checks if user unstaked almost all of the tokens in order to fill the v1 stake id
-        fnSelector.verifyState(_tokenAmount == 1, 1);
+        // checks if user unstaked all of the tokens in order to fill the v1 stake id
+        fnSelector.verifyState(_tokenAmount == 0, 1);
         // verifies if v1 stake is unlocked
         fnSelector.verifyState(_lockedUntil < _now256(), 2);
         // retrieves original stake value by using v1 _lockedUntil and _lockedFrom, and comparing
         // to the weight originally stored in this contract during migration
-        uint112 v1StakeValue = uint112(
+        uint120 v1StakeValue = uint120(
             v1StakesWeightsOriginal[msg.sender][_v1StakeId] /
                 (((_lockedUntil - _lockedFrom) * Stake.WEIGHT_MULTIPLIER) / 365 days + Stake.WEIGHT_MULTIPLIER)
         );
@@ -562,9 +562,8 @@ abstract contract CorePool is
             Stake.Data({
                 value: v1StakeValue,
                 lockedFrom: _boostWeight ? uint64(_now256()) : 0,
-                lockedUntil: _boostWeight ? uint64(_now256() + 365 days) : 0,
-                isYield: false,
-                fromV1: true
+                lockedUntil: _boostWeight ? uint64(_now256() + Stake.MAX_STAKE_PERIOD) : 0,
+                isYield: false
             })
         );
         // gas savings
@@ -732,11 +731,10 @@ abstract contract CorePool is
 
         // create and save the stake (append it to stakes array)
         Stake.Data memory stake = Stake.Data({
-            value: uint112(_value),
+            value: uint120(_value),
             lockedFrom: uint64(_now256()),
             lockedUntil: lockUntil,
-            isYield: false,
-            fromV1: false
+            isYield: false
         });
         // pushes new stake to `stakes` array
         user.stakes.push(stake);
@@ -805,7 +803,7 @@ abstract contract CorePool is
             // deletes stake struct, no need to save new weight because it stays 0
             delete user.stakes[_stakeId];
         } else {
-            stake.value -= uint112(_value);
+            stake.value -= uint120(_value);
             // saves new weight to memory
             newWeight = stake.weight();
         }
@@ -885,7 +883,7 @@ abstract contract CorePool is
                 // deletes stake struct, no need to save new weight because it stays 0
                 delete user.stakes[_stakeId];
             } else {
-                stake.value -= uint112(_value);
+                stake.value -= uint120(_value);
                 // saves new weight to memory
                 newWeight = stake.weight();
             }
@@ -1044,11 +1042,10 @@ abstract contract CorePool is
             // if the pool is ILV Pool - create new ILV stake
             // and save it - push it into stakes array
             Stake.Data memory newStake = Stake.Data({
-                value: uint112(pendingYieldToClaim),
+                value: uint120(pendingYieldToClaim),
                 lockedFrom: uint64(_now256()),
                 lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
-                isYield: true,
-                fromV1: false
+                isYield: true
             });
 
             user.stakes.push(newStake);
