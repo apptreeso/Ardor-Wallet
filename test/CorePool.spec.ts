@@ -35,7 +35,6 @@ import {
   getPoolData,
   migrationTests,
   mintV1Yield,
-  updateStakeLock,
   stake,
   sync,
   pendingYield,
@@ -155,10 +154,6 @@ describe("CorePools", function () {
   describe("#sync", function () {
     context("ILV Pool", sync("ILV"));
     context("Sushi LP Pool", sync("LP"));
-  });
-  describe("#updateStakeLock", function () {
-    context("ILV Pool", updateStakeLock("ILV"));
-    context("Sushi LP Pool", updateStakeLock("LP"));
   });
   describe("#setWeight", function () {
     context("ILV Pool", setWeight("ILV"));

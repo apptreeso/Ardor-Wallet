@@ -506,60 +506,6 @@ abstract contract CorePool is
     }
 
     /**
-     * @notice Extends locking period for a given stake.
-     *
-     * @dev Requires new lockedUntil value to be: higher than the current one, and
-     * in the future, but no more than 2 years in the future.
-     *
-     * @param _stakeId updated stake ID
-     * @param _lockedUntil updated stake locked until value
-     */
-    function updateStakeLock(uint256 _stakeId, uint64 _lockedUntil) external updatePool {
-        // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
-
-        // we're using selector to simplify input and state validation
-        bytes4 fnSelector = CorePool(this).updateStakeLock.selector;
-
-        // validate the input time
-        fnSelector.verifyInput(_lockedUntil > _now256(), 1);
-
-        // get a link to user data struct, we will write to it later
-        User storage user = users[msg.sender];
-        // get a link to the corresponding stake, we may write to it later
-        Stake.Data storage stake = user.stakes[_stakeId];
-
-        // validate the input against stake structure
-        fnSelector.verifyInput(_lockedUntil > stake.lockedUntil, 1);
-
-        // saves previous weight into memory
-        uint256 previousWeight = stake.weight();
-        // gas savings
-        uint64 stakeLockedFrom = stake.lockedFrom;
-
-        // verify locked from and locked until values
-        if (stakeLockedFrom == 0) {
-            fnSelector.verifyInput(_lockedUntil - _now256() <= Stake.MAX_STAKE_PERIOD, 1);
-            stakeLockedFrom = uint64(_now256());
-            stake.lockedFrom = stakeLockedFrom;
-        } else {
-            fnSelector.verifyInput(_lockedUntil - stakeLockedFrom <= Stake.MAX_STAKE_PERIOD, 1);
-        }
-
-        // update locked until value, calculate new weight
-        stake.lockedUntil = _lockedUntil;
-        // saves new weight into memory
-        uint256 newWeight = stake.weight();
-        // update user total weight and global locking weight
-        user.totalWeight = uint248(user.totalWeight - previousWeight + newWeight);
-        globalWeight = globalWeight - previousWeight + newWeight;
-
-        // emit an event
-        emit LogUpdateStakeLock(msg.sender, _stakeId, stakeLockedFrom, _lockedUntil);
-    }
-
-    /**
      * @dev Allows an user that is currently in v1 with locked tokens, that have
      *      just been unlocked, to transfer to v2 and keep the same weight that was
      *      used in v1.
