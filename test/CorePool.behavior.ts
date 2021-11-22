@@ -118,6 +118,10 @@ export function fillV1StakeId(usingPool: string): () => void {
 
       const v2StakeData = await pool.getStake(this.signers.alice.address, 0);
 
+      await pool.connect(this.signers.alice).unstakeLocked(0, v2StakeData.value);
+
+      const { value: stakeValueAfterUnstake } = await pool.getStake(this.signers.alice.address, 0);
+
       expect(v1StakeData[0]).to.be.equal(v2StakeData.value);
       expect(v1StakeData[2]).to.be.equal(v2StakeData.lockedFrom);
       expect(v1StakeData[3]).to.be.equal(v2StakeData.lockedUntil);
@@ -134,6 +138,7 @@ export function fillV1StakeId(usingPool: string): () => void {
         Number(ethers.utils.formatEther(pendingYield1.sub(pendingYield0))),
         0.001,
       );
+      expect(stakeValueAfterUnstake).to.be.equal(0);
     });
   };
 }
