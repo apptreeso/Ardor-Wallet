@@ -514,14 +514,8 @@ abstract contract CorePool is
      * @param _v1StakeId id of a stake in v1 migrated to v2
      * @param _stakeIdPosition position of the desired stake id in the user.v1StakesIds
      *                         array
-     * @param _boostWeight if users wants to lock for 12 months and receive max 2.0 weight
-     *                     as a bonus for v1 users
      */
-    function fillV1StakeId(
-        uint256 _v1StakeId,
-        uint256 _stakeIdPosition,
-        bool _boostWeight
-    ) external {
+    function fillV1StakeId(uint256 _v1StakeId, uint256 _stakeIdPosition) external {
         _requireNotPaused();
         User storage user = users[msg.sender];
         // we're using selector to simplify input and state validation
@@ -551,10 +545,8 @@ abstract contract CorePool is
         // verified before migration
         assert(!_isYield);
 
-        // if user opts to lock v1 stake for a year, we give max v1 weight multiplier (2e6)
-        uint256 weightToUse = !_boostWeight
-            ? v1StakesWeightsOriginal[msg.sender][_v1StakeId]
-            : v1StakeValue * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
+        // we read the original v1 weight stored in the initial migration
+        uint256 weightToUse = v1StakesWeightsOriginal[msg.sender][_v1StakeId];
 
         // delete v1StakeId and original v1 stake weight
         delete user.v1StakesIds[_stakeIdPosition];
@@ -562,12 +554,7 @@ abstract contract CorePool is
         // adds v1 stake data to user struct
         user.totalWeight += uint248(weightToUse);
         user.stakes.push(
-            Stake.Data({
-                value: v1StakeValue,
-                lockedFrom: _boostWeight ? uint64(_now256()) : _lockedFrom,
-                lockedUntil: _boostWeight ? uint64(_now256() + Stake.MAX_STAKE_PERIOD) : _lockedUntil,
-                isYield: false
-            })
+            Stake.Data({ value: v1StakeValue, lockedFrom: _lockedFrom, lockedUntil: _lockedUntil, isYield: false })
         );
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
