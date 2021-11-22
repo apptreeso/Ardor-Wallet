@@ -4,8 +4,6 @@ pragma solidity 0.8.4;
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 import { ErrorHandler } from "../libraries/ErrorHandler.sol";
 import { Stake } from "../libraries/Stake.sol";
-import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import { CorePool } from "./CorePool.sol";
 
 /**
@@ -22,25 +20,27 @@ import { CorePool } from "./CorePool.sol";
 abstract contract V2Migrator is CorePool {
     using ErrorHandler for bytes4;
     using Stake for uint256;
-    using BitMaps for BitMaps.BitMap;
 
     /// @dev stores maximum timestamp of a v1 stake accepted in v2.
     uint256 public v1StakeMaxPeriod;
 
-    /// @dev stores merkle root related to users yield weight in v1.
-    bytes32 public merkleRoot;
-
-    BitMaps.BitMap private _usersMigrated;
-
     /**
-     * @dev logs `migrateFromV1()`
+     * @dev logs `_migrateYieldWeights()`
      *
      * @param from user address
      * @param yieldWeightMigrated total amount of weight coming from yield in v1
+     *
+     */
+    event LogMigrateYieldWeight(address indexed from, uint256 yieldWeightMigrated);
+
+    /**
+     * @dev logs `_migrateLockedStakes()`
+     *
+     * @param from user address
      * @param totalV1WeightAdded total amount of weight coming from locked stakes in v1
      *
      */
-    event LogMigrateFromV1(address indexed from, uint256 yieldWeightMigrated, uint256 totalV1WeightAdded);
+    event LogMigrateLockedStakes(address indexed from, uint256 totalV1WeightAdded);
 
     /**
      * @dev V2Migrator initializer function
@@ -64,25 +64,18 @@ abstract contract V2Migrator is CorePool {
     }
 
     /**
-     * @dev Sets the yield weight tree root.
+     * @dev External migrateLockedStakes call, used in Sushi LP pool.
      *
-     * @param _merkleRoot 32 bytes tree root.
+     * @param _stakeIds array of v1 stake ids
      */
-    function setMerkleRoot(bytes32 _merkleRoot) external {
-        _requireIsFactoryController();
-        merkleRoot = _merkleRoot;
-    }
+    function migrateLockedStakes(uint256[] calldata _stakeIds) external {
+        _requireNotPaused();
 
-    /**
-     * @dev Returns whether an user of a given _index in the bitmap has already
-     *      migrated v1 yield weight stored in the merkle tree or not.
-     *
-     * @param _index user index in the bitmap, can be checked in the off-chain
-     *               merkle tree
-     * @return whether user has already migrated yield weights or not
-     */
-    function hasMigratedYield(uint256 _index) public view returns (bool) {
-        return _usersMigrated.get(_index);
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+        // update user state
+        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        _migrateLockedStakes(_stakeIds, v1WeightToAdd);
     }
 
     /**
@@ -91,20 +84,13 @@ abstract contract V2Migrator is CorePool {
      *
      * @dev Only `msg.sender` can migrate v1 stakes to v2.
      *
-     * @param _yieldWeight total amount of yield weight in v1 stored in the users
-     *                     merkle tree
      * @param _stakeIds array of v1 stake ids
      */
-    function _migrateLockedStakes(uint256[] calldata _stakeIds) external {
-        _requireNotPaused();
+    function _migrateLockedStakes(uint256[] calldata _stakeIds, uint256 _v1WeightToAdd) internal {
         User storage user = users[msg.sender];
-        // we're using selector to simplify input and state validation
-        bytes4 fnSelector = V2Migrator(this).migrateLockedStakes.selector;
 
-        // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        // update user state
-        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = 0x710276c7;
 
         uint256 totalV1WeightAdded;
 
@@ -125,7 +111,7 @@ abstract contract V2Migrator is CorePool {
         }
 
         // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
+        uint256 userTotalWeight = (user.totalWeight + _v1WeightToAdd);
 
         // resets all rewards after migration
         user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);

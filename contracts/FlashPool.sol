@@ -405,21 +405,8 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         if (_factory.shouldUpdateRatio()) {
             _factory.updateILVPerSecond();
         }
-
-        // if pool is disabled/expired
-        if (isPoolDisabled()) {
-            // if weight is not yet set
-            if (weight != 0) {
-                // set the pool weight (sets both factory and local values)
-                _factory.changePoolWeight(address(this), 0);
-            }
-            // and exit
-            return;
-        }
-
-        // check bound conditions and if these are not met -
-        // exit silently, without emitting an event
-        uint256 _endTime = _factory.endTime();
+        // gas savings
+        uint256 _endTime = endTime;
         if (lastYieldDistribution >= _endTime) {
             return;
         }
@@ -444,6 +431,12 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // update rewards per weight and `lastYieldDistribution`
         yieldRewardsPerToken += _rewardPerToken(ilvReward, totalStaked);
         lastYieldDistribution = uint64(currentTimestamp);
+
+        // if weight is not yet set and pool has finished
+        if (weight != 0 && _now256() >= _endTime) {
+            // set the pool weight (sets both factory and local values)
+            _factory.changePoolWeight(address(this), 0);
+        }
 
         // emit an event
         emit LogSync(msg.sender, yieldRewardsPerToken, lastYieldDistribution);

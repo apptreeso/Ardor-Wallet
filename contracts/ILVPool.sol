@@ -3,6 +3,8 @@ pragma solidity 0.8.4;
 
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
+import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { V2Migrator } from "./base/V2Migrator.sol";
 import { ErrorHandler } from "./libraries/ErrorHandler.sol";
 import { Stake } from "./libraries/Stake.sol";
@@ -24,6 +26,12 @@ contract ILVPool is V2Migrator {
     using ErrorHandler for bytes4;
     using Stake for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using BitMaps for BitMaps.BitMap;
+
+    /// @dev stores merkle root related to users yield weight in v1.
+    bytes32 public merkleRoot;
+
+    BitMaps.BitMap private _usersMigrated;
 
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     ///      if a v1 yield has already been minted by v2 contract.
@@ -50,6 +58,28 @@ contract ILVPool is V2Migrator {
         uint256 _v1StakeMaxPeriod
     ) external initializer {
         __V2Migrator_init(_ilv, _silv, _poolToken, _corePoolV1, _factory, _initTime, _weight, _v1StakeMaxPeriod);
+    }
+
+    /**
+     * @dev Sets the yield weight tree root.
+     *
+     * @param _merkleRoot 32 bytes tree root.
+     */
+    function setMerkleRoot(bytes32 _merkleRoot) external {
+        _requireIsFactoryController();
+        merkleRoot = _merkleRoot;
+    }
+
+    /**
+     * @dev Returns whether an user of a given _index in the bitmap has already
+     *      migrated v1 yield weight stored in the merkle tree or not.
+     *
+     * @param _index user index in the bitmap, can be checked in the off-chain
+     *               merkle tree
+     * @return whether user has already migrated yield weights or not
+     */
+    function hasMigratedYield(uint256 _index) public view returns (bool) {
+        return _usersMigrated.get(_index);
     }
 
     /**
@@ -99,19 +129,17 @@ contract ILVPool is V2Migrator {
     function executeMigration(
         bytes32[] calldata _proof,
         uint256 _index,
-        uint248 _yieldWeight
+        uint248 _yieldWeight,
+        uint256[] calldata _stakeIds
     ) external {
         _requireNotPaused();
-
-        User storage user = users[msg.sender];
-        // we're using selector to simplify input and state validation
-        bytes4 fnSelector = V2Migrator(this).migrateLockedStakes.selector;
 
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
         // update user state
         _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
         _migrateYieldWeights(_proof, _index, _yieldWeight);
+        _migrateLockedStakes(_stakeIds, v1WeightToAdd);
     }
 
     /**
@@ -209,12 +237,14 @@ contract ILVPool is V2Migrator {
         uint256 _index,
         uint256 _yieldWeight
     ) private {
-        bytes4 fnSelector = ILVPool(address(this)).migrateYieldWeights.selector;
+        User storage user = users[msg.sender];
+        // bytes4(keccak256("_migrateYieldWeights(bytes32[],uint256,uint256")))
+        bytes4 fnSelector = 0x660e5908;
 
         fnSelector.verifyAccess(!hasMigratedYield(_index));
         // compute leaf and verify merkle proof
         bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight));
-        fnSelector.verifyInput(MerkleProof.verify(_proof, merkleRoot, leaf));
+        fnSelector.verifyInput(MerkleProof.verify(_proof, merkleRoot, leaf), 0);
 
         user.totalWeight += uint248(_yieldWeight);
         // set user as claimed in bitmap
