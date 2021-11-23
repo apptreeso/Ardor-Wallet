@@ -8,17 +8,25 @@ Parameters need to be reviewed carefully before deployment for the migration pro
 Users will migrate their locked stakes, which are stored in the contract,
 and v1 total yield weights by data stored in a merkle tree using merkle proofs.
 
-### `__V2Migrator_init(address _ilv, address _silv, address _poolToken, address _factory, uint64 _initTime, uint32 _weight, address _corePoolV1, uint256 _v1StakeMaxPeriod)` (internal)
+### `__V2Migrator_init(address _ilv, address _silv, address _poolToken, address _corePoolV1, address _factory, uint64 _initTime, uint32 _weight, uint256 _v1StakeMaxPeriod)` (internal)
 
 V2Migrator initializer function
 
-### `migrateFromV1([], 0, 0, uint256[] _stakeIds)` (external)
+### `migrateLockedStakes(uint256[] _stakeIds)` (external)
+
+External migrateLockedStakes call, used in Sushi LP pool.
+
+### `_migrateLockedStakes(uint256[] _stakeIds, uint256 _v1WeightToAdd)` (internal)
 
 Reads v1 core pool locked stakes data (by looping through the `_stakeIds` array),
 checks if it's a valid v1 stake to migrate and save the id to v2 user struct.
 
 Only `msg.sender` can migrate v1 stakes to v2.
 
-### `LogmigrateFromV1([], 0, 0, address from, uint256[] stakeIds)`
+### `LogMigrateYieldWeight(address from, uint256 yieldWeightMigrated)`
 
-logs `migrateFromV1([], 0, 0, )`
+logs `_migrateYieldWeights()`
+
+### `LogMigrateLockedStakes(address from, uint256 totalV1WeightAdded)`
+
+logs `_migrateLockedStakes()`

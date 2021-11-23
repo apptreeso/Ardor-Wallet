@@ -19,7 +19,7 @@ For ILV Pool we use 200 as weight and for ILV/ETH SLP pool - 800.
 
 Used for functions that require syncing contract state before execution.
 
-### `__CorePool_init(address _ilv, address _silv, address _poolToken, address _factory, uint64 _initTime, uint32 _weight)` (internal)
+### `__CorePool_init(address _ilv, address _silv, address _poolToken, address _corePoolV1, address _factory, uint64 _initTime, uint32 _weight)` (internal)
 
 Used in child contracts to initialize the pool.
 
@@ -36,7 +36,7 @@ accumulated with already stored user.pendingYield and user.pendingRevDis.
 
 Returns total staked token balance for the given address.
 
-loops through stakes and adds flexible balance to return total balance.
+loops through stakes and returns total balance.
 
 ### `getStake(address _user, uint256 _stakeId) → struct Stake.Data` (external)
 
@@ -62,17 +62,12 @@ Returns number of stakes for the given address. Allows iteration over stakes.
 
 See `getStake()`.
 
-### `stakeAndLock(uint256 _value, uint64 _lockDuration)` (external)
+### `stakePoolToken(uint256 _value, uint64 _lockDuration)` (external)
 
 Stakes specified value of tokens for the specified value of time,
 and pays pending yield rewards if any.
 
 Requires value to stake and lock duration to be greater than zero.
-
-### `stakeFlexible(uint256 _value)` (external)
-
-Stakes poolTokens without lock.
-We use standard weight for flexible stakes (since it's never locked).
 
 ### `migrateUser(address _to)` (external)
 
@@ -82,14 +77,7 @@ clean the previous user (msg.sender), add the previous user data to
 the desired address and update subYieldRewards/subVaultRewards values
 in order to make sure both addresses will have rewards cleaned.
 
-### `updateStakeLock(uint256 _stakeId, uint64 _lockedUntil)` (external)
-
-Extends locking period for a given stake.
-
-Requires new lockedUntil value to be: higher than the current one, and
-in the future, but no more than 2 years in the future.
-
-### `fillV1StakeId(uint256 _v1StakeId, uint256 _stakeIdPosition, bool _boostWeight)` (external)
+### `fillV1StakeId(uint256 _v1StakeId, uint256 _stakeIdPosition)` (external)
 
 Allows an user that is currently in v1 with locked tokens, that have
 just been unlocked, to transfer to v2 and keep the same weight that was
@@ -145,15 +133,9 @@ V1 weight is kept the same used in v1, as a bonus to V1 stakers.
 pending values retured are used by `_processRewards()` calls, which means
 we aren't counting `user.pendingYield` and `user.pendingRevDis` here.
 
-### `_stakeAndLock(address _staker, uint256 _value, uint64 _lockDuration)` (internal)
+### `_stake(address _staker, uint256 _value, uint64 _lockDuration)` (internal)
 
 Used internally, mostly by children implementations, see `stake()`.
-
-### `unstakeFlexible(uint256 _value)` (external)
-
-Unstakes pool tokens that have been staked in flexible mode.
-
-Subtracts `_value` from `user.flexibleBalance`.
 
 ### `unstakeLocked(uint256 _stakeId, uint256 _value)` (external)
 
@@ -186,7 +168,7 @@ end block), function doesn't throw and exits silently.
 ### `_claimYieldRewards(address _staker, bool _useSILV)` (internal)
 
 sILV is minted straight away to \_staker wallet, ILV is created as
-a new stake and locked for 365 days.
+a new stake and locked for Stake.MAX_STAKE_PERIOD.
 
 claims all pendingYield from \_staker using ILV or sILV.
 
@@ -213,12 +195,12 @@ last subYieldRewards or subVaultRewards update (through `_previousTotalV1Weight`
 and returns equivalent value using most recent v1 weight.
 
 This function is very important in order to keep calculations correct even
-after an user unstakes.
+after an user unstakes in v1.
 
 If an user in v1 unstakes before claiming yield in v2, it will be considered
 as if the user has been accumulating yield and revenue distributions
 with most recent weight since the last user.subYieldRewards and
-ser.subVaultRewards update.
+user.subVaultRewards update.
 v1 stake token amount of a given stakeId can never increase in v1 contracts.
 this way we are safe of attacks by adding more tokens in v1 and having
 a higher accumulation of yield and revenue distributions
@@ -234,43 +216,35 @@ Just checks if `msg.sender` == `factory.owner()` i.e eDAO multisig address.
 eDAO multisig is responsible by handling upgrades and executing other
 admin actions approved by the Council.
 
-### `LogStakeFlexible(address from, uint256 value)`
+### `LogStake(address by, address from, uint256 stakeId, uint256 value, uint64 lockUntil)`
 
-Fired in `stakeFlexible()`.
-
-### `LogStakeAndLock(address by, address from, uint256 value, uint64 lockUntil)`
-
-Fired in \_stakeAndLock() and stakeAsPool() in ILVPool contract.
+Fired in \_stake() and stakeAsPool() in ILVPool contract.
 
 ### `LogUpdateStakeLock(address from, uint256 stakeId, uint64 lockedFrom, uint64 lockedUntil)`
 
-Fired in \_updateStakeLock() and updateStakeLock().
-
-### `LogUnstakeFlexible(address to, uint256 value)`
-
-Fired in `unstakeFlexible()`.
-
-### `LogUnstakeLockedMultiple(address to, uint256 totalValue, bool unstakingYield)`
-
-Fired in `unstakeFlexible()`.
+Fired in updateStakeLock().
 
 ### `LogUnstakeLocked(address to, uint256 stakeId, uint256 value, bool isYield)`
 
 Fired in `unstakeLocked()`.
 
+### `LogUnstakeLockedMultiple(address to, uint256 totalValue, bool unstakingYield)`
+
+Fired in `unstakeLockedMultiple()`.
+
 ### `LogSync(address by, uint256 yieldRewardsPerWeight, uint64 lastYieldDistribution)`
 
 Fired in `_sync()`, `sync()` and dependent functions (stake, unstake, etc.).
 
-### `LogClaimYieldRewards(address from, bool sILV, uint256 value)`
+### `LogClaimYieldRewards(address by, address from, bool sILV, uint256 stakeId, uint256 value)`
 
 Fired in `_claimYieldRewards()`.
 
-### `LogClaimVaultRewards(address from, uint256 value)`
+### `LogClaimVaultRewards(address by, address from, uint256 value)`
 
 Fired in `_claimVaultRewards()`.
 
-### `LogProcessRewards(address from, uint256 yieldValue, uint256 revDisValue)`
+### `LogProcessRewards(address by, address from, uint256 yieldValue, uint256 revDisValue)`
 
 Fired in `_processRewards()`.
 
@@ -283,8 +257,6 @@ fired in `migrateUser()`.
 Fired in `receiveVaultRewards()`.
 
 ### `User`
-
-uint128 flexibleBalance
 
 uint128 pendingYield
 

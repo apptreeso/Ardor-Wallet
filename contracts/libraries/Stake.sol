@@ -4,16 +4,13 @@ pragma solidity 0.8.4;
 library Stake {
     struct Data {
         /// @dev token amount staked
-        uint112 value;
+        uint120 value;
         /// @dev locking period - from
         uint64 lockedFrom;
         /// @dev locking period - until
         uint64 lockedUntil;
         /// @dev indicates if the stake was created as a yield reward
         bool isYield;
-        /// @dev indicates whether stake has been migrated from a previous v1
-        /// stake or not. V1 stake weights are boosted.
-        bool fromV1;
     }
 
     /**
@@ -33,16 +30,20 @@ library Stake {
      *      is 0 (e.g stake flexible), then BASE_WEIGHT is used.
      */
     uint256 internal constant BASE_WEIGHT = 1e6;
+    /**
+     * @dev Minimum period that someone can lock a stake for.
+     */
+    uint256 internal constant MIN_STAKE_PERIOD = 30 days;
 
     /**
      * @dev Maximum period that someone can lock a stake for.
      */
-    uint256 internal constant MAX_STAKE_PERIOD = 730 days;
+    uint256 internal constant MAX_STAKE_PERIOD = 365 days;
 
     /**
      * @dev Rewards per weight are stored multiplied by 1e20 as uint.
      */
-    uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e20;
+    uint256 internal constant REWARD_PER_WEIGHT_MULTIPLIER = 1e12;
 
     /**
      * @dev When we know beforehand that staking is done for yield instead of

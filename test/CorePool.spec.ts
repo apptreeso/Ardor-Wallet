@@ -35,8 +35,7 @@ import {
   getPoolData,
   migrationTests,
   mintV1Yield,
-  updateStakeLock,
-  stakeAndLock,
+  stake,
   sync,
   pendingYield,
   claimYieldRewards,
@@ -44,6 +43,8 @@ import {
   unstakeLocked,
   unstakeLockedMultiple,
   migrateUser,
+  merkleTree,
+  fillV1StakeId,
 } from "./CorePool.behavior";
 
 chai.use(solidity);
@@ -84,8 +85,10 @@ describe("CorePools", function () {
       [this.ilv.address, this.silv.address, ILV_PER_SECOND, SECONDS_PER_UPDATE, INIT_TIME, END_TIME],
       { kind: "uups" },
     )) as PoolFactoryMock;
+
     this.ilvPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.ilv.address);
     this.lpPoolV1 = await this.CorePoolV1.connect(this.signers.deployer).deploy(this.lp.address);
+
     this.ilvPool = (await upgrades.deployProxy(
       this.ILVPool,
       [
@@ -100,6 +103,7 @@ describe("CorePools", function () {
       ],
       { kind: "uups" },
     )) as ILVPoolMock;
+
     this.lpPool = (await upgrades.deployProxy(
       this.SushiLPPool,
       [
@@ -114,7 +118,6 @@ describe("CorePools", function () {
       ],
       { kind: "uups" },
     )) as SushiLPPoolMock;
-
     await this.factory.connect(this.signers.deployer).registerPool(this.ilvPool.address);
     await this.factory.connect(this.signers.deployer).registerPool(this.lpPool.address);
 
@@ -132,9 +135,9 @@ describe("CorePools", function () {
     context("ILV Pool", getPoolData("ILV"));
     context("Sushi LP Pool", getPoolData("LP"));
   });
-  describe("#stakeAndLock", function () {
-    context("ILV Pool", stakeAndLock("ILV"));
-    context("Sushi LP Pool", stakeAndLock("LP"));
+  describe("#stake", function () {
+    context("ILV Pool", stake("ILV"));
+    context("Sushi LP Pool", stake("LP"));
   });
   describe("#pendingYield", function () {
     context("ILV Pool", pendingYield("ILV"));
@@ -153,10 +156,6 @@ describe("CorePools", function () {
     context("ILV Pool", sync("ILV"));
     context("Sushi LP Pool", sync("LP"));
   });
-  describe("#updateStakeLock", function () {
-    context("ILV Pool", updateStakeLock("ILV"));
-    context("Sushi LP Pool", updateStakeLock("LP"));
-  });
   describe("#setWeight", function () {
     context("ILV Pool", setWeight("ILV"));
     context("Sushi LP Pool", setWeight("LP"));
@@ -173,5 +172,12 @@ describe("CorePools", function () {
     context("ILV Pool", migrationTests("ILV"));
     context("Sushi LP Pool", migrationTests("LP"));
     context("Mint yield", mintV1Yield());
+  });
+  describe("Merkle tree tests", function () {
+    context("ILV Pool", merkleTree());
+  });
+  describe("Fill V1 stakeIds", function () {
+    context("ILV Pool", fillV1StakeId("ILV"));
+    context("Sushi LP Pool", fillV1StakeId("LP"));
   });
 });

@@ -9,24 +9,13 @@ contract SushiLPPool is V2Migrator {
         address _ilv,
         address _silv,
         address _poolToken,
-        address _corePoolV1,
         address _factory,
         uint64 _initTime,
         uint32 _weight,
-        uint256 _v1StakeMaxPeriod,
-        bytes32 _merkleRoot
+        address _corePoolV1,
+        uint256 _v1StakeMaxPeriod
     ) external initializer {
-        __V2Migrator_init(
-            _ilv,
-            _silv,
-            _poolToken,
-            _corePoolV1,
-            _factory,
-            _initTime,
-            _weight,
-            _v1StakeMaxPeriod,
-            _merkleRoot
-        );
+        __V2Migrator_init(_ilv, _silv, _poolToken, _corePoolV1, _factory, _initTime, _weight, _v1StakeMaxPeriod);
     }
 
     /**

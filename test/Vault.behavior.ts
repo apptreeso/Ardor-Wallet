@@ -4,19 +4,7 @@ import chai from "chai";
 import chaiSubset from "chai-subset";
 import { solidity } from "ethereum-waffle";
 
-import {
-  ILV_PER_SECOND,
-  INIT_TIME,
-  END_TIME,
-  ONE_YEAR,
-  toWei,
-  toAddress,
-  getToken,
-  getPool,
-  getV1Pool,
-  getUsers0,
-  getUsers1,
-} from "./utils";
+import { ONE_YEAR, toWei, getUsers0 } from "./utils";
 
 const { MaxUint256, AddressZero } = ethers.constants;
 
@@ -280,8 +268,8 @@ export function sendILVRewards(): () => void {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
-      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
-      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(120) });
       const ethIn = toWei(50);
@@ -306,8 +294,8 @@ export function sendILVRewards(): () => void {
 
       const totalILVInPools = ilvPoolILVBalance0.add(lpPoolILVBalance0);
 
-      const ilvPoolShare = ilvPoolILVBalance0.mul(1e20).div(totalILVInPools);
-      const lpPoolShare = lpPoolILVBalance0.mul(1e20).div(totalILVInPools);
+      const ilvPoolShare = ilvPoolILVBalance0.mul(toWei(100)).div(totalILVInPools);
+      const lpPoolShare = lpPoolILVBalance0.mul(toWei(100)).div(totalILVInPools);
 
       await this.vault.sendILVRewards(0, 0, 0);
 
@@ -315,10 +303,10 @@ export function sendILVRewards(): () => void {
       const lpPoolILVReceived1 = await this.ilv.balanceOf(this.lpPool.address);
 
       expect(ethers.utils.formatEther(ilvPoolILVReceived1.sub(ilvPoolILVReceived0)).slice(0, 6)).to.be.equal(
-        ethers.utils.formatEther(ilvPoolShare.mul(vaultILVBalance).div(1e20)).slice(0, 6),
+        ethers.utils.formatEther(ilvPoolShare.mul(vaultILVBalance).div(toWei(100))).slice(0, 6),
       );
       expect(ethers.utils.formatEther(lpPoolILVReceived1.sub(lpPoolILVReceived0)).slice(0, 6)).to.be.equal(
-        ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(1e20)).slice(0, 6),
+        ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(toWei(100))).slice(0, 6),
       );
     });
     it("should buy and distribute ilv revenue in the same transaction", async function () {
@@ -330,8 +318,8 @@ export function sendILVRewards(): () => void {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
-      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
-      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
       const ethIn = toWei(50);
@@ -356,17 +344,17 @@ export function sendILVRewards(): () => void {
       );
       const totalILVInPools = ilvPoolILVBalance0.add(lpPoolILVBalance);
 
-      const ilvPoolShare = ilvPoolILVBalance0.mul(1e20).div(totalILVInPools);
-      const lpPoolShare = lpPoolILVBalance.mul(1e20).div(totalILVInPools);
+      const ilvPoolShare = ilvPoolILVBalance0.mul(toWei(100)).div(totalILVInPools);
+      const lpPoolShare = lpPoolILVBalance.mul(toWei(100)).div(totalILVInPools);
 
       const ilvPoolILVReceived1 = await this.ilv.balanceOf(this.ilvPool.address);
       const lpPoolILVReceived1 = await this.ilv.balanceOf(this.lpPool.address);
 
       expect(ethers.utils.formatEther(ilvPoolILVReceived1.sub(ilvPoolILVReceived0)).slice(0, 6)).to.be.equal(
-        ethers.utils.formatEther(ilvPoolShare.mul(vaultILVBalance).div(1e20)).slice(0, 6),
+        ethers.utils.formatEther(ilvPoolShare.mul(vaultILVBalance).div(toWei(100))).slice(0, 6),
       );
       expect(ethers.utils.formatEther(lpPoolILVReceived1.sub(lpPoolILVReceived0)).slice(0, 6)).to.be.equal(
-        ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(1e20)).slice(0, 6),
+        ethers.utils.formatEther(lpPoolShare.mul(vaultILVBalance).div(toWei(100))).slice(0, 6),
       );
     });
     it("should send ilv rewards twice", async function () {
@@ -378,8 +366,8 @@ export function sendILVRewards(): () => void {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
-      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
-      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(120) });
       const ethIn = toWei(50);
@@ -436,8 +424,8 @@ export function claimVaultRewards(): () => void {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
-      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
-      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
       const ethIn = toWei(50);
@@ -485,8 +473,8 @@ export function claimVaultRewards(): () => void {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
-      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
-      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
 
@@ -531,8 +519,8 @@ export function claimVaultRewards(): () => void {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
-      await this.ilvPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
-      await this.lpPool.connect(this.signers.alice).stakeAndLock(toWei(50), ONE_YEAR * 2);
+      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
       const ethIn = toWei(80);

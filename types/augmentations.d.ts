@@ -1,4 +1,5 @@
 import { Signers } from "./";
+import YieldTree from "../test/utils/yield-tree";
 import {
   ILVPoolMock__factory,
   ILVPoolMock,
@@ -52,5 +53,6 @@ declare module "mocha" {
     lp: ERC20Mock;
     flashToken: ERC20Mock;
     signers: Signers;
+    tree: YieldTree;
   }
 }

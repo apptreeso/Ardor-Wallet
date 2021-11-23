@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -45,15 +46,13 @@ abstract contract CorePool is
     PausableUpgradeable,
     Timestamp
 {
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     using Stake for Stake.Data;
     using ErrorHandler for bytes4;
     using Stake for uint256;
 
     /// @dev Data structure representing token holder using a pool.
     struct User {
-        /// @dev Total staked amount in flexible mode
-        uint128 flexibleBalance;
         /// @dev pending yield rewards to be claimed
         uint128 pendingYield;
         /// @dev pending revenue distribution to be claimed
@@ -127,14 +126,14 @@ abstract contract CorePool is
     bool public constant isFlashPool = false;
 
     /**
-     * @dev Fired in _stakeAndLock() and stakeAsPool() in ILVPool contract.
+     * @dev Fired in _stake() and stakeAsPool() in ILVPool contract.
      * @param by address that executed the stake function (user or pool)
      * @param from token holder address, the tokens will be returned to that address
      * @param stakeId id of the new stake created
      * @param value value of tokens staked
      * @param lockUntil timestamp indicating when tokens should unlock (max 2 years)
      */
-    event LogStakeAndLock(address indexed by, address indexed from, uint256 stakeId, uint256 value, uint64 lockUntil);
+    event LogStake(address indexed by, address indexed from, uint256 stakeId, uint256 value, uint64 lockUntil);
 
     /**
      * @dev Fired in updateStakeLock().
@@ -155,6 +154,15 @@ abstract contract CorePool is
      * @param isYield whether stake struct unstaked was coming from yield or not
      */
     event LogUnstakeLocked(address indexed to, uint256 stakeId, uint256 value, bool isYield);
+
+    /**
+     * @dev Fired in `unstakeLockedMultiple()`.
+     *
+     * @param to address receiving the tokens (user)
+     * @param totalValue total number of tokens unstaked
+     * @param unstakingYield whether unstaked tokens had isYield flag true or false
+     */
+    event LogUnstakeLockedMultiple(address indexed to, uint256 totalValue, bool unstakingYield);
 
     /**
      * @dev Fired in `_sync()`, `sync()` and dependent functions (stake, unstake, etc.).
@@ -363,20 +371,17 @@ abstract contract CorePool is
 
     /**
      * @notice Returns total staked token balance for the given address.
-     * @dev loops through stakes and adds flexible balance to return total balance.
+     * @dev loops through stakes and returns total balance.
      *
      * @param _user an address to query balance for
      * @return balance total staked token balance
      */
     function balanceOf(address _user) external view returns (uint256 balance) {
         User storage user = users[_user];
-        uint256 balanceInStakes;
 
         for (uint256 i = 0; i < user.stakes.length; i++) {
-            balanceInStakes += user.stakes[i].value;
+            balance += user.stakes[i].value;
         }
-
-        balance = balanceInStakes + user.flexibleBalance;
     }
 
     /**
@@ -449,10 +454,10 @@ abstract contract CorePool is
      * @param _value value of tokens to stake
      * @param _lockDuration stake duration as unix timestamp
      */
-    function stakeAndLock(uint256 _value, uint64 _lockDuration) external nonReentrant {
+    function stakePoolToken(uint256 _value, uint64 _lockDuration) external nonReentrant updatePool {
         _requireNotPaused();
-        // delegate call to an internal function
-        _stakeAndLock(msg.sender, _value, _lockDuration);
+        // calls internal function
+        _stake(msg.sender, _value, _lockDuration);
     }
 
     /**
@@ -465,33 +470,33 @@ abstract contract CorePool is
      * @param _to new user address, needs to be a fresh address with no stakes
      */
     function migrateUser(address _to) external updatePool {
+        User storage previousUser = users[msg.sender];
+        User storage newUser = users[_to];
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        // we process all pending rewards before migration
-        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        if (previousUser.totalWeight > 0 || v1WeightToAdd > 0) {
+            // we process all pending rewards before migration
+            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        }
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).migrateUser.selector;
 
         // validate input is set
         fnSelector.verifyNonZeroInput(uint160(_to), 0);
-        User storage newUser = users[_to];
 
         // verify new user records are empty
         fnSelector.verifyState(
             newUser.totalWeight == 0 &&
                 newUser.v1IdsLength == 0 &&
+                newUser.stakes.length == 0 &&
                 newUser.subYieldRewards == 0 &&
                 newUser.subVaultRewards == 0,
             0
         );
-
-        User storage previousUser = users[msg.sender];
-        newUser.flexibleBalance = previousUser.flexibleBalance;
         newUser.pendingYield = previousUser.pendingYield;
         newUser.totalWeight = previousUser.totalWeight;
         newUser.subYieldRewards = uint256(previousUser.totalWeight).weightToReward(yieldRewardsPerWeight);
         newUser.subVaultRewards = uint256(previousUser.totalWeight).weightToReward(vaultRewardsPerWeight);
-        delete previousUser.flexibleBalance;
         delete previousUser.pendingYield;
         delete previousUser.totalWeight;
         delete previousUser.stakes;
@@ -503,60 +508,6 @@ abstract contract CorePool is
     }
 
     /**
-     * @notice Extends locking period for a given stake.
-     *
-     * @dev Requires new lockedUntil value to be: higher than the current one, and
-     * in the future, but no more than 2 years in the future.
-     *
-     * @param _stakeId updated stake ID
-     * @param _lockedUntil updated stake locked until value
-     */
-    function updateStakeLock(uint256 _stakeId, uint64 _lockedUntil) external updatePool {
-        // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
-
-        // we're using selector to simplify input and state validation
-        bytes4 fnSelector = CorePool(this).updateStakeLock.selector;
-
-        // validate the input time
-        fnSelector.verifyInput(_lockedUntil > _now256(), 1);
-
-        // get a link to user data struct, we will write to it later
-        User storage user = users[msg.sender];
-        // get a link to the corresponding stake, we may write to it later
-        Stake.Data storage stake = user.stakes[_stakeId];
-
-        // validate the input against stake structure
-        fnSelector.verifyInput(_lockedUntil > stake.lockedUntil, 1);
-
-        // saves previous weight into memory
-        uint256 previousWeight = stake.weight();
-        // gas savings
-        uint64 stakeLockedFrom = stake.lockedFrom;
-
-        // verify locked from and locked until values
-        if (stakeLockedFrom == 0) {
-            fnSelector.verifyInput(_lockedUntil - _now256() <= 730 days, 1);
-            stakeLockedFrom = uint64(_now256());
-            stake.lockedFrom = stakeLockedFrom;
-        } else {
-            fnSelector.verifyInput(_lockedUntil - stakeLockedFrom <= 730 days, 1);
-        }
-
-        // update locked until value, calculate new weight
-        stake.lockedUntil = _lockedUntil;
-        // saves new weight into memory
-        uint256 newWeight = stake.weight();
-        // update user total weight and global locking weight
-        user.totalWeight = uint248(user.totalWeight - previousWeight + newWeight);
-        globalWeight = globalWeight - previousWeight + newWeight;
-
-        // emit an event
-        emit LogUpdateStakeLock(msg.sender, _stakeId, stakeLockedFrom, _lockedUntil);
-    }
-
-    /**
      * @dev Allows an user that is currently in v1 with locked tokens, that have
      *      just been unlocked, to transfer to v2 and keep the same weight that was
      *      used in v1.
@@ -564,45 +515,40 @@ abstract contract CorePool is
      * @param _v1StakeId id of a stake in v1 migrated to v2
      * @param _stakeIdPosition position of the desired stake id in the user.v1StakesIds
      *                         array
-     * @param _boostWeight if users wants to lock for 12 months and receive max 2.0 weight
-     *                     as a bonus for v1 users
      */
-    function fillV1StakeId(
-        uint256 _v1StakeId,
-        uint256 _stakeIdPosition,
-        bool _boostWeight
-    ) external {
+    function fillV1StakeId(uint256 _v1StakeId, uint256 _stakeIdPosition) external updatePool {
         _requireNotPaused();
         User storage user = users[msg.sender];
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).fillV1StakeId.selector;
+        // we read the original v1 weight stored in the initial migration
+        uint256 weightToUse = v1StakesWeightsOriginal[msg.sender][_v1StakeId];
         // checks if v1StakeId has already been filled
-        fnSelector.verifyState(v1StakesWeightsOriginal[msg.sender][_v1StakeId] > 0, 0);
+        fnSelector.verifyState(weightToUse > 0, 0);
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        // and process current pending rewards if any
-        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
+            // and process current pending rewards if any
+            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        }
         // queries v1 data
         (uint256 _tokenAmount, , uint64 _lockedFrom, uint64 _lockedUntil, bool _isYield) = ICorePoolV1(corePoolV1)
             .getDeposit(msg.sender, _v1StakeId);
-        // checks if user unstaked almost all of the tokens in order to fill the v1 stake id
-        fnSelector.verifyState(_tokenAmount == 1, 1);
+        // checks if user unstaked all of the tokens in order to fill the v1 stake id
+        fnSelector.verifyState(_tokenAmount == 0, 1);
         // verifies if v1 stake is unlocked
         fnSelector.verifyState(_lockedUntil < _now256(), 2);
         // retrieves original stake value by using v1 _lockedUntil and _lockedFrom, and comparing
         // to the weight originally stored in this contract during migration
-        uint112 v1StakeValue = uint112(
-            v1StakesWeightsOriginal[msg.sender][_v1StakeId] /
-                (((_lockedUntil - _lockedFrom) * Stake.WEIGHT_MULTIPLIER) / 365 days + Stake.WEIGHT_MULTIPLIER)
+        uint120 v1StakeValue = uint120(
+            weightToUse /
+                (((_lockedUntil - _lockedFrom) * Stake.WEIGHT_MULTIPLIER) /
+                    Stake.MAX_STAKE_PERIOD +
+                    Stake.WEIGHT_MULTIPLIER)
         );
         // makes sure stake coming from v1 isn't yield, even though it's already
         // verified before migration
         assert(!_isYield);
-
-        // if user opts to lock v1 stake for a year, we give max v1 weight multiplier (2e6)
-        uint256 weightToUse = !_boostWeight
-            ? v1StakesWeightsOriginal[msg.sender][_v1StakeId]
-            : v1StakeValue * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
 
         // delete v1StakeId and original v1 stake weight
         delete user.v1StakesIds[_stakeIdPosition];
@@ -610,13 +556,7 @@ abstract contract CorePool is
         // adds v1 stake data to user struct
         user.totalWeight += uint248(weightToUse);
         user.stakes.push(
-            Stake.Data({
-                value: v1StakeValue,
-                lockedFrom: _boostWeight ? uint64(_now256()) : 0,
-                lockedUntil: _boostWeight ? uint64(_now256() + 365 days) : 0,
-                isYield: false,
-                fromV1: true
-            })
+            Stake.Data({ value: v1StakeValue, lockedFrom: _lockedFrom, lockedUntil: _lockedUntil, isYield: false })
         );
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
@@ -624,8 +564,13 @@ abstract contract CorePool is
         user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
         user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
 
+        // update global variable
+        globalWeight += weightToUse;
+        // update reserve count
+        poolTokenReserve += v1StakeValue;
+
         // transfers poolTokens from msg.sender
-        IERC20(poolToken).safeTransferFrom(msg.sender, address(this), v1StakeValue);
+        IERC20Upgradeable(poolToken).safeTransferFrom(msg.sender, address(this), v1StakeValue);
     }
 
     /**
@@ -639,8 +584,7 @@ abstract contract CorePool is
      *      end time), function doesn't throw and exits silently.
      */
     function sync() external {
-        _requireNotPaused();
-        // delegate call to an internal function
+        // calls internal function
         _sync();
     }
 
@@ -687,7 +631,7 @@ abstract contract CorePool is
 
         vaultRewardsPerWeight += _value.rewardPerWeight(globalWeight);
 
-        IERC20(ilv).safeTransferFrom(msg.sender, address(this), _value);
+        IERC20Upgradeable(ilv).safeTransferFrom(msg.sender, address(this), _value);
 
         emit LogReceiveVaultRewards(msg.sender, _value);
     }
@@ -747,18 +691,18 @@ abstract contract CorePool is
      * @param _value value of tokens to stake
      * @param _lockDuration stake period as unix timestamp; zero means no locking
      */
-    function _stakeAndLock(
+    function _stake(
         address _staker,
         uint256 _value,
         uint64 _lockDuration
-    ) internal virtual updatePool {
+    ) internal virtual {
         // we're using selector to simplify input and state validation
         // since function is not public we pre-calculate the selector
         bytes4 fnSelector = 0x867a0347;
 
         // validate the inputs
         fnSelector.verifyNonZeroInput(_value, 0);
-        fnSelector.verifyInput(_lockDuration > 0 && _lockDuration <= 730 days, 2);
+        fnSelector.verifyInput(_lockDuration >= Stake.MIN_STAKE_PERIOD && _lockDuration <= Stake.MAX_STAKE_PERIOD, 2);
 
         // get a link to user data struct, we will write to it later
         User storage user = users[_staker];
@@ -775,7 +719,7 @@ abstract contract CorePool is
 
         // stake weight formula rewards for locking
         uint256 stakeWeight = (((lockUntil - _now256()) * Stake.WEIGHT_MULTIPLIER) /
-            730 days +
+            Stake.MAX_STAKE_PERIOD +
             Stake.WEIGHT_MULTIPLIER) * _value;
 
         // makes sure stakeWeight is valid
@@ -783,11 +727,10 @@ abstract contract CorePool is
 
         // create and save the stake (append it to stakes array)
         Stake.Data memory stake = Stake.Data({
-            value: uint112(_value),
+            value: uint120(_value),
             lockedFrom: uint64(_now256()),
             lockedUntil: lockUntil,
-            isYield: false,
-            fromV1: false
+            isYield: false
         });
         // pushes new stake to `stakes` array
         user.stakes.push(stake);
@@ -808,10 +751,10 @@ abstract contract CorePool is
         poolTokenReserve += _value;
 
         // transfer `_value`
-        IERC20(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
+        IERC20Upgradeable(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
 
         // emit an event
-        emit LogStakeAndLock(msg.sender, msg.sender, (user.stakes.length - 1), _value, lockUntil);
+        emit LogStake(msg.sender, msg.sender, (user.stakes.length - 1), _value, lockUntil);
     }
 
     /**
@@ -856,7 +799,7 @@ abstract contract CorePool is
             // deletes stake struct, no need to save new weight because it stays 0
             delete user.stakes[_stakeId];
         } else {
-            stake.value -= uint112(_value);
+            stake.value -= uint120(_value);
             // saves new weight to memory
             newWeight = stake.weight();
         }
@@ -882,7 +825,7 @@ abstract contract CorePool is
             factory.mintYieldTo(msg.sender, _value, false);
         } else {
             // otherwise just return tokens back to holder
-            IERC20(poolToken).safeTransfer(msg.sender, _value);
+            IERC20Upgradeable(poolToken).safeTransfer(msg.sender, _value);
         }
 
         // emit an event
@@ -899,7 +842,7 @@ abstract contract CorePool is
      * @param _unstakingYield whether all stakeIds have isYield flag set to true or false,
      *                        i.e if we're minting ILV or transferring pool tokens
      */
-    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
+    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external updatePool {
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).unstakeLockedMultiple.selector;
 
@@ -918,6 +861,8 @@ abstract contract CorePool is
             Stake.Data storage stake = user.stakes[_stakeId];
             // checks if stake is unlocked already
             fnSelector.verifyState(_now256() > stake.lockedUntil, i * 3);
+            // checks if unstaking value is valid
+            fnSelector.verifyNonZeroInput(_value, 1);
             // stake structure may get deleted, so we save isYield flag to be able to use it
             // we also save stakeValue for gas savings
             (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
@@ -934,7 +879,7 @@ abstract contract CorePool is
                 // deletes stake struct, no need to save new weight because it stays 0
                 delete user.stakes[_stakeId];
             } else {
-                stake.value -= uint112(_value);
+                stake.value -= uint120(_value);
                 // saves new weight to memory
                 newWeight = stake.weight();
             }
@@ -963,7 +908,7 @@ abstract contract CorePool is
             factory.mintYieldTo(msg.sender, valueToUnstake, false);
         } else {
             // otherwise just return tokens back to holder
-            IERC20(poolToken).safeTransfer(msg.sender, valueToUnstake);
+            IERC20Upgradeable(poolToken).safeTransfer(msg.sender, valueToUnstake);
         }
 
         emit LogUnstakeLockedMultiple(msg.sender, valueToUnstake, _unstakingYield);
@@ -1058,19 +1003,20 @@ abstract contract CorePool is
      * @dev claims all pendingYield from _staker using ILV or sILV.
      *
      * @notice sILV is minted straight away to _staker wallet, ILV is created as
-     *         a new stake and locked for 365 days.
+     *         a new stake and locked for Stake.MAX_STAKE_PERIOD.
      *
      * @param _staker user address
      * @param _useSILV whether the user wants to claim ILV or sILV
      */
     function _claimYieldRewards(address _staker, bool _useSILV) internal {
-        // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        // update user state
-        _processRewards(_staker, v1WeightToAdd, subYieldRewards, subVaultRewards);
-
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
+            // update user state
+            _processRewards(_staker, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        }
 
         // check pending yield rewards to claim and save to memory
         uint256 pendingYieldToClaim = uint256(user.pendingYield);
@@ -1093,11 +1039,10 @@ abstract contract CorePool is
             // if the pool is ILV Pool - create new ILV stake
             // and save it - push it into stakes array
             Stake.Data memory newStake = Stake.Data({
-                value: uint112(pendingYieldToClaim),
+                value: uint120(pendingYieldToClaim),
                 lockedFrom: uint64(_now256()),
-                lockedUntil: uint64(_now256() + 365 days), // staking yield for 1 year
-                isYield: true,
-                fromV1: false
+                lockedUntil: uint64(_now256() + Stake.MAX_STAKE_PERIOD), // staking yield for 1 year
+                isYield: true
             });
 
             user.stakes.push(newStake);
@@ -1131,13 +1076,14 @@ abstract contract CorePool is
      * @param _staker user address
      */
     function _claimVaultRewards(address _staker) internal {
-        // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        // update user state
-        _processRewards(_staker, v1WeightToAdd, subYieldRewards, subVaultRewards);
-
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
+            // update user state
+            _processRewards(_staker, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        }
 
         // check pending yield rewards to claim and save to memory
         uint256 pendingRevDis = uint256(user.pendingRevDis);
@@ -1151,7 +1097,7 @@ abstract contract CorePool is
         // subYieldRewards and subVaultRewards needs to be updated on every `_processRewards` call
         user.subVaultRewards = uint256(user.totalWeight).weightToReward(vaultRewardsPerWeight);
 
-        IERC20(ilv).safeTransfer(_staker, pendingRevDis);
+        IERC20Upgradeable(ilv).safeTransfer(_staker, pendingRevDis);
 
         // emit an event
         emit LogClaimVaultRewards(msg.sender, _staker, pendingRevDis);

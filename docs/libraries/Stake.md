@@ -16,12 +16,10 @@ function parameter instead of reward/weight.
 
 ### `Data`
 
-uint112 value
+uint120 value
 
 uint64 lockedFrom
 
 uint64 lockedUntil
 
 bool isYield
-
-bool fromV1

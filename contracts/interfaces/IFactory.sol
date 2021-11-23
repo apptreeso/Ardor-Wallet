@@ -48,5 +48,5 @@ interface IFactory {
         bool _useSILV
     ) external;
 
-    function changePoolWeight(ICorePool pool, uint32 weight) external;
+    function changePoolWeight(address pool, uint32 weight) external;
 }

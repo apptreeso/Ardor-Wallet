@@ -4,9 +4,9 @@
 
 used for functions that require syncing contract state before execution
 
-### `initialize(address _ilv, address _silv, address _poolToken, address _factory, uint64 _initTime, uint32 _weight)` (external)
+### `initialize(address _ilv, address _silv, address _poolToken, address _factory, uint64 _initTime, uint64 _endTime, uint32 _weight)` (external)
 
-Initializes a new flash pool
+Initializes a new flash pool.
 
 ### `pendingYieldRewards(address _staker) → uint256 pending` (external)
 
@@ -17,6 +17,11 @@ see \_pendingYieldRewards() for further details
 ### `balanceOf(address _user) → uint256 balance` (external)
 
 Returns total staked token balance for the given address
+
+### `isPoolDisabled() → bool` (public)
+
+Checks if flash pool has ended. Flash pool is considered "disabled"
+once time reaches its "end time".
 
 ### `stake(uint256 _value)` (external)
 
@@ -61,6 +66,10 @@ to keep track of the total pools weight when updating
 
 Set weight to zero to disable the pool
 
+### `setEndTime(uint64 _newEndTime)` (external)
+
+Updates flash pool ending timestamp.
+
 ### `_pendingYieldRewards(address _staker) → uint256 pending` (internal)
 
 Similar to public pendingYieldRewards, but performs calculations based on
@@ -86,7 +95,7 @@ end time), function doesn't throw and exits silently
 ### `_claimYieldRewards(address _staker, bool _useSILV)` (internal)
 
 sILV is minted straight away to \_staker wallet, ILV is created as
-a new stake and locked for 365 days
+a new stake and locked for Stake.MAX_STAKE_PERIOD
 
 claims all pendingYield from \_staker using ILV or sILV
 
@@ -112,31 +121,31 @@ function _authorizeUpgrade(address) internal override onlyOwner {}
 
 ### `LogStake(address from, uint256 value)`
 
-Fired in stake()
+Fired in stake().
 
 ### `LogUnstake(address to, uint256 value)`
 
-Fired in unstake()
+Fired in unstake().
 
 ### `LogSync(address by, uint256 yieldRewardsPerToken, uint64 lastYieldDistribution)`
 
-Fired in \_sync(), sync() and dependent functions (stake, unstake, etc.)
+Fired in \_sync(), sync() and dependent functions (stake, unstake, etc.).
 
 ### `LogClaimYieldRewards(address from, bool sILV, uint256 value)`
 
-Fired in \_claimYieldRewards()
+Fired in \_claimYieldRewards().
 
 ### `LogProcessRewards(address from, uint256 value)`
 
-Fired in \_processRewards()
+Fired in \_processRewards().
 
 ### `LogSetWeight(address by, uint32 fromVal, uint32 toVal)`
 
-Fired in setWeight()
+Fired in setWeight().
 
 ### `LogMigrateUser(address from, address to)`
 
-fired in migrateUser()
+fired in migrateUser().
 
 ### `User`
 

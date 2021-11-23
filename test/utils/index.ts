@@ -42,6 +42,8 @@ export const getV1Pool = (
 
 export const ONE_YEAR = 31536000;
 
+export const ONE_MONTH = 2592000;
+
 export const getUsers0 = (addresses: string[]) => [
   {
     userAddress: addresses[0],
@@ -189,3 +191,66 @@ export const getUsers1 = (addresses: string[]) => [
     ],
   },
 ];
+
+export const getUsers2 = (addresses: string[]) => [
+  {
+    userAddress: addresses[0],
+    deposits: [
+      {
+        tokenAmount: toWei(200),
+        weight: toWei(200).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(300),
+        weight: toWei(300).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+  {
+    userAddress: addresses[1],
+    deposits: [
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100).mul(1e6),
+        lockedFrom: 0,
+        lockedUntil: 0,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100).mul(2e6),
+        lockedFrom: INIT_TIME + 25,
+        lockedUntil: INIT_TIME + 25 + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+  {
+    userAddress: addresses[2],
+    deposits: [
+      {
+        tokenAmount: toWei(500),
+        weight: toWei(500).mul(1.5e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR / 2,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+];
+
+// based on getUsers2
+export const getTotalV1WeightMocked = () => toWei(2250).mul(1e6);
