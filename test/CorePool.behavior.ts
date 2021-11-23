@@ -149,8 +149,6 @@ export function fillV1StakeId(usingPool: string): () => void {
 
       const v1StakeData = await v1Pool.getDeposit(this.signers.alice.address, 0);
 
-
-
       if (usingPool === "ILV") {
         await this.ilvPool.connect(this.signers.alice).executeMigration([], 0, 0, [0, 1]);
       } else {

@@ -77,14 +77,7 @@ clean the previous user (msg.sender), add the previous user data to
 the desired address and update subYieldRewards/subVaultRewards values
 in order to make sure both addresses will have rewards cleaned.
 
-### `updateStakeLock(uint256 _stakeId, uint64 _lockedUntil)` (external)
-
-Extends locking period for a given stake.
-
-Requires new lockedUntil value to be: higher than the current one, and
-in the future, but no more than 2 years in the future.
-
-### `fillV1StakeId(uint256 _v1StakeId, uint256 _stakeIdPosition, bool _boostWeight)` (external)
+### `fillV1StakeId(uint256 _v1StakeId, uint256 _stakeIdPosition)` (external)
 
 Allows an user that is currently in v1 with locked tokens, that have
 just been unlocked, to transfer to v2 and keep the same weight that was

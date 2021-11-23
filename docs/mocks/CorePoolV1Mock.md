@@ -6,6 +6,8 @@
 
 ### `changeStakeWeight(address _user, uint256 _stakeId, uint256 _newWeight)` (external)
 
+### `changeStakeValue(address _user, uint256 _stakeId, uint256 _newValue)` (external)
+
 ### `getDeposit(address _from, uint256 _stakeId) → uint256, uint256, uint64, uint64, bool` (external)
 
 ### `UserParameter`
