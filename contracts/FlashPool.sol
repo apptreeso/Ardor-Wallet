@@ -477,11 +477,12 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _useSILV whether the user wants to claim ILV or sILV
      */
     function _claimYieldRewards(address _staker, bool _useSILV) internal {
-        // update user state
-        _processRewards(_staker);
-
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
+        if (user.balance > 0) {
+            // update user state
+            _processRewards(_staker);
+        }
 
         // check pending yield rewards to claim and save to memory
         uint256 pendingYieldToClaim = uint256(user.pendingYield);

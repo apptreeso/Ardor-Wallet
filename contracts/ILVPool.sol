@@ -97,7 +97,7 @@ contract ILVPool is V2Migrator {
         User storage user = users[_staker];
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        if (user.totalWeight > 0) {
+        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
             _processRewards(_staker, v1WeightToAdd, subYieldRewards, subVaultRewards);
         }
         uint256 stakeWeight = _value * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
@@ -136,13 +136,16 @@ contract ILVPool is V2Migrator {
         uint256 _index,
         uint248 _yieldWeight,
         uint256[] calldata _stakeIds
-    ) external {
+    ) external updatePool {
+        User storage user = users[msg.sender];
         _requireNotPaused();
 
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        // update user state
-        _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
+            // update user state
+            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        }
         _migrateLockedStakes(_stakeIds, v1WeightToAdd);
         if (_yieldWeight > 0) {
             _migrateYieldWeights(_proof, _index, _yieldWeight);

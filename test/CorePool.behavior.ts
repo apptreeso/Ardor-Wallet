@@ -55,7 +55,7 @@ export function fillV1StakeId(usingPool: string): () => void {
       await v1Pool.changeStakeValue(this.signers.alice.address, 0, 0);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).fillV1StakeId(0, 0, false);
+      await pool.connect(this.signers.alice).fillV1StakeId(0, 0);
 
       const v2StakeData = await pool.getStake(this.signers.alice.address, 0);
       const v2UserWeight = (await pool.users(this.signers.alice.address)).totalWeight;
@@ -78,19 +78,18 @@ export function fillV1StakeId(usingPool: string): () => void {
 
       const v1StakeData = await v1Pool.getDeposit(this.signers.alice.address, 0);
 
-      await pool.setNow256(INIT_TIME + ONE_YEAR + 1);
-
       if (usingPool === "ILV") {
         await this.ilvPool.connect(this.signers.alice).executeMigration([], 0, 0, [0, 1]);
       } else {
         await this.lpPool.connect(this.signers.alice).migrateLockedStakes([0, 1]);
       }
 
+      await pool.setNow256(INIT_TIME + ONE_YEAR + 1);
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakePoolToken(1, ONE_MONTH);
       await v1Pool.changeStakeValue(this.signers.alice.address, 0, 0);
       await v1Pool.changeStakeWeight(this.signers.alice.address, 0, 0);
-
-      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).fillV1StakeId(0, 0, false);
+      await pool.connect(this.signers.alice).fillV1StakeId(0, 0);
       const { pendingYield: pendingYield0 } = await pool.pendingRewards(this.signers.alice.address);
 
       await pool.setNow256(INIT_TIME + ONE_YEAR + 101);
@@ -116,11 +115,11 @@ export function fillV1StakeId(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR / 2);
       const { pendingYield: pendingYieldStored1 } = await pool.users(this.signers.alice.address);
 
-      const v2StakeData = await pool.getStake(this.signers.alice.address, 0);
+      const v2StakeData = await pool.getStake(this.signers.alice.address, 1);
 
-      await pool.connect(this.signers.alice).unstakeLocked(0, v2StakeData.value);
+      await pool.connect(this.signers.alice).unstakeLocked(1, v2StakeData.value);
 
-      const { value: stakeValueAfterUnstake } = await pool.getStake(this.signers.alice.address, 0);
+      const { value: stakeValueAfterUnstake } = await pool.getStake(this.signers.alice.address, 1);
 
       expect(v1StakeData[0]).to.be.equal(v2StakeData.value);
       expect(v1StakeData[2]).to.be.equal(v2StakeData.lockedFrom);
@@ -150,19 +149,19 @@ export function fillV1StakeId(usingPool: string): () => void {
 
       const v1StakeData = await v1Pool.getDeposit(this.signers.alice.address, 0);
 
-      await pool.setNow256(INIT_TIME + ONE_YEAR + 1);
+
 
       if (usingPool === "ILV") {
         await this.ilvPool.connect(this.signers.alice).executeMigration([], 0, 0, [0, 1]);
       } else {
         await this.lpPool.connect(this.signers.alice).migrateLockedStakes([0, 1]);
       }
-
+      await pool.setNow256(INIT_TIME + ONE_YEAR + 1);
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.alice).stakePoolToken(1, ONE_MONTH);
       await v1Pool.changeStakeValue(this.signers.alice.address, 0, 0);
       await v1Pool.changeStakeWeight(this.signers.alice.address, 0, 0);
-
-      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).fillV1StakeId(0, 0, false);
+      await pool.connect(this.signers.alice).fillV1StakeId(0, 0);
       const { pendingYield: pendingYield0 } = await pool.pendingRewards(this.signers.alice.address);
 
       await pool.setNow256(INIT_TIME + ONE_YEAR + 101);
@@ -188,9 +187,9 @@ export function fillV1StakeId(usingPool: string): () => void {
       await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR / 2);
       const { pendingYield: pendingYieldStored1 } = await pool.users(this.signers.alice.address);
 
-      const v2StakeData = await pool.getStake(this.signers.alice.address, 0);
+      const v2StakeData = await pool.getStake(this.signers.alice.address, 1);
 
-      await pool.connect(this.signers.alice).unstakeLocked(0, v2StakeData.value.sub(toWei(100)));
+      await pool.connect(this.signers.alice).unstakeLocked(1, v2StakeData.value.sub(toWei(100)));
       await v1Pool.changeStakeValue(this.signers.alice.address, 1, toWei(200));
       await v1Pool.changeStakeWeight(this.signers.alice.address, 1, toWei(400e6));
 
