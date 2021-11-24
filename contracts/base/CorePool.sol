@@ -767,6 +767,8 @@ abstract contract CorePool is
      * @param _value value of tokens to unstake
      */
     function unstakeLocked(uint256 _stakeId, uint256 _value) external updatePool {
+        _requireNotPaused();
+
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).unstakeLocked.selector;
 
@@ -843,6 +845,8 @@ abstract contract CorePool is
      *                        i.e if we're minting ILV or transferring pool tokens
      */
     function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external updatePool {
+        _requireNotPaused();
+
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = CorePool(this).unstakeLockedMultiple.selector;
 
