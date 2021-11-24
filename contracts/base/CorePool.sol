@@ -20,7 +20,21 @@ import "hardhat/console.sol";
 /**
  * @title Core Pool
  *
- * @notice An abstract contract containing common logic for ILV and ILV/ETH SLP pools
+ * @notice An abstract contract containing common logic for ILV and ILV/ETH SLP pools.
+ *
+ * @dev Base smart contract for ILV and LP pool. Stores each pool user by mapping
+ *      its address to the user struct. User struct stores v2 stakes, which fit
+ *      in 1 storage slot each (by using the Stake lib), total weights, pending
+ *      yield and revenue distributions, and v1 stake ids. ILV and LP stakes can
+ *      be made through flexible stake mode, which only increments the flexible
+ *      balance of a given user, or through locked staking. Locked staking creates
+ *      a new Stake element fitting 1 storage slot with its value and lock duration.
+ *      When calculating pending rewards, CorePool checks v1 locked stakes weights
+ *      to increment in the calculations and stores pending yield and pending revenue
+ *      distributions. Every time a stake or unstake related function is called,
+ *      it updates pending values, but don't require instant claimings. Rewards
+ *      claiming are executed in separate functions, and in the case of yield,
+ *      it also requires the user checking whether ILV or sILV is wanted as the yield reward.
  *
  * @dev Deployment and initialization.
  *      After proxy is deployed and attached to the implementation, it should be
@@ -32,10 +46,10 @@ import "hardhat/console.sol";
  *
  * @dev Pool weight defines the fraction of the yield current pool receives among the other pools,
  *      pool factory is responsible for the weight synchronization between the pools.
- * @dev The weight is logically 10% for ILV pool and 80% for ILV/ETH pool initially.
+ * @dev The weight is logically 20% for ILV pool and 80% for ILV/ETH pool initially.
  *      It can be changed through ICCPs and new flash pools added in the protocol.
  *      Since Solidity doesn't support fractions the weight is defined by the division of
- *      pool weight by total pools weight (sum of all registered pools within the factory)
+ *      pool weight by total pools weight (sum of all registered pools within the factory).
  * @dev For ILV Pool we use 200 as weight and for ILV/ETH SLP pool - 800.
  *
  */

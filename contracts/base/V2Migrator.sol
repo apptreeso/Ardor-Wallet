@@ -43,7 +43,7 @@ abstract contract V2Migrator is CorePool {
     event LogMigrateLockedStakes(address indexed from, uint256 totalV1WeightAdded);
 
     /**
-     * @dev V2Migrator initializer function
+     * @dev V2Migrator initializer function.
      *
      * @param _v1StakeMaxPeriod max timestamp that we accept _lockedFrom values
      *                         in v1 stakes

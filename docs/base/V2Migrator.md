@@ -10,7 +10,7 @@ and v1 total yield weights by data stored in a merkle tree using merkle proofs.
 
 ### `__V2Migrator_init(address _ilv, address _silv, address _poolToken, address _corePoolV1, address _factory, uint64 _initTime, uint32 _weight, uint256 _v1StakeMaxPeriod)` (internal)
 
-V2Migrator initializer function
+V2Migrator initializer function.
 
 ### `migrateLockedStakes(uint256[] _stakeIds)` (external)
 
