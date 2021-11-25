@@ -9,11 +9,20 @@ import { IUniswapV2Router02 } from "./interfaces/IUniswapV2Router02.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
- * @title Illuvium Vault
+ * @title Illuvium Vault.
  *
- * @notice Integration with sushi router.
- *      Receives ETH from an address that exists on IMX which collects in-game purchases
- *      (although technically it could receive ETH from anywhere)
+ * @dev The Vault is responsible to gather revenue from the protocol, swap to ILV
+ *      periodically and distribute to core pool users from time to time.
+ * @dev The contract connects with Sushi's router in order to buy ILV from the
+ *      ILV/ETH liquidity pool.
+ * @dev Since we can change the vault address in the staking pools (see VaultRecipient),
+ *      the Vault contract doesn't need to implement upgradeability.
+ * @dev It receives ETH from the receive() function and allows conversion to ILV by
+ *      the address with the role ROLE_VAULT_MANAGER (0x0001_0000). This conversion
+ *      can be done in multiple steps, which means it doesn’t require converting
+ *      all ETH balance in 1 function call. The vault is also responsible to be
+ *      calling receiveVaultRewards() function in the core pools, which takes care
+ *      of calculations of how much ILV should be sent to each pool as revenue distribution.
  *
  */
 contract Vault is Ownable {

@@ -13,6 +13,18 @@ import { IFactory } from "./interfaces/IFactory.sol";
 
 import "hardhat/console.sol";
 
+/**
+ * @title Flash Pool.
+ *
+ * @dev A Flash Pool contract is a temporary pool with an arbitrary ERC20 token
+ *     from a new Illuvium DAO partner voted by the council.
+ * @dev Holders of this ERC20 token (which is stored at `poolToken`) are able to
+ *      stake it and receive ILV yield rewards, which can be claimed and vested
+ *      in the ILV pool.
+ * @dev Operations in Flash Pools are cheaper compared to Core Pools, since we
+ *      don't lock tokens and we don't need to deal with mappings and arrays
+ *      as much as we do in the ILV and Sushi LP pools.
+ */
 contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgradeable, PausableUpgradeable, Timestamp {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 

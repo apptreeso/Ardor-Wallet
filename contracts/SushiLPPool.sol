@@ -3,8 +3,16 @@ pragma solidity 0.8.4;
 
 import { V2Migrator } from "./base/V2Migrator.sol";
 
+/**
+ * @title The Sushi LP Pool.
+ *
+ * @dev Extends all functionality from V2Migrator contract, there isn't a lot of
+ *      additions compared to ILV pool. Sushi LP pool basically needs to be able
+ *      to be called by ILV pool in batch calls where we claim rewards from multiple
+ *      pools.
+ */
 contract SushiLPPool is V2Migrator {
-    /// @dev see __V2Migrator_init()
+    /// @dev Calls __V2Migrator_init().
     function initialize(
         address _ilv,
         address _silv,

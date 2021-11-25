@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+/**
+ * @dev Stake library used by ILV pool and Sushi LP Pool.
+ *
+ * @dev Responsible to manage weight calculation and store important constants
+ *      related to stake period, base weight and multipliers utilized.
+ */
 library Stake {
     struct Data {
         /// @dev token amount staked

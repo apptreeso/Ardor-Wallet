@@ -1,5 +1,10 @@
 ## `Stake`
 
+Stake library used by ILV pool and Sushi LP Pool.
+
+Responsible to manage weight calculation and store important constants
+related to stake period, base weight and multipliers utilized.
+
 ### `weight(struct Stake.Data _self) → uint256` (internal)
 
 ### `weightToReward(uint256 _weight, uint256 _rewardPerWeight) → uint256` (internal)

@@ -1,5 +1,14 @@
 ## `FlashPool`
 
+A Flash Pool contract is a temporary pool with an arbitrary ERC20 token
+from a new Illuvium DAO partner voted by the council.
+Holders of this ERC20 token (which is stored at `poolToken`) are able to
+stake it and receive ILV yield rewards, which can be claimed and vested
+in the ILV pool.
+Operations in Flash Pools are cheaper compared to Core Pools, since we
+don't lock tokens and we don't need to deal with mappings and arrays
+as much as we do in the ILV and Sushi LP pools.
+
 ### `updatePool()`
 
 used for functions that require syncing contract state before execution
