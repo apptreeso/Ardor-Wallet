@@ -150,6 +150,13 @@ contract ILVPool is V2Migrator {
         if (_yieldWeight > 0) {
             _migrateYieldWeights(_proof, _index, _yieldWeight);
         }
+
+        // gas savings
+        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
+
+        // resets all rewards after migration
+        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
     }
 
     /**
@@ -225,6 +232,12 @@ contract ILVPool is V2Migrator {
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = ILVPool(this).mintV1YieldMultiple.selector;
 
+        // uses v1 weight values for rewards calculations
+        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
+            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        }
+
         for (uint256 i = 0; i < _stakeIds.length; i++) {
             uint256 _stakeId = _stakeIds[i];
             (uint256 tokenAmount, uint256 _weight, , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1)
@@ -237,8 +250,14 @@ contract ILVPool is V2Migrator {
             amountToMint += tokenAmount;
             weightToRemove += _weight;
         }
-
         user.totalWeight -= uint248(weightToRemove);
+
+        // gas savings
+        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
+
+        // resets all rewards after migration
+        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
         factory.mintYieldTo(msg.sender, amountToMint, false);
 
         emit LogV1YieldMintedMultiple(msg.sender, amountToMint);

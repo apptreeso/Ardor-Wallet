@@ -79,6 +79,13 @@ abstract contract V2Migrator is CorePool {
             _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
         }
         _migrateLockedStakes(_stakeIds, v1WeightToAdd);
+
+        // gas savings
+        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
+
+        // resets all rewards after migration
+        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
     }
 
     /**
@@ -112,12 +119,5 @@ abstract contract V2Migrator is CorePool {
             user.v1IdsLength++;
             user.v1StakesIds[i] = _stakeIds[i];
         }
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + _v1WeightToAdd);
-
-        // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
     }
 }

@@ -877,6 +877,26 @@ export function mintV1Yield(): () => void {
       const users = getUsers1([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
       await this.ilvPoolV1.setUsers(users);
+
+      this.tree = new YieldTree([
+        {
+          account: this.signers.alice.address,
+          weight: toWei(1000e6),
+        },
+        {
+          account: this.signers.carol.address,
+          weight: toWei(2000e6),
+        },
+      ]);
+      await this.ilvPool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
+
+      await this.ilvPoolV1.setUsers(users);
+
+      const aliceProof = this.tree.getProof(0, this.signers.alice.address, toWei(1000e6));
+      const carolProof = this.tree.getProof(1, this.signers.carol.address, toWei(2000e6));
+
+      await this.ilvPool.connect(this.signers.alice).executeMigration(aliceProof, 0, toWei(1000e6), []);
+      await this.ilvPool.connect(this.signers.carol).executeMigration(carolProof, 1, toWei(2000e6), []);
     });
 
     it("should mint v1 yield", async function () {
