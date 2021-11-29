@@ -7,6 +7,8 @@ A v1 stake may be locked, which means only the user that owns this locked stake 
 
 [Diagram Here]
 
+The process that brings v1 users to the v2 staking pools is a bit different on the ILVPool contract compared to the Sushi LP Pool. In the ILVPool we call the `executeMigration` function.
+
 # Solidity Template
 
 My favourite setup for writing Solidity smart contracts.

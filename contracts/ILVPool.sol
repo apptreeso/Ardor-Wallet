@@ -131,6 +131,11 @@ contract ILVPool is V2Migrator {
         );
     }
 
+    /**
+     * @dev Calls internal `_migrateLockedStakes` and _`migrateYieldWeights`
+     *      functions for a complete migration of a v1 user to v2.
+     * @dev See `_migrateLockedStakes` and _`migrateYieldWeights`.
+     */
     function executeMigration(
         bytes32[] calldata _proof,
         uint256 _index,
@@ -263,6 +268,16 @@ contract ILVPool is V2Migrator {
         emit LogV1YieldMintedMultiple(msg.sender, amountToMint);
     }
 
+    /**
+     * @dev Verifies a proof from the yield weights merkle, and if it's valid,
+     *      adds the v1 user yield weight to the v2 `user.totalWeight`.
+     * @dev The yield weights merkle tree will be published after the initial contracts
+     *      deployment, and then the merkle root is added through `setMerkleRoot` function.
+     *
+     * @param _proof bytes32 array with the proof generated off-chain
+     * @param _index user index in the merkle tree
+     * @param _yieldWeight user yield weight in v1 stored by the merkle tree
+     */
     function _migrateYieldWeights(
         bytes32[] calldata _proof,
         uint256 _index,
