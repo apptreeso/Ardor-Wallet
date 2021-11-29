@@ -28,6 +28,10 @@ see `CorePool._processRewards()`.
 
 ### `executeMigration(bytes32[] _proof, uint256 _index, uint248 _yieldWeight, uint256[] _stakeIds)` (external)
 
+Calls internal `_migrateLockedStakes` and _`migrateYieldWeights`
+functions for a complete migration of a v1 user to v2.
+See `_migrateLockedStakes` and _`migrateYieldWeights`.
+
 ### `claimYieldRewardsMultiple(address[] _pools, bool[] _useSILV)` (external)
 
 ILV pool works as a router for claiming multiple pools registered

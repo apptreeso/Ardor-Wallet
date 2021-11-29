@@ -1,14 +1,3 @@
-# Architecture
-
-[Base Pools architecture image]
-As described in the image above, each v2 core pool instance deployed has its corresponding v1 core pool attached. Through the V2Migrator abstract contract, users are able to load their v1 stake ids and safely pass to the v2 pool contract, which verifies the validity of the v1 stake and store its values.
-
-A v1 stake may be locked, which means only the user that owns this locked stake in v1 is able to move it once it unlocks. However, with v2 pools yield calculations we need to not only take new stakes into account, but also previous v1 stakes to be added into yield calculations. The following diagram shows which function calls support reading v1 data and doing calculations correctly both for new v2 users, and users that came from v1 which might have new stakes in v2.
-
-[Diagram Here]
-
-The process that brings v1 users to the v2 staking pools is a bit different on the ILVPool contract compared to the Sushi LP Pool. In the ILVPool we call the `executeMigration` function.
-
 # Solidity Template
 
 My favourite setup for writing Solidity smart contracts.
