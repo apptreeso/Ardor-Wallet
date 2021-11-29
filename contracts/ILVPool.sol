@@ -218,25 +218,27 @@ contract ILVPool is V2Migrator {
      * @param _stakeIds array of yield ids in v1 from msg.sender user
      */
     function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
+        User storage user = users[msg.sender];
         uint256 amountToMint;
+        uint256 weightToRemove;
 
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = ILVPool(this).mintV1YieldMultiple.selector;
 
         for (uint256 i = 0; i < _stakeIds.length; i++) {
             uint256 _stakeId = _stakeIds[i];
-            (uint256 tokenAmount, , , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
-                msg.sender,
-                _stakeId
-            );
+            (uint256 tokenAmount, uint256 _weight, , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1)
+                .getDeposit(msg.sender, _stakeId);
             fnSelector.verifyState(isYield, i * 3);
             fnSelector.verifyState(_now256() > lockedUntil, i * 3 + 1);
             fnSelector.verifyState(!v1YieldMinted[msg.sender][_stakeId], i * 3 + 2);
 
             v1YieldMinted[msg.sender][_stakeId] = true;
             amountToMint += tokenAmount;
+            weightToRemove += _weight;
         }
 
+        user.totalWeight -= uint248(weightToRemove);
         factory.mintYieldTo(msg.sender, amountToMint, false);
 
         emit LogV1YieldMintedMultiple(msg.sender, amountToMint);
