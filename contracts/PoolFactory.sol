@@ -13,14 +13,14 @@ import "hardhat/console.sol";
 /**
  * @title Pool Factory V2
  *
- * @notice ILV Pool Factory manages Illuvium Yield farming pools, provides a single
+ * @dev Pool Factory manages Illuvium staking pools, provides a single
  *      public interface to access the pools, provides an interface for the pools
  *      to mint yield rewards, access pool-related info, update weights, etc.
  *
- * @notice The factory is authorized (via its owner) to register new pools, change weights
+ * @dev The factory is authorized (via its owner) to register new pools, change weights
  *      of the existing pools, removing the pools (by changing their weights to zero).
  *
- * @dev The factory requires ROLE_TOKEN_CREATOR permission on the ILV token to mint yield
+ * @dev The factory requires ROLE_TOKEN_CREATOR permission on the ILV and sILV tokens to mint yield
  *      (see `mintYieldTo` function).
  *
  */

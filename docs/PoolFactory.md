@@ -1,13 +1,13 @@
 ## `PoolFactory`
 
-ILV Pool Factory manages Illuvium Yield farming pools, provides a single
+Pool Factory manages Illuvium staking pools, provides a single
 public interface to access the pools, provides an interface for the pools
 to mint yield rewards, access pool-related info, update weights, etc.
 
 The factory is authorized (via its owner) to register new pools, change weights
 of the existing pools, removing the pools (by changing their weights to zero).
 
-The factory requires ROLE_TOKEN_CREATOR permission on the ILV token to mint yield
+The factory requires ROLE_TOKEN_CREATOR permission on the ILV and sILV tokens to mint yield
 (see `mintYieldTo` function).
 
 ### `initialize(address _ilv, address _silv, uint192 _ilvPerSecond, uint32 _secondsPerUpdate, uint32 _initTime, uint32 _endTime)` (external)
