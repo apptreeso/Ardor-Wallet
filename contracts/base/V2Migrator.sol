@@ -78,7 +78,7 @@ abstract contract V2Migrator is CorePool {
             // update user state
             _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
         }
-        _migrateLockedStakes(_stakeIds, v1WeightToAdd);
+        _migrateLockedStakes(_stakeIds);
 
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
@@ -96,7 +96,7 @@ abstract contract V2Migrator is CorePool {
      *
      * @param _stakeIds array of v1 stake ids
      */
-    function _migrateLockedStakes(uint256[] calldata _stakeIds, uint256 _v1WeightToAdd) internal {
+    function _migrateLockedStakes(uint256[] calldata _stakeIds) internal {
         User storage user = users[msg.sender];
 
         // we're using selector to simplify input and state validation

@@ -1025,13 +1025,12 @@ export function sync(usingPool: string): () => void {
       const yieldRewardsPerWeight = await pool.yieldRewardsPerWeight();
 
       const expectedLastYieldDistribution = ethers.BigNumber.from(END_TIME);
+      const globalWeight = await pool.globalWeight();
       const expectedYieldRewardsPerWeight = ILV_PER_SECOND.mul(END_TIME - INIT_TIME)
         .mul(poolWeight)
-        .mul(1e6)
         .div(totalWeight)
-        .div(toWei(100))
-        .mul(toWei(95))
-        .div(toWei(100));
+        .mul(toWei(100))
+        .div(globalWeight);
 
       expect(Number(ethers.utils.formatEther(expectedLastYieldDistribution))).to.be.closeTo(
         Number(ethers.utils.formatEther(lastYieldDistribution)),
