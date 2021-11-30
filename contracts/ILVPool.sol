@@ -229,7 +229,7 @@ contract ILVPool is V2Migrator {
      *
      * @param _stakeIds array of yield ids in v1 from msg.sender user
      */
-    function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
+    function mintV1YieldMultiple(uint256[] calldata _stakeIds) external updatePool {
         User storage user = users[msg.sender];
         uint256 amountToMint;
         uint256 weightToRemove;

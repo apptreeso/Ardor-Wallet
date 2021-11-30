@@ -303,6 +303,11 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         emit LogChangePoolWeight(msg.sender, address(pool), weight);
     }
 
+    /**
+     * @dev Updates yield generation ending timestamp.
+     *
+     * @param _endTime new end time value to be stored
+     */
     function setEndTime(uint32 _endTime) external onlyOwner {
         require(_endTime > lastRatioUpdate, "invalid _endTime");
         endTime = _endTime;

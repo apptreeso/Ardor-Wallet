@@ -55,6 +55,8 @@ executed by the pool itself or by the factory owner.
 
 ### `setEndTime(uint32 _endTime)` (external)
 
+Updates yield generation ending timestamp.
+
 ### `_authorizeUpgrade(address)` (internal)
 
 See `CorePool._authorizeUpgrade()`
