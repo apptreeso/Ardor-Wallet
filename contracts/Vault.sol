@@ -264,15 +264,14 @@ contract Vault is Ownable {
     }
 
     /**
-     * @dev Auxiliary function used to estimate LP core pool share among 2 other core pools.
-     *      Since LP pool holds ILV in both paired and unpaired forms, this creates some complexity to
-     *      properly estimate LP pool share among 2 other pools which contain ILV tokens only
+     * @dev Auxiliary function used to estimate LP core pool share among the other core pools.
      *
-     * @dev The function counts for ILV held in LP pool in unpaired form as is,
-     *      for the paired ILV it estimates its amount based on the LP token share the pool has
+     * @dev Expected to estimate how much ILV is represented by the number of LP tokens staked
+     *      in the pair pool in order to determine how much revenue distribution should be allocated
+     *      to the Sushi LP pool.
      *
      * @param _pairPool LP core pool extracted from pools structure (gas saving optimization)
-     * @return ilvAmount ILV estimate of the LP pool share among 2 other pools
+     * @return ilvAmount ILV estimate of the LP pool share among the other pools
      */
     function estimatePairPoolReserve(address _pairPool) public view returns (uint256 ilvAmount) {
         // 1. Store the amount of LP tokens staked in the ILV/ETH pool
