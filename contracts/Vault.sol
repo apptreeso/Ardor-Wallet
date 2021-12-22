@@ -55,6 +55,12 @@ contract Vault is Ownable {
     IERC20Upgradeable public ilv;
 
     /**
+     * @dev Internal multiplier used to calculate amount to send
+     *      to each staking pool
+     */
+    uint256 internal constant AMOUNT_TO_SEND_MULTIPLIER = 1e12;
+
+    /**
      * @dev Fired in _swapEthForIlv() and sendIlvRewards() (via swapEthForIlv)
      *
      * @param by an address which executed the function
@@ -304,7 +310,7 @@ contract Vault is Ownable {
         uint256 _poolReserve,
         uint256 _totalReserve
     ) private pure returns (uint256) {
-        return (_ilvBalance * ((_poolReserve * 1e7) / _totalReserve)) / 1e7;
+        return (_ilvBalance * ((_poolReserve * AMOUNT_TO_SEND_MULTIPLIER) / _totalReserve)) / AMOUNT_TO_SEND_MULTIPLIER;
     }
 
     function _swapETHForILV(
