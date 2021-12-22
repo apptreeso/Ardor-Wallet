@@ -275,20 +275,17 @@ contract Vault is Ownable {
      * @return ilvAmount ILV estimate of the LP pool share among 2 other pools
      */
     function estimatePairPoolReserve(address _pairPool) public view returns (uint256 ilvAmount) {
-        // 1. Determine LP pool share in terms of LP tokens:
-        //    lpShare = lpAmount / lpTotal; lpShare < 1
-        //    where lpAmount is amount of LP tokens in the pool,
-        //    and lpTotal is total LP tokens supply
+        // 1. Store the amount of LP tokens staked in the ILV/ETH pool
+        //    and the LP token total supply (total amount of LP tokens in circulation).
+        //    With these two values we will be able to estimate how much ILV each LP token
+        //    is worth.
         uint256 lpAmount = ICorePool(_pairPool).poolTokenReserve();
         uint256 lpTotal = IERC20Upgradeable(ICorePool(_pairPool).poolToken()).totalSupply();
-        // uint256 lpShare = lpAmount / lpTotal; - this will always be zero due to int rounding down,
-        // therefore we don't calculate the share, but apply it to the calculations below
 
-        // Note: for LP core pool `poolTokenReserve` doesn't count for ILV tokens pool holds
-
-        // 2. Considering that LP pool share in terms of ILV tokens is the same as in terms of LP tokens,
-        //    ilvShare = lpShare, ILV amount the LP pool has in LP tokens would be estimated as
-        //    ilvAmount = ilvTotal * ilvShare = ilvTotal * lpShare
+        // 2. We check how much ILV the LP token contract holds, that way
+        //    based on the total value of ILV tokens represented by the total
+        //    supply of LP tokens, we are able to calculate through a simple rule
+        //    of 3 how much ILV the amount of staked LP tokens represent.
         uint256 ilvTotal = ilv.balanceOf(ICorePool(_pairPool).poolToken());
         // we store the result
         ilvAmount = (ilvTotal * lpAmount) / lpTotal;
