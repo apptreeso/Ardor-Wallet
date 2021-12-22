@@ -301,7 +301,7 @@ abstract contract CorePool is
      */
     function pendingRewards(address _staker) external view returns (uint256 pendingYield, uint256 pendingRevDis) {
         CorePool(this).pendingRewards.selector.verifyNonZeroInput(uint160(_staker), 0);
-        // `newYieldRewardsPerWeight` will store stored or recalculated value for `yieldRewardsPerWeight`
+        // `newYieldRewardsPerWeight` will be the stored or recalculated value for `yieldRewardsPerWeight`
         uint256 newYieldRewardsPerWeight;
         // gas savings
         uint256 _lastYieldDistribution = lastYieldDistribution;
