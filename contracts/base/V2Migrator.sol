@@ -100,7 +100,8 @@ abstract contract V2Migrator is CorePool {
         User storage user = users[msg.sender];
 
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = 0x710276c7;
+        // internal function simulated selector is `keccak256("_migrateLockedStakes(uint256[])")`
+        bytes4 fnSelector = 0x80812525;
 
         uint256 totalV1WeightAdded;
 

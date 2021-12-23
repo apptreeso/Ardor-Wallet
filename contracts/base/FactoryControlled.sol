@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { IFactory } from "../interfaces/IFactory.sol";
+import { ErrorHandler } from "../libraries/ErrorHandler.sol";
 
 /**
  * @title FactoryControlled
