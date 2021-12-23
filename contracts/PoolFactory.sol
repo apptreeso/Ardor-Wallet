@@ -246,7 +246,9 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         // checks if ratio can be updated i.e. if seconds/update have passed
         require(shouldUpdateRatio(), "too frequent");
 
-        // decreases ILV/second reward by 3%
+        // decreases ILV/second reward by 3%.
+        // To achieve that we multiply by 97 and then
+        // divide by 100
         ilvPerSecond = (ilvPerSecond * 97) / 100;
 
         // set current timestamp as the last ratio update timestamp
