@@ -266,8 +266,8 @@ abstract contract CorePool is
         uint32 _weight
     ) internal initializer {
         // we're using selector to simplify input and state validation
-        // since function is not public we pre-calculate the selector
-        bytes4 fnSelector = 0x243f7620;
+        // internal function simulated selector is `keccak256("__CorePool_init(address,address,address,address,address,uint64,uint32)")`
+        bytes4 fnSelector = 0x1512be06;
         // verify the inputs
         fnSelector.verifyNonZeroInput(uint160(_poolToken), 2);
         fnSelector.verifyNonZeroInput(uint160(_corePoolV1), 3);
@@ -711,8 +711,8 @@ abstract contract CorePool is
         uint64 _lockDuration
     ) internal virtual {
         // we're using selector to simplify input and state validation
-        // since function is not public we pre-calculate the selector
-        bytes4 fnSelector = 0x867a0347;
+        // internal function simulated selector is `keccak256("_stake(address,uint256,uint64)")`
+        bytes4 fnSelector = 0x06151334;
 
         // validate the inputs
         fnSelector.verifyNonZeroInput(_value, 0);
@@ -1234,9 +1234,16 @@ abstract contract CorePool is
             Stake.REWARD_PER_WEIGHT_MULTIPLIER;
     }
 
-    /// @dev Checks if pool is paused
+    /**
+     * @dev Checks if pool is paused.
+     * @dev We use this internal function instead of the modifier coming from
+     *      Pausable contract in order to decrease contract's bytecode size.
+     */
     function _requireNotPaused() internal view {
-        require(!paused());
+        // we're using selector to simplify input and state validation
+        // internal function simulated selector is `keccak256("_requirePoolIsValid()")`
+        bytes4 fnSelector = 0xabb87a6f;
+        fnSelector.verifyState(!paused(), 0);
     }
 
     /**

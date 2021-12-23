@@ -51,6 +51,10 @@ abstract contract VaultRecipient is FactoryControlled {
 
     /// @dev Utility function to check if caller is the Vault contract
     function _requireIsVault() internal view {
-        require(msg.sender == vault);
+        // we're using selector to simplify input and state validation
+        // internal function simulated selector is `bytes4(keccak256("_requireIsVault()"))`
+        bytes4 fnSelector = 0xeeea774b;
+
+        fnSelector.verifyAccess(msg.sender == vault);
     }
 }

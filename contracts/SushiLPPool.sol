@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 
 import { V2Migrator } from "./base/V2Migrator.sol";
+import { ErrorHandler } from "./libraries/ErrorHandler.sol";
 
 /**
  * @title The Sushi LP Pool.
@@ -12,6 +13,8 @@ import { V2Migrator } from "./base/V2Migrator.sol";
  *      pools.
  */
 contract SushiLPPool is V2Migrator {
+    using ErrorHandler for bytes4;
+
     /// @dev Calls __V2Migrator_init().
     function initialize(
         address _ilv,
@@ -59,9 +62,17 @@ contract SushiLPPool is V2Migrator {
         _claimVaultRewards(_staker);
     }
 
-    /// @dev Checks if caller is ILVPool.
+    /**
+     * @dev Checks if caller is ILV pool.
+     * @dev We are using an internal function instead of a modifier in order to
+     *      reduce the contract's bytecode size.
+     */
     function _requirePoolIsValid() internal view {
+        // we're using selector to simplify input and state validation
+        // internal function simulated selector is `keccak256("_requirePoolIsValid()")`
+        bytes4 fnSelector = 0x250f303f;
+
         bool poolIsValid = address(factory.pools(ilv)) == msg.sender;
-        require(poolIsValid);
+        fnSelector.verifyState(poolIsValid, 0);
     }
 }
