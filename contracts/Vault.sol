@@ -45,7 +45,7 @@ contract Vault is Ownable {
     Pools public pools;
 
     /**
-     * @dev Link to UniswapV2Router02 deployed instance
+     * @dev Link to Sushiswap's router deployed instance
      */
     IUniswapV2Router02 public sushiRouter;
 
@@ -64,8 +64,8 @@ contract Vault is Ownable {
      * @dev Fired in _swapEthForIlv() and sendIlvRewards() (via swapEthForIlv)
      *
      * @param by an address which executed the function
-     * @param ethSpent ETH amount sent to Uniswap
-     * @param ilvReceived ILV amount received from Uniswap
+     * @param ethSpent ETH amount sent to Sushiswap
+     * @param ilvReceived ILV amount received from Sushiswap
      */
     event LogSwapEthForILV(address indexed by, uint256 ethSpent, uint256 ilvReceived);
 
@@ -166,12 +166,12 @@ contract Vault is Ownable {
     }
 
     /**
-     * @notice Exchanges ETH balance present on the contract into ILV via Uniswap
+     * @notice Exchanges ETH balance present on the contract into ILV via Sushiswap
      *
      * @dev Logs operation via `EthIlvSwapped` event
      *
-     * @param _ilvOut expected ILV amount to be received from Uniswap swap
-     * @param _deadline maximum timestamp to wait for Uniswap swap (inclusive)
+     * @param _ilvOut expected ILV amount to be received from Sushiswap swap
+     * @param _deadline maximum timestamp to wait for Sushiswap swap (inclusive)
      */
     function swapETHForILV(
         uint256 _ethIn,
@@ -182,7 +182,7 @@ contract Vault is Ownable {
     }
 
     /**
-     * @notice Converts an entire contract's ETH balance into ILV via Uniswap and
+     * @notice Converts an entire contract's ETH balance into ILV via Sushiswap and
      *      sends the entire contract's ILV balance to the Illuvium Yield Pool
      *
      * @dev Uses `swapEthForIlv` internally to exchange ETH -> ILV
@@ -191,8 +191,8 @@ contract Vault is Ownable {
      *
      * @dev Set `ilvOut` or `deadline` to zero to skip `swapEthForIlv` call
      *
-     * @param _ilvOut expected ILV amount to be received from Uniswap swap
-     * @param _deadline maximum timeout to wait for Uniswap swap
+     * @param _ilvOut expected ILV amount to be received from Sushiswap swap
+     * @param _deadline maximum timeout to wait for Sushiswap swap
      */
     function sendILVRewards(
         uint256 _ethIn,
@@ -322,16 +322,16 @@ contract Vault is Ownable {
 
         require(address(this).balance > _ethIn, "zero ETH balance");
 
-        // create and initialize path array to be used in Uniswap
-        // first element of the path determines an input token (what we send to Uniswap),
+        // create and initialize path array to be used in Sushiswap
+        // first element of the path determines an input token (what we send to Sushiswap),
         // last element determines output token (what we receive from uniwsap)
         address[] memory path = new address[](2);
-        // we send ETH wrapped as WETH into Uniswap
+        // we send ETH wrapped as WETH into Sushiswap
         path[0] = sushiRouter.WETH();
-        // we receive ILV from Uniswap
+        // we receive ILV from Sushiswap
         path[1] = address(ilv);
 
-        // exchange ETH -> ILV via Uniswap
+        // exchange ETH -> ILV via Sushiswap
         uint256[] memory amounts = sushiRouter.swapExactETHForTokens{ value: _ethIn }(
             _ilvOut,
             path,
@@ -345,7 +345,7 @@ contract Vault is Ownable {
 
     /**
      * @notice Default payable function, allows to top up contract's ETH balance
-     *      to be exchanged into ILV via Uniswap
+     *      to be exchanged into ILV via Sushiswap
      *
      * @dev Logs operation via `LogEthReceived` event
      */
