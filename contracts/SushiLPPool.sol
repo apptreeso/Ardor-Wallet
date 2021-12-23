@@ -69,7 +69,7 @@ contract SushiLPPool is V2Migrator {
      */
     function _requirePoolIsValid() internal view {
         // we're using selector to simplify input and state validation
-        // internal function simulated selector is `keccak256("_requirePoolIsValid()")`
+        // internal function simulated selector is `bytes4(keccak256("_requirePoolIsValid()"))`
         bytes4 fnSelector = 0x250f303f;
 
         bool poolIsValid = address(factory.pools(ilv)) == msg.sender;
