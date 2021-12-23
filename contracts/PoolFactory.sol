@@ -6,6 +6,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { Timestamp } from "./base/Timestamp.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 import { IERC20Mintable } from "./interfaces/IERC20Mintable.sol";
+import { ErrorHandler } from "./libraries/ErrorHandler.sol";
 
 import "hardhat/console.sol";
 
@@ -24,6 +25,8 @@ import "hardhat/console.sol";
  *
  */
 contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
+    using ErrorHandler for bytes4;
+
     /// @dev Auxiliary data structure used only in getPoolData() view function
     struct PoolData {
         // @dev pool token address (like ILV)
@@ -141,13 +144,14 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         uint32 _initTime,
         uint32 _endTime
     ) external initializer {
+        bytes4 fnSelector = this.initialize.selector;
         // verify the inputs are set
-        require(_ilv != address(0), "ILV address not set");
-        require(_silv != address(0), "sILV address not set");
-        require(_ilvPerSecond > 0, "ILV/second not set");
-        require(_secondsPerUpdate > 0, "seconds/update not set");
-        require(_initTime > 0, "init seconds not set");
-        require(_endTime > _initTime, "invalid end time: must be greater than init time");
+        fnSelector.verifyNonZeroInput(uint160(_ilv), 0);
+        fnSelector.verifyNonZeroInput(uint160(_silv), 1);
+        fnSelector.verifyNonZeroInput(_ilvPerSecond, 2);
+        fnSelector.verifyNonZeroInput(secondsPerUpdate, 3);
+        fnSelector.verifyNonZeroInput(_initTime, 4);
+        fnSelector.verifyNonZeroInput(_endTime, 5);
 
         __Ownable_init();
 
@@ -181,11 +185,12 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      * @return pool information packed in a PoolData struct.
      */
     function getPoolData(address _poolToken) public view returns (PoolData memory) {
+        bytes4 fnSelector = this.getPoolData.selector;
         // get the pool address from the mapping
         ICorePool pool = ICorePool(pools[_poolToken]);
 
         // throw if there is no pool registered for the token specified
-        require(address(pool) != address(0), "pool not found");
+        fnSelector.verifyState(uint160(address(pool)) != 0, 0);
 
         // read pool information from the pool smart contract
         // via the pool interface (ICorePool)
@@ -243,8 +248,9 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      *      no more than once per `secondsPerUpdate` seconds.
      */
     function updateILVPerSecond() external {
+        bytes4 fnSelector = this.updateILVPerSecond.selector;
         // checks if ratio can be updated i.e. if seconds/update have passed
-        require(shouldUpdateRatio(), "too frequent");
+        fnSelector.verifyState(shouldUpdateRatio(), 0);
 
         // decreases ILV/second reward by 3%.
         // To achieve that we multiply by 97 and then
@@ -273,8 +279,9 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         uint256 _value,
         bool _useSILV
     ) external {
+        bytes4 fnSelector = this.mintYieldTo.selector;
         // verify that sender is a pool registered withing the factory
-        require(poolExists[msg.sender], "access denied");
+        fnSelector.verifyState(poolExists[msg.sender], 0);
 
         if (!_useSILV) {
             IERC20Mintable(ilv).mint(_to, _value);
@@ -291,8 +298,9 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      * @param weight new weight value to set to
      */
     function changePoolWeight(address pool, uint32 weight) external {
+        bytes4 fnSelector = this.changePoolWeight.selector;
         // verify function is executed either by factory owner or by the pool itself
-        require(msg.sender == owner() || poolExists[msg.sender]);
+        fnSelector.verifyAccess(msg.sender == owner() || poolExists[msg.sender]);
 
         // recalculate total weight
         totalWeight = totalWeight + weight - ICorePool(pool).weight();
@@ -310,7 +318,8 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      * @param _endTime new end time value to be stored
      */
     function setEndTime(uint32 _endTime) external onlyOwner {
-        require(_endTime > lastRatioUpdate, "invalid _endTime");
+        bytes4 fnSelector = this.setEndTime.selector;
+        fnSelector.verifyInput(_endTime > lastRatioUpdate, 0);
         endTime = _endTime;
 
         emit LogSetEndTime(msg.sender, _endTime);
