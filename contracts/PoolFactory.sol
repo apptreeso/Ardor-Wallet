@@ -317,7 +317,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
 
     /**
      * @dev Overrides `Ownable.renounceOwnership()`, to avoid accidentally
-     *      renouncing ownership of the Vault contract.
+     *      renouncing ownership of the PoolFactory contract.
      */
     function renounceOwnership() public virtual override {}
 
