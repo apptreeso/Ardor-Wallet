@@ -252,7 +252,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // read the current balance
         uint256 previousBalance = IERC20Upgradeable(_poolToken).balanceOf(address(this));
         // transfer `_value`; note: some types of tokens may get burnt here
-        IERC20Upgradeable(_poolToken).transferFrom(address(msg.sender), address(this), _value);
+        IERC20Upgradeable(_poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
         // read new balance, usually this is just the difference `previousBalance - _value`
         uint256 newBalance = IERC20Upgradeable(_poolToken).balanceOf(address(this));
         // calculate real value taking into account deflation
@@ -398,7 +398,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         user.balance -= uint128(_value);
 
         // finally, transfers `_value` poolTokens
-        IERC20Upgradeable(poolToken).transfer(msg.sender, _value);
+        IERC20Upgradeable(poolToken).safeTransfer(msg.sender, _value);
 
         // emit an event
         emit LogUnstake(msg.sender, _value);
