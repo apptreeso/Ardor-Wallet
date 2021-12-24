@@ -214,16 +214,16 @@ contract Vault is Ownable {
         uint256 ilvBalance = ilv.balanceOf(address(this));
         // approve the entire ILV balance to be sent into the pool
         if (ilv.allowance(address(this), address(ilvPool)) < ilvBalance) {
-            ilv.approve(address(ilvPool), type(uint256).max);
+            ilv.approve(address(ilvPool), ilvBalance);
         }
         if (ilv.allowance(address(this), address(pairPool)) < ilvBalance) {
-            ilv.approve(address(pairPool), type(uint256).max);
+            ilv.approve(address(pairPool), ilvBalance);
         }
         if (ilv.allowance(address(this), address(lockedPoolV1)) < ilvBalance) {
-            ilv.approve(address(lockedPoolV1), type(uint256).max);
+            ilv.approve(address(lockedPoolV1), ilvBalance);
         }
         if (ilv.allowance(address(this), address(lockedPoolV2)) < ilvBalance) {
-            ilv.approve(address(lockedPoolV2), type(uint256).max);
+            ilv.approve(address(lockedPoolV2), ilvBalance);
         }
 
         // gets poolToken reserves in each pool
