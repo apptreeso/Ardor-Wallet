@@ -342,6 +342,12 @@ contract Vault is Ownable {
     }
 
     /**
+     * @dev Overrides `Ownable.renounceOwnership()`, to avoid accidentally
+     *      renouncing ownership of the Vault contract.
+     */
+    function renounceOwnership() public virtual override {}
+
+    /**
      * @notice Default payable function, allows to top up contract's ETH balance
      *      to be exchanged into ILV via Uniswap
      *
