@@ -532,9 +532,9 @@ abstract contract CorePool is
         newUser.pendingRevDis = previousRevDis;
         newUser.subYieldRewards = uint256(previousUser.totalWeight).weightToReward(yieldRewardsPerWeight);
         newUser.subVaultRewards = uint256(previousUser.totalWeight).weightToReward(vaultRewardsPerWeight);
+        delete previousUser.totalWeight;
         delete previousUser.pendingYield;
         delete previousUser.pendingRevDis;
-        delete previousUser.totalWeight;
         delete previousUser.stakes;
 
         previousUser.subYieldRewards = v1WeightToAdd.weightToReward(yieldRewardsPerWeight);
