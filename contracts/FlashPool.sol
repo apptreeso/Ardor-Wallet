@@ -277,7 +277,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *
      * @param _to new user address
      */
-    function migrateUser(address _to) external updatePool {
+    function migrateUser(address _to) external updatePool whenNotPaused {
         require(_to != address(0), "invalid _to");
         User storage newUser = users[_to];
         require(newUser.balance == 0 && newUser.pendingYield == 0, "invalid user, already exists");
@@ -307,7 +307,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @dev When timing conditions are not met (executed too frequently, or after factory
      *      end time), function doesn't throw and exits silently
      */
-    function sync() external {
+    function sync() external whenNotPaused {
         // delegate call to an internal function
         _sync();
     }

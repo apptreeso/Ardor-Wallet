@@ -484,6 +484,7 @@ abstract contract CorePool is
      * @param _to new user address, needs to be a fresh address with no stakes
      */
     function migrateUser(address _to) external updatePool {
+        _requireNotPaused();
         User storage previousUser = users[msg.sender];
         User storage newUser = users[_to];
         // uses v1 weight values for rewards calculations
@@ -598,6 +599,7 @@ abstract contract CorePool is
      *      end time), function doesn't throw and exits silently.
      */
     function sync() external {
+        _requireNotPaused();
         // calls internal function
         _sync();
     }
@@ -631,6 +633,7 @@ abstract contract CorePool is
      * @param _value amount of ILV rewards to transfer into the pool
      */
     function receiveVaultRewards(uint256 _value) external updatePool {
+        _requireNotPaused();
         // checks if msg.sender is the vault contract
         _requireIsVault();
         // we're using selector to simplify input and state validation
