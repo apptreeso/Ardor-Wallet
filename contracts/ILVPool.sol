@@ -284,7 +284,7 @@ contract ILVPool is V2Migrator {
         uint256 _yieldWeight
     ) private {
         User storage user = users[msg.sender];
-        // bytes4(keccak256("_migrateYieldWeights(bytes32[],uint256,uint256")))
+        // bytes4(keccak256("_migrateYieldWeights(bytes32[],uint256,uint256)")))
         bytes4 fnSelector = 0x660e5908;
 
         fnSelector.verifyAccess(!hasMigratedYield(_index));
