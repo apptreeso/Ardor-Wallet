@@ -91,7 +91,8 @@ contract ILVPool is V2Migrator {
      * @param _staker an address which stakes (the yield reward)
      * @param _value amount to be staked (yield reward amount)
      */
-    function stakeAsPool(address _staker, uint256 _value) external updatePool nonReentrant {
+    function stakeAsPool(address _staker, uint256 _value) external nonReentrant {
+        _sync();
         _requireNotPaused();
         ILVPool(this).stakeAsPool.selector.verifyAccess(factory.poolExists(msg.sender));
         User storage user = users[_staker];
@@ -141,7 +142,8 @@ contract ILVPool is V2Migrator {
         uint256 _index,
         uint248 _yieldWeight,
         uint256[] calldata _stakeIds
-    ) external updatePool {
+    ) external {
+        _sync();
         User storage user = users[msg.sender];
         _requireNotPaused();
 
@@ -175,7 +177,8 @@ contract ILVPool is V2Migrator {
      * @param _useSILV array of bool values telling if the pool should claim reward
      *                 as ILV or sILV
      */
-    function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external updatePool {
+    function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external {
+        _sync();
         _requireNotPaused();
 
         // we're using selector to simplify input and access validation
@@ -203,7 +206,8 @@ contract ILVPool is V2Migrator {
      *
      * @param _pools array of pool addresses
      */
-    function claimVaultRewardsMultiple(address[] calldata _pools) external updatePool {
+    function claimVaultRewardsMultiple(address[] calldata _pools) external {
+        _sync();
         _requireNotPaused();
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
@@ -229,7 +233,8 @@ contract ILVPool is V2Migrator {
      *
      * @param _stakeIds array of yield ids in v1 from msg.sender user
      */
-    function mintV1YieldMultiple(uint256[] calldata _stakeIds) external updatePool {
+    function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
+        _sync();
         User storage user = users[msg.sender];
         uint256 amountToMint;
         uint256 weightToRemove;

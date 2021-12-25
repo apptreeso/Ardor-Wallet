@@ -236,12 +236,6 @@ abstract contract CorePool is
      */
     event LogReceiveVaultRewards(address indexed by, uint256 value);
 
-    /// @dev Used for functions that require syncing contract state before execution.
-    modifier updatePool() {
-        _sync();
-        _;
-    }
-
     /**
      * @dev Used in child contracts to initialize the pool.
      *
@@ -468,7 +462,8 @@ abstract contract CorePool is
      * @param _value value of tokens to stake
      * @param _lockDuration stake duration as unix timestamp
      */
-    function stakePoolToken(uint256 _value, uint64 _lockDuration) external nonReentrant updatePool {
+    function stakePoolToken(uint256 _value, uint64 _lockDuration) external nonReentrant {
+        _sync();
         _requireNotPaused();
         // calls internal function
         _stake(msg.sender, _value, _lockDuration);
@@ -483,7 +478,8 @@ abstract contract CorePool is
      *
      * @param _to new user address, needs to be a fresh address with no stakes
      */
-    function migrateUser(address _to) external updatePool {
+    function migrateUser(address _to) external {
+        _sync();
         User storage previousUser = users[msg.sender];
         User storage newUser = users[_to];
         // uses v1 weight values for rewards calculations
@@ -530,7 +526,8 @@ abstract contract CorePool is
      * @param _stakeIdPosition position of the desired stake id in the user.v1StakesIds
      *                         array
      */
-    function fillV1StakeId(uint256 _v1StakeId, uint256 _stakeIdPosition) external updatePool {
+    function fillV1StakeId(uint256 _v1StakeId, uint256 _stakeIdPosition) external {
+        _sync();
         _requireNotPaused();
         User storage user = users[msg.sender];
         // we're using selector to simplify input and state validation
@@ -607,7 +604,8 @@ abstract contract CorePool is
      *
      * @notice Pool state is updated before calling the internal function.
      */
-    function claimYieldRewards(bool _useSILV) external updatePool {
+    function claimYieldRewards(bool _useSILV) external {
+        _sync();
         _requireNotPaused();
         _claimYieldRewards(msg.sender, _useSILV);
     }
@@ -617,7 +615,8 @@ abstract contract CorePool is
      *
      * @notice Pool state is updated before calling the internal function.
      */
-    function claimVaultRewards() external updatePool {
+    function claimVaultRewards() external {
+        _sync();
         _requireNotPaused();
         _claimVaultRewards(msg.sender);
     }
@@ -630,7 +629,8 @@ abstract contract CorePool is
      *
      * @param _value amount of ILV rewards to transfer into the pool
      */
-    function receiveVaultRewards(uint256 _value) external updatePool {
+    function receiveVaultRewards(uint256 _value) external {
+        _sync();
         // checks if msg.sender is the vault contract
         _requireIsVault();
         // we're using selector to simplify input and state validation
@@ -780,7 +780,8 @@ abstract contract CorePool is
      * @param _stakeId stake ID to unstake from, zero-indexed
      * @param _value value of tokens to unstake
      */
-    function unstakeLocked(uint256 _stakeId, uint256 _value) external updatePool {
+    function unstakeLocked(uint256 _stakeId, uint256 _value) external {
+        _sync();
         _requireNotPaused();
 
         // we're using selector to simplify input and state validation
@@ -858,7 +859,8 @@ abstract contract CorePool is
      * @param _unstakingYield whether all stakeIds have isYield flag set to true or false,
      *                        i.e if we're minting ILV or transferring pool tokens
      */
-    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external updatePool {
+    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external {
+        _sync();
         _requireNotPaused();
 
         // we're using selector to simplify input and state validation
