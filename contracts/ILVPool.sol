@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { SafeCast } from "./libraries/SafeCast.sol";
 import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { V2Migrator } from "./base/V2Migrator.sol";
@@ -26,6 +27,7 @@ contract ILVPool is V2Migrator {
     using ErrorHandler for bytes4;
     using Stake for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeCast for uint256;
     using BitMaps for BitMaps.BitMap;
 
     /// @dev stores merkle root related to users yield weight in v1.
@@ -108,7 +110,7 @@ contract ILVPool is V2Migrator {
             isYield: true
         });
 
-        user.totalWeight += _toUint248(stakeWeight);
+        user.totalWeight += (stakeWeight).toUint248();
         user.stakes.push(newStake);
 
         globalWeight += stakeWeight;
@@ -255,7 +257,7 @@ contract ILVPool is V2Migrator {
             amountToMint += tokenAmount;
             weightToRemove += _weight;
         }
-        user.totalWeight -= _toUint248(weightToRemove);
+        user.totalWeight -= (weightToRemove).toUint248();
 
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
@@ -292,7 +294,7 @@ contract ILVPool is V2Migrator {
         bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight));
         fnSelector.verifyInput(MerkleProof.verify(_proof, merkleRoot, leaf), 0);
 
-        user.totalWeight += _toUint248(_yieldWeight);
+        user.totalWeight += (_yieldWeight).toUint248();
         // set user as claimed in bitmap
         _usersMigrated.set(_index);
     }

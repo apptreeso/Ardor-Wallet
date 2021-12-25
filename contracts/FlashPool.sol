@@ -7,6 +7,7 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/securit
 import { Timestamp } from "./base/Timestamp.sol";
 import { FactoryControlled } from "./base/FactoryControlled.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { SafeCast } from "./libraries/SafeCast.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { IILVPool } from "./interfaces/IILVPool.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
@@ -27,6 +28,7 @@ import "hardhat/console.sol";
  */
 contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgradeable, PausableUpgradeable, Timestamp {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeCast for uint256;
 
     struct User {
         /// @dev Total staked amount

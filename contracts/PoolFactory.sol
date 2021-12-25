@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { SafeCast } from "./libraries/SafeCast.sol";
 import { Timestamp } from "./base/Timestamp.sol";
 // import { CorePool } from "./CorePool.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
@@ -25,6 +26,8 @@ import "hardhat/console.sol";
  *
  */
 contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
+    using SafeCast for uint256;
+
     /// @dev Auxiliary data structure used only in getPoolData() view function
     struct PoolData {
         // @dev pool token address (like ILV)

@@ -3,7 +3,7 @@ pragma solidity 0.8.4;
 
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import { SafeCastUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
+import { SafeCast } from "../libraries/SafeCast.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -62,6 +62,7 @@ abstract contract CorePool is
     Timestamp
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeCast for uint256;
     using Stake for Stake.Data;
     using ErrorHandler for bytes4;
     using Stake for uint256;
@@ -567,7 +568,7 @@ abstract contract CorePool is
         delete user.v1StakesIds[_stakeIdPosition];
         delete v1StakesWeightsOriginal[msg.sender][_v1StakeId];
         // adds v1 stake data to user struct
-        user.totalWeight += _toUint248(weightToUse);
+        user.totalWeight += (weightToUse).toUint248();
         user.stakes.push(
             Stake.Data({ value: v1StakeValue, lockedFrom: _lockedFrom, lockedUntil: _lockedUntil, isYield: false })
         );
@@ -749,7 +750,7 @@ abstract contract CorePool is
         user.stakes.push(stake);
 
         // update user record
-        user.totalWeight += _toUint248(stakeWeight);
+        user.totalWeight += (stakeWeight).toUint248();
 
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
@@ -905,7 +906,7 @@ abstract contract CorePool is
             valueToUnstake += _value;
         }
 
-        user.totalWeight -= _toUint248(weightToRemove);
+        user.totalWeight -= (weightToRemove).toUint248();
 
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
@@ -1063,7 +1064,7 @@ abstract contract CorePool is
             });
 
             user.stakes.push(newStake);
-            user.totalWeight += _toUint248(stakeWeight);
+            user.totalWeight += (stakeWeight).toUint248();
 
             // update global variable
             globalWeight += stakeWeight;
