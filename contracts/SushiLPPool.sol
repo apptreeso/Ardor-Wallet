@@ -21,9 +21,9 @@ contract SushiLPPool is V2Migrator {
         uint64 _initTime,
         uint32 _weight,
         address _corePoolV1,
-        uint256 _v1StakeMaxPeriod
+        uint256 v1StakeMaxPeriod_
     ) external initializer {
-        __V2Migrator_init(ilv_, silv_, _poolToken, _corePoolV1, _factory, _initTime, _weight, _v1StakeMaxPeriod);
+        __V2Migrator_init(ilv_, silv_, _poolToken, _corePoolV1, _factory, _initTime, _weight, v1StakeMaxPeriod_);
     }
 
     /**
@@ -61,7 +61,7 @@ contract SushiLPPool is V2Migrator {
 
     /// @dev Checks if caller is ILVPool.
     function _requirePoolIsValid() internal view {
-        bool poolIsValid = address(factory.pools(_ilv)) == msg.sender;
+        bool poolIsValid = address(_factory.pools(_ilv)) == msg.sender;
         require(poolIsValid);
     }
 }
