@@ -7,6 +7,7 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/securit
 import { Timestamp } from "./base/Timestamp.sol";
 import { FactoryControlled } from "./base/FactoryControlled.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { ErrorHandler } from "./libraries/ErrorHandler.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { IILVPool } from "./interfaces/IILVPool.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
@@ -27,6 +28,7 @@ import "hardhat/console.sol";
  */
 contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgradeable, PausableUpgradeable, Timestamp {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using ErrorHandler for bytes4;
 
     struct User {
         /// @dev Total staked amount
@@ -363,6 +365,8 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _newEndTime new flash pool end time
      */
     function setEndTime(uint64 _newEndTime) external {
+        bytes4 fnSelector = this.setEndTime.selector;
+        fnSelector.verifyInput(_newEndTime > _now256(), 0);
         _requireIsFactoryController();
 
         endTime = _newEndTime;
