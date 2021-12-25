@@ -271,8 +271,8 @@ abstract contract CorePool is
         // verify the inputs
         fnSelector.verifyNonZeroInput(uint160(_poolToken), 2);
         fnSelector.verifyNonZeroInput(uint160(_corePoolV1), 3);
-        fnSelector.verifyNonZeroInput(_initTime, 4);
-        fnSelector.verifyNonZeroInput(_weight, 5);
+        fnSelector.verifyNonZeroInput(_initTime, 5);
+        fnSelector.verifyNonZeroInput(_weight, 6);
 
         __FactoryControlled_init(_factory);
         __ReentrancyGuard_init();
