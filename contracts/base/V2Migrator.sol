@@ -49,8 +49,8 @@ abstract contract V2Migrator is CorePool {
      *                         in v1 stakes
      */
     function __V2Migrator_init(
-        address _ilv,
-        address _silv,
+        address ilv_,
+        address silv_,
         address _poolToken,
         address _corePoolV1,
         address _factory,
@@ -58,7 +58,7 @@ abstract contract V2Migrator is CorePool {
         uint32 _weight,
         uint256 _v1StakeMaxPeriod
     ) internal initializer {
-        __CorePool_init(_ilv, _silv, _poolToken, _corePoolV1, _factory, _initTime, _weight);
+        __CorePool_init(ilv_, silv_, _poolToken, _corePoolV1, _factory, _initTime, _weight);
 
         v1StakeMaxPeriod = _v1StakeMaxPeriod;
     }

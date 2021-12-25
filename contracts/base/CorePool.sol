@@ -105,16 +105,16 @@ abstract contract CorePool is
     mapping(address => mapping(uint256 => uint256)) public v1StakesWeightsOriginal;
 
     /// @dev Link to sILV ERC20 Token instance.
-    address public silv;
+    address internal _silv;
 
     /// @dev Link to ILV ERC20 Token instance.
-    address public ilv;
+    address internal _ilv;
 
     /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair.
     address public poolToken;
 
     /// @dev Address of v1 core pool with same poolToken.
-    address public corePoolV1;
+    address internal corePoolV1;
 
     /// @dev Pool weight, initial values are 200 for ILV pool and 800 for ILV/ETH.
     uint32 public weight;
@@ -245,8 +245,8 @@ abstract contract CorePool is
     /**
      * @dev Used in child contracts to initialize the pool.
      *
-     * @param _ilv ILV ERC20 Token address
-     * @param _silv sILV ERC20 Token address
+     * @param ilv_ ILV ERC20 Token address
+     * @param silv_ sILV ERC20 Token address
      * @param _poolToken token the pool operates on, for example ILV or ILV/ETH pair
      * @param _corePoolV1 v1 core pool address
      * @param _factory PoolFactory contract address
@@ -257,8 +257,8 @@ abstract contract CorePool is
      *        is used by checking the total pools weight in the PoolFactory contract
      */
     function __CorePool_init(
-        address _ilv,
-        address _silv,
+        address ilv_,
+        address silv_,
         address _poolToken,
         address _corePoolV1,
         address _factory,
@@ -279,8 +279,8 @@ abstract contract CorePool is
         __Pausable_init();
 
         // save the inputs into internal state variables
-        ilv = _ilv;
-        silv = _silv;
+        _ilv = ilv_;
+        _silv = silv_;
         poolToken = _poolToken;
         corePoolV1 = _corePoolV1;
         weight = _weight;
@@ -645,7 +645,7 @@ abstract contract CorePool is
 
         vaultRewardsPerWeight += _value.rewardPerWeight(globalWeight);
 
-        IERC20Upgradeable(ilv).safeTransferFrom(msg.sender, address(this), _value);
+        IERC20Upgradeable(_ilv).safeTransferFrom(msg.sender, address(this), _value);
 
         emit LogReceiveVaultRewards(msg.sender, _value);
     }
@@ -1049,7 +1049,7 @@ abstract contract CorePool is
         if (_useSILV) {
             // - mint sILV
             factory.mintYieldTo(_staker, pendingYieldToClaim, true);
-        } else if (poolToken == ilv) {
+        } else if (poolToken == _ilv) {
             // calculate pending yield weight,
             // 2e6 is the bonus weight when staking for 1 year
             uint256 stakeWeight = pendingYieldToClaim * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
@@ -1072,7 +1072,7 @@ abstract contract CorePool is
             poolTokenReserve += pendingYieldToClaim;
         } else {
             // for other pools - stake as pool
-            address ilvPool = factory.getPoolAddress(ilv);
+            address ilvPool = factory.getPoolAddress(_ilv);
             IILVPool(ilvPool).stakeAsPool(_staker, pendingYieldToClaim);
         }
 
@@ -1115,7 +1115,7 @@ abstract contract CorePool is
         // subYieldRewards and subVaultRewards needs to be updated on every `_processRewards` call
         user.subVaultRewards = uint256(user.totalWeight).weightToReward(vaultRewardsPerWeight);
 
-        IERC20Upgradeable(ilv).safeTransfer(_staker, pendingRevDis);
+        IERC20Upgradeable(_ilv).safeTransfer(_staker, pendingRevDis);
 
         // emit an event
         emit LogClaimVaultRewards(msg.sender, _staker, pendingRevDis);

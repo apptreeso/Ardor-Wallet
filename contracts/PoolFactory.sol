@@ -70,10 +70,10 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     uint32 public lastRatioUpdate;
 
     /// @dev ILV token address.
-    address public ilv;
+    address private _ilv;
 
     /// @dev sILV token address
-    address public silv;
+    address private _silv;
 
     /// @dev Maps pool token address (like ILV) -> pool address (like core pool instance).
     mapping(address => address) public pools;
@@ -126,8 +126,8 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     /**
      * @dev Initializes a factory instance
      *
-     * @param _ilv ILV ERC20 token address
-     * @param _silv sILV ERC20 token address
+     * @param ilv_ ILV ERC20 token address
+     * @param silv_ sILV ERC20 token address
      * @param _ilvPerSecond initial ILV/second value for rewards
      * @param _secondsPerUpdate how frequently the rewards gets updated (decreased by 3%), seconds
      * @param _initTime timestamp to measure _secondsPerUpdate from
@@ -135,16 +135,16 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      */
 
     function initialize(
-        address _ilv,
-        address _silv,
+        address ilv_,
+        address silv_,
         uint192 _ilvPerSecond,
         uint32 _secondsPerUpdate,
         uint32 _initTime,
         uint32 _endTime
     ) external initializer {
         // verify the inputs are set
-        require(_ilv != address(0), "ILV address not set");
-        require(_silv != address(0), "sILV address not set");
+        require(ilv_ != address(0), "ILV address not set");
+        require(silv_ != address(0), "sILV address not set");
         require(_ilvPerSecond > 0, "ILV/second not set");
         require(_secondsPerUpdate > 0, "seconds/update not set");
         require(_initTime > 0, "init seconds not set");
@@ -153,8 +153,8 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         __Ownable_init();
 
         // save the inputs into internal state variables
-        ilv = _ilv;
-        silv = _silv;
+        _ilv = ilv_;
+        _silv = silv_;
         ilvPerSecond = _ilvPerSecond;
         secondsPerUpdate = _secondsPerUpdate;
         lastRatioUpdate = _initTime;
@@ -276,9 +276,9 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         require(poolExists[msg.sender], "access denied");
 
         if (!_useSILV) {
-            IERC20Mintable(ilv).mint(_to, _value);
+            IERC20Mintable(_ilv).mint(_to, _value);
         } else {
-            IERC20Mintable(silv).mint(_to, _value);
+            IERC20Mintable(_silv).mint(_to, _value);
         }
     }
 

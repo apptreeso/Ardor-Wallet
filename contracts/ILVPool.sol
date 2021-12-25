@@ -48,8 +48,8 @@ contract ILVPool is V2Migrator {
 
     /// @dev Calls `__V2Migrator_init()`.
     function initialize(
-        address _ilv,
-        address _silv,
+        address ilv_,
+        address silv_,
         address _poolToken,
         address _factory,
         uint64 _initTime,
@@ -57,7 +57,7 @@ contract ILVPool is V2Migrator {
         address _corePoolV1,
         uint256 _v1StakeMaxPeriod
     ) external initializer {
-        __V2Migrator_init(_ilv, _silv, _poolToken, _corePoolV1, _factory, _initTime, _weight, _v1StakeMaxPeriod);
+        __V2Migrator_init(ilv_, silv_, _poolToken, _corePoolV1, _factory, _initTime, _weight, _v1StakeMaxPeriod);
     }
 
     /**
@@ -186,7 +186,7 @@ contract ILVPool is V2Migrator {
             address pool = _pools[i];
             fnSelector.verifyAccess(IFactory(factory).poolExists(pool));
 
-            if (ICorePool(pool).poolToken() == ilv) {
+            if (ICorePool(pool).poolToken() == _ilv) {
                 _claimYieldRewards(msg.sender, _useSILV[i]);
             } else {
                 SushiLPPool(pool).claimYieldRewardsFromRouter(msg.sender, _useSILV[i]);
@@ -213,7 +213,7 @@ contract ILVPool is V2Migrator {
                 IFactory(factory).poolExists(pool)
             );
 
-            if (ICorePool(pool).poolToken() == ilv) {
+            if (ICorePool(pool).poolToken() == _ilv) {
                 _claimVaultRewards(msg.sender);
             } else {
                 SushiLPPool(pool).claimVaultRewardsFromRouter(msg.sender);

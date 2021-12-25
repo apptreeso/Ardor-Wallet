@@ -41,10 +41,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     mapping(address => User) public users;
 
     /// @dev Link to sILV ERC20 Token instance.
-    address public silv;
+    address private _silv;
 
     /// @dev Link to ILV ERC20 Token instance.
-    address public ilv;
+    address private _ilv;
 
     /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair.
     address public poolToken;
@@ -134,8 +134,8 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     /**
      * @dev Initializes a new flash pool.
      *
-     * @param _ilv ILV ERC20 Token address
-     * @param _silv sILV ERC20 Token address
+     * @param ilv_ ILV ERC20 Token address
+     * @param silv_ sILV ERC20 Token address
      * @param _poolToken token the pool operates on, for example ILV or ILV/ETH pair
      * @param _factory PoolFactory contract address
      * @param _initTime initial timestamp used to calculate the rewards
@@ -144,8 +144,8 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *      is calculated as that number divided by the total pools weight and doesn't exceed one
      */
     function initialize(
-        address _ilv,
-        address _silv,
+        address ilv_,
+        address silv_,
         address _poolToken,
         address _factory,
         uint64 _initTime,
@@ -161,8 +161,8 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         __Pausable_init();
 
         // save the inputs into internal state variables
-        ilv = _ilv;
-        silv = _silv;
+        _ilv = ilv_;
+        _silv = silv_;
         poolToken = _poolToken;
         weight = _weight;
 
@@ -332,7 +332,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
     function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external updatePool whenNotPaused {
-        bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
+        bool poolIsValid = address(IFactory(factory).pools(_ilv)) == msg.sender;
         require(poolIsValid, "invalid caller");
 
         _claimYieldRewards(_staker, _useSILV);
@@ -511,7 +511,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
             factory.mintYieldTo(_staker, pendingYieldToClaim, true);
         } else {
             // for other pools - stake as pool
-            address ilvPool = factory.getPoolAddress(ilv);
+            address ilvPool = factory.getPoolAddress(_ilv);
             IILVPool(ilvPool).stakeAsPool(_staker, pendingYieldToClaim);
         }
 
