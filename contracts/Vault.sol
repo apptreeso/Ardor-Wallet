@@ -47,12 +47,12 @@ contract Vault is Ownable {
     /**
      * @dev Link to UniswapV2Router02 deployed instance
      */
-    IUniswapV2Router02 public sushiRouter;
+    IUniswapV2Router02 private _sushiRouter;
 
     /**
      * @dev Link to IlluviumERC20 token deployed instance
      */
-    IERC20Upgradeable public ilv;
+    IERC20Upgradeable private _ilv;
 
     /**
      * @dev Fired in _swapEthForIlv() and sendIlvRewards() (via swapEthForIlv)
@@ -101,17 +101,17 @@ contract Vault is Ownable {
     /**
      * @notice Creates (deploys) Vault linked to Sushi AMM Router and IlluviumERC20 token
      *
-     * @param _sushiRouter an address of the IUniswapV2Router02 to use for ETH -> ILV exchange
-     * @param _ilv an address of the IlluviumERC20 token to use
+     * @param sushiRouter_ an address of the IUniswapV2Router02 to use for ETH -> ILV exchange
+     * @param ilv_ an address of the IlluviumERC20 token to use
      */
-    constructor(address _sushiRouter, address _ilv) {
+    constructor(address sushiRouter_, address ilv_) {
         // verify the inputs are set
-        require(_sushiRouter != address(0), "sushiRouter address is not set");
-        require(_ilv != address(0), "ILV address is not set");
+        require(sushiRouter_ != address(0), "sushiRouter address is not set");
+        require(ilv_ != address(0), "ILV address is not set");
 
         // assign the values
-        sushiRouter = IUniswapV2Router02(_sushiRouter);
-        ilv = IERC20Upgradeable(_ilv);
+        _sushiRouter = IUniswapV2Router02(sushiRouter_);
+        _ilv = IERC20Upgradeable(ilv_);
     }
 
     /**
@@ -211,19 +211,19 @@ contract Vault is Ownable {
         ) = (pools.ilvPoolV1, pools.pairPoolV1, pools.ilvPool, pools.pairPool, pools.lockedPoolV1, pools.lockedPoolV2);
 
         // read contract's ILV balance
-        uint256 ilvBalance = ilv.balanceOf(address(this));
+        uint256 ilvBalance = _ilv.balanceOf(address(this));
         // approve the entire ILV balance to be sent into the pool
-        if (ilv.allowance(address(this), address(ilvPool)) < ilvBalance) {
-            ilv.approve(address(ilvPool), type(uint256).max);
+        if (_ilv.allowance(address(this), address(ilvPool)) < ilvBalance) {
+            _ilv.approve(address(ilvPool), type(uint256).max);
         }
-        if (ilv.allowance(address(this), address(pairPool)) < ilvBalance) {
-            ilv.approve(address(pairPool), type(uint256).max);
+        if (_ilv.allowance(address(this), address(pairPool)) < ilvBalance) {
+            _ilv.approve(address(pairPool), type(uint256).max);
         }
-        if (ilv.allowance(address(this), address(lockedPoolV1)) < ilvBalance) {
-            ilv.approve(address(lockedPoolV1), type(uint256).max);
+        if (_ilv.allowance(address(this), address(lockedPoolV1)) < ilvBalance) {
+            _ilv.approve(address(lockedPoolV1), type(uint256).max);
         }
-        if (ilv.allowance(address(this), address(lockedPoolV2)) < ilvBalance) {
-            ilv.approve(address(lockedPoolV2), type(uint256).max);
+        if (_ilv.allowance(address(this), address(lockedPoolV2)) < ilvBalance) {
+            _ilv.approve(address(lockedPoolV2), type(uint256).max);
         }
 
         // gets poolToken reserves in each pool
@@ -283,7 +283,7 @@ contract Vault is Ownable {
         // 2. Considering that LP pool share in terms of ILV tokens is the same as in terms of LP tokens,
         //    ilvShare = lpShare, ILV amount the LP pool has in LP tokens would be estimated as
         //    ilvAmount = ilvTotal * ilvShare = ilvTotal * lpShare
-        uint256 ilvTotal = ilv.balanceOf(ICorePool(_pairPool).poolToken());
+        uint256 ilvTotal = _ilv.balanceOf(ICorePool(_pairPool).poolToken());
         // we store the result
         ilvAmount = (ilvTotal * lpAmount) / lpTotal;
     }
@@ -325,12 +325,12 @@ contract Vault is Ownable {
         // last element determines output token (what we receive from uniwsap)
         address[] memory path = new address[](2);
         // we send ETH wrapped as WETH into Uniswap
-        path[0] = sushiRouter.WETH();
+        path[0] = _sushiRouter.WETH();
         // we receive ILV from Uniswap
-        path[1] = address(ilv);
+        path[1] = address(_ilv);
 
         // exchange ETH -> ILV via Uniswap
-        uint256[] memory amounts = sushiRouter.swapExactETHForTokens{ value: _ethIn }(
+        uint256[] memory amounts = _sushiRouter.swapExactETHForTokens{ value: _ethIn }(
             _ilvOut,
             path,
             address(this),
