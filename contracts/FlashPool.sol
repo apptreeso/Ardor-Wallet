@@ -262,7 +262,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         assert(addedValue > 0);
 
         // update user record
-        user.balance += uint128(addedValue);
+        user.balance += (addedValue).toUint128();
         user.subYieldRewards = _tokensToReward(user.balance, yieldRewardsPerToken);
 
         // emit an event
@@ -395,7 +395,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         _processRewards(msg.sender);
 
         // updates user data in storage
-        user.balance -= uint128(_value);
+        user.balance -= (_value).toUint128();
 
         // finally, transfers `_value` poolTokens
         IERC20Upgradeable(poolToken).transfer(msg.sender, _value);
@@ -428,7 +428,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         uint256 totalStaked = IERC20Upgradeable(poolToken).balanceOf(address(this));
         // if pool token balance is zero - update only `lastYieldDistribution` and exit
         if (totalStaked == 0) {
-            lastYieldDistribution = uint64(_now256());
+            lastYieldDistribution = (_now256()).toUint64();
             return;
         }
 
@@ -442,7 +442,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
 
         // update rewards per weight and `lastYieldDistribution`
         yieldRewardsPerToken += _rewardPerToken(ilvReward, totalStaked);
-        lastYieldDistribution = uint64(currentTimestamp);
+        lastYieldDistribution = (currentTimestamp).toUint64();
 
         // if weight is not yet set and pool has finished
         if (weight != 0 && _now256() >= _endTime) {
@@ -473,7 +473,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
 
-        user.pendingYield += uint128(pendingYield);
+        user.pendingYield += (pendingYield).toUint128();
 
         // emit an event
         emit LogProcessRewards(_staker, pendingYield);

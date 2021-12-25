@@ -251,7 +251,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         ilvPerSecond = (ilvPerSecond * 97) / 100;
 
         // set current timestamp as the last ratio update timestamp
-        lastRatioUpdate = uint32(_now256());
+        lastRatioUpdate = (_now256()).toUint32();
 
         // emit an event
         emit LogUpdateILVPerSecond(msg.sender, ilvPerSecond);
