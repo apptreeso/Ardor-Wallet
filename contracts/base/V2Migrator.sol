@@ -64,7 +64,18 @@ abstract contract V2Migrator is CorePool {
     }
 
     /**
-     * @dev External migrateLockedStakes call, used in Sushi LP pool.
+     * @dev External migrateLockedStakes call, used in the Sushi LP pool contract.
+     * @dev The function is used by users that want to migrate locked stakes in v1,
+     *      but have no yield in the pool. This happens in two scenarios:
+     *
+     *      1 - The user pool is the Sushi LP pool, which only has stakes;
+     *      2 - The user joined ILV pool recently, doesn't have much yield and
+     *          doesn't want to migrate their yield weight in the pool;
+     * @notice Most of the times this function will be used in the inherited Sushi
+     *         LP pool contract (called by the v1 user coming from sushi pool),
+     *         but it's possible that a v1 user coming from the ILV pool decides
+     *         to use this function instead of `executeMigration()` defined in
+     *         the ILV pool contract.
      *
      * @param _stakeIds array of v1 stake ids
      */
