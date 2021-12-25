@@ -407,7 +407,7 @@ export function getPoolData(usingPool: string): () => void {
   };
 }
 
-export function migrateUser(usingPool: string): () => void {
+export function moveFundsFromWallet(usingPool: string): () => void {
   return function () {
     it("should migrate an user stake", async function () {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
@@ -430,7 +430,7 @@ export function migrateUser(usingPool: string): () => void {
 
       const { totalWeight: totalWeight0 } = await pool.users(this.signers.alice.address);
 
-      await pool.connect(this.signers.alice).migrateUser(this.signers.bob.address);
+      await pool.connect(this.signers.alice).moveFundsFromWallet(this.signers.bob.address);
 
       const {
         pendingYield: pendingYield1,
@@ -463,7 +463,7 @@ export function migrateUser(usingPool: string): () => void {
       await pool.setNow256(INIT_TIME + 200);
       await this.factory.setNow256(INIT_TIME + 200);
 
-      await expect(pool.connect(this.signers.alice).migrateUser(AddressZero)).reverted;
+      await expect(pool.connect(this.signers.alice).moveFundsFromWallet(AddressZero)).reverted;
     });
     it("should revert if newUser totalWeight != 0", async function () {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
@@ -483,7 +483,7 @@ export function migrateUser(usingPool: string): () => void {
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
       await pool.connect(this.signers.bob).stakePoolToken(toWei(100), ONE_YEAR);
 
-      await expect(pool.connect(this.signers.alice).migrateUser(this.signers.bob.address)).reverted;
+      await expect(pool.connect(this.signers.alice).moveFundsFromWallet(this.signers.bob.address)).reverted;
     });
 
     it("should revert if newUser stakes.length != 0", async function () {
@@ -519,7 +519,7 @@ export function migrateUser(usingPool: string): () => void {
         );
 
       expect((await pool.users(this.signers.bob.address)).totalWeight).to.be.equal(0);
-      await expect(pool.connect(this.signers.alice).migrateUser(this.signers.bob.address)).reverted;
+      await expect(pool.connect(this.signers.alice).moveFundsFromWallet(this.signers.bob.address)).reverted;
     });
     it("should revert if newUser subYieldRewards != 0", async function () {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
@@ -539,7 +539,7 @@ export function migrateUser(usingPool: string): () => void {
 
       await pool.connect(this.signers.bob).claimYieldRewards(false);
 
-      await expect(pool.connect(this.signers.alice).migrateUser(this.signers.bob.address)).reverted;
+      await expect(pool.connect(this.signers.alice).moveFundsFromWallet(this.signers.bob.address)).reverted;
     });
     it("should revert if newUser v1IdsLength > 0", async function () {
       await this.ilv.connect(this.signers.carol).approve(this.ilvPool.address, MaxUint256);
@@ -559,7 +559,7 @@ export function migrateUser(usingPool: string): () => void {
 
       await this.ilvPool.connect(this.signers.alice).migrateLockedStakes([0, 2]);
 
-      await expect(this.ilvPool.connect(this.signers.carol).migrateUser(this.signers.alice.address)).reverted;
+      await expect(this.ilvPool.connect(this.signers.carol).moveFundsFromWallet(this.signers.alice.address)).reverted;
     });
   };
 }

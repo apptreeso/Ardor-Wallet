@@ -36,7 +36,7 @@ once time reaches its "end time".
 
 stakes poolTokens without lock
 
-### `migrateUser(address _to)` (external)
+### `moveFundsFromWallet(address _to)` (external)
 
 data is copied to memory so we can delete previous address data
 before we store it in new address
@@ -152,9 +152,9 @@ Fired in \_processRewards().
 
 Fired in setWeight().
 
-### `LogMigrateUser(address from, address to)`
+### `LogMoveFundsFromWallet(address from, address to)`
 
-fired in migrateUser().
+fired in moveFundsFromWallet().
 
 ### `User`
 

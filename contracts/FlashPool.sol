@@ -118,12 +118,12 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     event LogSetWeight(address indexed by, uint32 fromVal, uint32 toVal);
 
     /**
-     * @dev fired in migrateUser().
+     * @dev fired in moveFundsFromWallet().
      *
      * @param from user asking migration
      * @param to new user address
      */
-    event LogMigrateUser(address indexed from, address indexed to);
+    event LogMoveFundsFromWallet(address indexed from, address indexed to);
 
     /// @dev used for functions that require syncing contract state before execution
     modifier updatePool() {
@@ -277,7 +277,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *
      * @param _to new user address
      */
-    function migrateUser(address _to) external updatePool {
+    function moveFundsFromWallet(address _to) external updatePool {
         require(_to != address(0), "invalid _to");
         User storage newUser = users[_to];
         require(newUser.balance == 0 && newUser.pendingYield == 0, "invalid user, already exists");
@@ -294,7 +294,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         newUser.pendingYield = pendingYield;
         newUser.subYieldRewards = subYieldRewards;
 
-        emit LogMigrateUser(msg.sender, _to);
+        emit LogMoveFundsFromWallet(msg.sender, _to);
     }
 
     /**

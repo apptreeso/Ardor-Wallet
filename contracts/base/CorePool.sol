@@ -221,12 +221,12 @@ abstract contract CorePool is
     event LogProcessRewards(address indexed by, address indexed from, uint256 yieldValue, uint256 revDisValue);
 
     /**
-     * @dev fired in `migrateUser()`.
+     * @dev fired in `moveFundsFromWallet()`.
      *
      * @param from user asking migration
      * @param to new user address
      */
-    event LogMigrateUser(address indexed from, address indexed to);
+    event LogMoveFundsFromWallet(address indexed from, address indexed to);
 
     /**
      * @dev Fired in `receiveVaultRewards()`.
@@ -475,7 +475,7 @@ abstract contract CorePool is
     }
 
     /**
-     * @dev Migrates msg.sender data to a new address.
+     * @dev Moves msg.sender stake data to a new address.
      * @dev V1 stakes are never migrated to the new address. We process all rewards,
      *      clean the previous user (msg.sender), add the previous user data to
      *      the desired address and update subYieldRewards/subVaultRewards values
@@ -483,7 +483,7 @@ abstract contract CorePool is
      *
      * @param _to new user address, needs to be a fresh address with no stakes
      */
-    function migrateUser(address _to) external updatePool {
+    function moveFundsFromWallet(address _to) external updatePool {
         User storage previousUser = users[msg.sender];
         User storage newUser = users[_to];
         // uses v1 weight values for rewards calculations
@@ -493,7 +493,7 @@ abstract contract CorePool is
             _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
         }
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = CorePool(this).migrateUser.selector;
+        bytes4 fnSelector = CorePool(this).moveFundsFromWallet.selector;
 
         // validate input is set
         fnSelector.verifyNonZeroInput(uint160(_to), 0);
@@ -518,7 +518,7 @@ abstract contract CorePool is
         previousUser.subYieldRewards = v1WeightToAdd.weightToReward(yieldRewardsPerWeight);
         previousUser.subVaultRewards = v1WeightToAdd.weightToReward(vaultRewardsPerWeight);
 
-        emit LogMigrateUser(msg.sender, _to);
+        emit LogMoveFundsFromWallet(msg.sender, _to);
     }
 
     /**

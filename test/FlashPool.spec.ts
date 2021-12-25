@@ -672,7 +672,7 @@ describe("FlashPool", function () {
       await expect(this.flashPool.connect(this.signers.carol).setEndTime(END_TIME + 1000)).reverted;
     });
   });
-  describe("#migrateUser", function () {
+  describe("#moveFundsFromWallet", function () {
     it("should migrate an user stake", async function () {
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
@@ -689,7 +689,7 @@ describe("FlashPool", function () {
         subYieldRewards: subYieldRewards0,
       } = await this.flashPool.users(this.signers.alice.address);
 
-      await this.flashPool.connect(this.signers.alice).migrateUser(this.signers.bob.address);
+      await this.flashPool.connect(this.signers.alice).moveFundsFromWallet(this.signers.bob.address);
 
       const {
         pendingYield: pendingYield1,
@@ -711,7 +711,7 @@ describe("FlashPool", function () {
 
       await this.flashPool.setNow256(INIT_TIME + 200);
 
-      await expect(this.flashPool.connect(this.signers.alice).migrateUser(AddressZero)).reverted;
+      await expect(this.flashPool.connect(this.signers.alice).moveFundsFromWallet(AddressZero)).reverted;
     });
     it("should revert if newUser totalWeight = 0", async function () {
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
@@ -726,7 +726,7 @@ describe("FlashPool", function () {
       await this.flashToken.connect(this.signers.bob).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.bob).stake(toWei(100));
 
-      await expect(this.flashPool.connect(this.signers.alice).migrateUser(this.signers.bob.address)).reverted;
+      await expect(this.flashPool.connect(this.signers.alice).moveFundsFromWallet(this.signers.bob.address)).reverted;
     });
 
     it("should revert if newUser pendingYield = 0", async function () {
@@ -744,7 +744,7 @@ describe("FlashPool", function () {
 
       await this.flashPool.connect(this.signers.bob).claimYieldRewards(false);
 
-      await expect(this.flashPool.connect(this.signers.alice).migrateUser(this.signers.bob.address)).reverted;
+      await expect(this.flashPool.connect(this.signers.alice).moveFundsFromWallet(this.signers.bob.address)).reverted;
     });
   });
 });
