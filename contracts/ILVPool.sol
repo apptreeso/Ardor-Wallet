@@ -108,7 +108,7 @@ contract ILVPool is V2Migrator {
             isYield: true
         });
 
-        user.totalWeight += uint248(stakeWeight);
+        user.totalWeight += _toUint248(stakeWeight);
         user.stakes.push(newStake);
 
         globalWeight += stakeWeight;
@@ -255,7 +255,7 @@ contract ILVPool is V2Migrator {
             amountToMint += tokenAmount;
             weightToRemove += _weight;
         }
-        user.totalWeight -= uint248(weightToRemove);
+        user.totalWeight -= _toUint248(weightToRemove);
 
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
@@ -292,7 +292,7 @@ contract ILVPool is V2Migrator {
         bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight));
         fnSelector.verifyInput(MerkleProof.verify(_proof, merkleRoot, leaf), 0);
 
-        user.totalWeight += uint248(_yieldWeight);
+        user.totalWeight += _toUint248(_yieldWeight);
         // set user as claimed in bitmap
         _usersMigrated.set(_index);
     }

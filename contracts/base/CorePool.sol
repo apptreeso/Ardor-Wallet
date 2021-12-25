@@ -567,7 +567,7 @@ abstract contract CorePool is
         delete user.v1StakesIds[_stakeIdPosition];
         delete v1StakesWeightsOriginal[msg.sender][_v1StakeId];
         // adds v1 stake data to user struct
-        user.totalWeight += uint248(weightToUse);
+        user.totalWeight += _toUint248(weightToUse);
         user.stakes.push(
             Stake.Data({ value: v1StakeValue, lockedFrom: _lockedFrom, lockedUntil: _lockedUntil, isYield: false })
         );
@@ -749,7 +749,7 @@ abstract contract CorePool is
         user.stakes.push(stake);
 
         // update user record
-        user.totalWeight += uint248(stakeWeight);
+        user.totalWeight += _toUint248(stakeWeight);
 
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
@@ -905,7 +905,7 @@ abstract contract CorePool is
             valueToUnstake += _value;
         }
 
-        user.totalWeight -= uint248(weightToRemove);
+        user.totalWeight -= _toUint248(weightToRemove);
 
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
@@ -1063,7 +1063,7 @@ abstract contract CorePool is
             });
 
             user.stakes.push(newStake);
-            user.totalWeight += uint248(stakeWeight);
+            user.totalWeight += _toUint248(stakeWeight);
 
             // update global variable
             globalWeight += stakeWeight;
