@@ -107,16 +107,16 @@ abstract contract CorePool is
     mapping(address => mapping(uint256 => uint256)) public v1StakesWeightsOriginal;
 
     /// @dev Link to sILV ERC20 Token instance.
-    address public silv;
+    address internal _silv;
 
     /// @dev Link to ILV ERC20 Token instance.
-    address public ilv;
+    address internal _ilv;
+
+    /// @dev Address of v1 core pool with same poolToken.
+    address internal corePoolV1;
 
     /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair.
     address public poolToken;
-
-    /// @dev Address of v1 core pool with same poolToken.
-    address public corePoolV1;
 
     /// @dev Pool weight, initial values are 200 for ILV pool and 800 for ILV/ETH.
     uint32 public weight;
@@ -247,11 +247,11 @@ abstract contract CorePool is
     /**
      * @dev Used in child contracts to initialize the pool.
      *
-     * @param _ilv ILV ERC20 Token address
-     * @param _silv sILV ERC20 Token address
+     * @param ilv_ ILV ERC20 Token address
+     * @param silv_ sILV ERC20 Token address
      * @param _poolToken token the pool operates on, for example ILV or ILV/ETH pair
      * @param _corePoolV1 v1 core pool address
-     * @param _factory PoolFactory contract address
+     * @param factory_ PoolFactory contract address
      * @param _initTime initial timestamp used to calculate the rewards
      *      note: _initTime is set to the future effectively meaning _sync() calls will do nothing
      *           before _initTime
@@ -259,11 +259,11 @@ abstract contract CorePool is
      *        is used by checking the total pools weight in the PoolFactory contract
      */
     function __CorePool_init(
-        address _ilv,
-        address _silv,
+        address ilv_,
+        address silv_,
         address _poolToken,
         address _corePoolV1,
-        address _factory,
+        address factory_,
         uint64 _initTime,
         uint32 _weight
     ) internal initializer {
@@ -276,13 +276,13 @@ abstract contract CorePool is
         fnSelector.verifyNonZeroInput(_initTime, 5);
         fnSelector.verifyNonZeroInput(_weight, 6);
 
-        __FactoryControlled_init(_factory);
+        __FactoryControlled_init(factory_);
         __ReentrancyGuard_init();
         __Pausable_init();
 
         // save the inputs into internal state variables
-        ilv = _ilv;
-        silv = _silv;
+        _ilv = ilv_;
+        _silv = silv_;
         poolToken = _poolToken;
         corePoolV1 = _corePoolV1;
         weight = _weight;
@@ -310,11 +310,11 @@ abstract contract CorePool is
         // if smart contract state was not updated recently, `yieldRewardsPerWeight` value
         // is outdated and we need to recalculate it in order to calculate pending rewards correctly
         if (_now256() > _lastYieldDistribution && globalWeight != 0) {
-            uint256 endTime = factory.endTime();
+            uint256 endTime = _factory.endTime();
             uint256 multiplier = _now256() > endTime
                 ? endTime - _lastYieldDistribution
                 : _now256() - _lastYieldDistribution;
-            uint256 ilvRewards = (multiplier * weight * factory.ilvPerSecond()) / factory.totalWeight();
+            uint256 ilvRewards = (multiplier * weight * _factory.ilvPerSecond()) / _factory.totalWeight();
             uint256 v1GlobalWeight = ICorePoolV1(corePoolV1).usersLockingWeight();
 
             // recalculated value for `yieldRewardsPerWeight`
@@ -645,7 +645,7 @@ abstract contract CorePool is
 
         vaultRewardsPerWeight += _value.rewardPerWeight(globalWeight);
 
-        IERC20Upgradeable(ilv).safeTransferFrom(msg.sender, address(this), _value);
+        IERC20Upgradeable(_ilv).safeTransferFrom(msg.sender, address(this), _value);
 
         emit LogReceiveVaultRewards(msg.sender, _value);
     }
@@ -660,7 +660,7 @@ abstract contract CorePool is
      */
     function setWeight(uint32 _weight) external {
         // verify function is executed by the factory
-        CorePool(this).setWeight.selector.verifyAccess(msg.sender == address(factory));
+        CorePool(this).setWeight.selector.verifyAccess(msg.sender == address(_factory));
 
         // set the new weight value
         weight = _weight;
@@ -838,7 +838,7 @@ abstract contract CorePool is
         // if the stake was created by the pool itself as a yield reward
         if (isYield) {
             // mint the yield via the factory
-            factory.mintYieldTo(msg.sender, _value, false);
+            _factory.mintYieldTo(msg.sender, _value, false);
         } else {
             // otherwise just return tokens back to holder
             IERC20Upgradeable(poolToken).safeTransfer(msg.sender, _value);
@@ -923,7 +923,7 @@ abstract contract CorePool is
         // if the stake was created by the pool itself as a yield reward
         if (_unstakingYield) {
             // mint the yield via the factory
-            factory.mintYieldTo(msg.sender, valueToUnstake, false);
+            _factory.mintYieldTo(msg.sender, valueToUnstake, false);
         } else {
             // otherwise just return tokens back to holder
             IERC20Upgradeable(poolToken).safeTransfer(msg.sender, valueToUnstake);
@@ -940,15 +940,15 @@ abstract contract CorePool is
      */
     function _sync() internal virtual {
         // gas savings
-        IFactory _factory = factory;
+        IFactory factory_ = _factory;
         // update ILV per second value in factory if required
-        if (_factory.shouldUpdateRatio()) {
-            _factory.updateILVPerSecond();
+        if (factory_.shouldUpdateRatio()) {
+            factory_.updateILVPerSecond();
         }
 
         // check bound conditions and if these are not met -
         // exit silently, without emitting an event
-        uint256 endTime = _factory.endTime();
+        uint256 endTime = factory_.endTime();
         if (lastYieldDistribution >= endTime) {
             return;
         }
@@ -966,10 +966,10 @@ abstract contract CorePool is
         // to calculate the reward we need to know how many seconds passed, and reward per second
         uint256 currentTimestamp = _now256() > endTime ? endTime : _now256();
         uint256 secondsPassed = currentTimestamp - lastYieldDistribution;
-        uint256 ilvPerSecond = _factory.ilvPerSecond();
+        uint256 ilvPerSecond = factory_.ilvPerSecond();
 
         // calculate the reward
-        uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / _factory.totalWeight();
+        uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory_.totalWeight();
 
         // update rewards per weight and `lastYieldDistribution`
         yieldRewardsPerWeight += ilvReward.rewardPerWeight((globalWeight + v1GlobalWeight));
@@ -1048,8 +1048,8 @@ abstract contract CorePool is
         // if sILV is requested
         if (_useSILV) {
             // - mint sILV
-            factory.mintYieldTo(_staker, pendingYieldToClaim, true);
-        } else if (poolToken == ilv) {
+            _factory.mintYieldTo(_staker, pendingYieldToClaim, true);
+        } else if (poolToken == _ilv) {
             // calculate pending yield weight,
             // 2e6 is the bonus weight when staking for 1 year
             uint256 stakeWeight = pendingYieldToClaim * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
@@ -1072,7 +1072,7 @@ abstract contract CorePool is
             poolTokenReserve += pendingYieldToClaim;
         } else {
             // for other pools - stake as pool
-            address ilvPool = factory.getPoolAddress(ilv);
+            address ilvPool = _factory.getPoolAddress(_ilv);
             IILVPool(ilvPool).stakeAsPool(_staker, pendingYieldToClaim);
         }
 
@@ -1115,7 +1115,7 @@ abstract contract CorePool is
         // subYieldRewards and subVaultRewards needs to be updated on every `_processRewards` call
         user.subVaultRewards = uint256(user.totalWeight).weightToReward(vaultRewardsPerWeight);
 
-        IERC20Upgradeable(ilv).safeTransfer(_staker, pendingRevDis);
+        IERC20Upgradeable(_ilv).safeTransfer(_staker, pendingRevDis);
 
         // emit an event
         emit LogClaimVaultRewards(msg.sender, _staker, pendingRevDis);

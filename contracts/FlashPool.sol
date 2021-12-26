@@ -43,10 +43,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     mapping(address => User) public users;
 
     /// @dev Link to sILV ERC20 Token instance.
-    address public silv;
+    address private _silv;
 
     /// @dev Link to ILV ERC20 Token instance.
-    address public ilv;
+    address private _ilv;
 
     /// @dev Link to the pool token instance, for example ILV or ILV/ETH pair.
     address public poolToken;
@@ -136,20 +136,20 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     /**
      * @dev Initializes a new flash pool.
      *
-     * @param _ilv ILV ERC20 Token address
-     * @param _silv sILV ERC20 Token address
+     * @param ilv_ ILV ERC20 Token address
+     * @param silv_ sILV ERC20 Token address
      * @param _poolToken token the pool operates on, for example ILV or ILV/ETH pair
-     * @param _factory PoolFactory contract address
+     * @param factory_ PoolFactory contract address
      * @param _initTime initial timestamp used to calculate the rewards
      *      note: _initTime can be set to the future effectively meaning _sync() calls will do nothing
      * @param _weight number representing a weight of the pool, actual weight fraction
      *      is calculated as that number divided by the total pools weight and doesn't exceed one
      */
     function initialize(
-        address _ilv,
-        address _silv,
+        address ilv_,
+        address silv_,
         address _poolToken,
-        address _factory,
+        address factory_,
         uint64 _initTime,
         uint64 _endTime,
         uint32 _weight
@@ -158,13 +158,13 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         require(_initTime > 0, "init time not set");
         require(_weight > 0, "pool weight not set");
 
-        __FactoryControlled_init(_factory);
+        __FactoryControlled_init(factory_);
         __ReentrancyGuard_init();
         __Pausable_init();
 
         // save the inputs into internal state variables
-        ilv = _ilv;
-        silv = _silv;
+        _ilv = ilv_;
+        _silv = silv_;
         poolToken = _poolToken;
         weight = _weight;
 
@@ -190,11 +190,11 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // if smart contract state was not updated recently, `yieldRewardsPerToken` value
         // is outdated and we need to recalculate it in order to calculate pending rewards correctly
         if (_now256() > lastYieldDistribution && totalStaked != 0) {
-            uint256 _endTime = factory.endTime();
+            uint256 _endTime = _factory.endTime();
             uint256 multiplier = _now256() > _endTime
                 ? _endTime - lastYieldDistribution
                 : _now256() - lastYieldDistribution;
-            uint256 ilvRewards = (multiplier * weight * factory.ilvPerSecond()) / factory.totalWeight();
+            uint256 ilvRewards = (multiplier * weight * _factory.ilvPerSecond()) / _factory.totalWeight();
 
             // recalculated value for `yieldRewardsPerToken`
             newYieldRewardsPerToken = _rewardPerToken(ilvRewards, totalStaked) + yieldRewardsPerToken;
@@ -334,7 +334,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
     function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external updatePool whenNotPaused {
-        bool poolIsValid = address(IFactory(factory).pools(ilv)) == msg.sender;
+        bool poolIsValid = address(IFactory(_factory).pools(_ilv)) == msg.sender;
         require(poolIsValid, "invalid caller");
 
         _claimYieldRewards(_staker, _useSILV);
@@ -349,8 +349,8 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _weight new weight to set for the pool
      */
     function setWeight(uint32 _weight) external {
-        // verify function is executed by the factory
-        require(msg.sender == address(factory), "access denied");
+        // verify function is executed by the _factory
+        require(msg.sender == address(_factory), "access denied");
 
         // set the new weight value
         weight = _weight;
@@ -414,10 +414,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      */
     function _sync() internal virtual {
         // gas savings
-        IFactory _factory = factory;
+        IFactory factory_ = _factory;
         // update ILV per second value in factory if required
-        if (_factory.shouldUpdateRatio()) {
-            _factory.updateILVPerSecond();
+        if (factory_.shouldUpdateRatio()) {
+            factory_.updateILVPerSecond();
         }
         // gas savings
         uint256 _endTime = endTime;
@@ -437,10 +437,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // to calculate the reward we need to know how many seconds passed, and reward per second
         uint256 currentTimestamp = _now256() > _endTime ? _endTime : _now256();
         uint256 secondsPassed = currentTimestamp - lastYieldDistribution;
-        uint256 ilvPerSecond = _factory.ilvPerSecond();
+        uint256 ilvPerSecond = factory_.ilvPerSecond();
 
         // calculate the reward
-        uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / _factory.totalWeight();
+        uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory_.totalWeight();
 
         // update rewards per weight and `lastYieldDistribution`
         yieldRewardsPerToken += _rewardPerToken(ilvReward, totalStaked);
@@ -449,7 +449,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // if weight is not yet set and pool has finished
         if (weight != 0 && _now256() >= _endTime) {
             // set the pool weight (sets both factory and local values)
-            _factory.changePoolWeight(address(this), 0);
+            factory_.changePoolWeight(address(this), 0);
         }
 
         // emit an event
@@ -510,10 +510,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         // if sILV is requested
         if (_useSILV) {
             // - mint sILV
-            factory.mintYieldTo(_staker, pendingYieldToClaim, true);
+            _factory.mintYieldTo(_staker, pendingYieldToClaim, true);
         } else {
             // for other pools - stake as pool
-            address ilvPool = factory.getPoolAddress(ilv);
+            address ilvPool = _factory.getPoolAddress(_ilv);
             IILVPool(ilvPool).stakeAsPool(_staker, pendingYieldToClaim);
         }
 
@@ -551,7 +551,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
 
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address) internal view override {
-        // checks caller is factory.owner()
+        // checks caller is _factory.owner()
         _requireIsFactoryController();
     }
 }

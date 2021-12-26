@@ -13,17 +13,17 @@ import { IFactory } from "../interfaces/IFactory.sol";
  */
 abstract contract FactoryControlled is Initializable {
     /// @dev Link to the pool factory IlluviumPoolFactory instance.
-    IFactory public factory;
+    IFactory internal _factory;
 
     /// @dev Attachs PoolFactory address to the FactoryControlled contract.
-    function __FactoryControlled_init(address _factory) internal initializer {
-        require(_factory != address(0));
+    function __FactoryControlled_init(address factory_) internal initializer {
+        require(factory_ != address(0));
 
-        factory = IFactory(_factory);
+        _factory = IFactory(factory_);
     }
 
     /// @dev checks if caller is factory admin (eDAO multisig address).
     function _requireIsFactoryController() internal view {
-        require(msg.sender == factory.owner());
+        require(msg.sender == _factory.owner());
     }
 }
