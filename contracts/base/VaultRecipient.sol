@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { FactoryControlled } from "./FactoryControlled.sol";
 import { ErrorHandler } from "../libraries/ErrorHandler.sol";
 
-abstract contract VaultRecipient is FactoryControlled {
+abstract contract VaultRecipient is Initializable, FactoryControlled {
     using ErrorHandler for bytes4;
 
     /// @dev Link to deployed IlluviumVault instance.

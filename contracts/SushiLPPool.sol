@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { V2Migrator } from "./base/V2Migrator.sol";
 import { ErrorHandler } from "./libraries/ErrorHandler.sol";
 
@@ -12,7 +13,7 @@ import { ErrorHandler } from "./libraries/ErrorHandler.sol";
  *      to be called by ILV pool in batch calls where we claim rewards from multiple
  *      pools.
  */
-contract SushiLPPool is V2Migrator {
+contract SushiLPPool is Initializable, V2Migrator {
     using ErrorHandler for bytes4;
 
     /// @dev Calls __V2Migrator_init().

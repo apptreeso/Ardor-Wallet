@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { SafeCast } from "./libraries/SafeCast.sol";
@@ -29,7 +30,7 @@ import "hardhat/console.sol";
  *         changing pool weights, managing emission schedules and so on.
  *
  */
-contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
+contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     using ErrorHandler for bytes4;
     using SafeCast for uint256;
 
@@ -155,7 +156,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         fnSelector.verifyNonZeroInput(uint160(ilv_), 0);
         fnSelector.verifyNonZeroInput(uint160(silv_), 1);
         fnSelector.verifyNonZeroInput(_ilvPerSecond, 2);
-        fnSelector.verifyNonZeroInput(secondsPerUpdate, 3);
+        fnSelector.verifyNonZeroInput(_secondsPerUpdate, 3);
         fnSelector.verifyNonZeroInput(_initTime, 4);
         fnSelector.verifyNonZeroInput(_endTime, 5);
 

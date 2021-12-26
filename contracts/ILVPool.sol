@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { SafeCast } from "./libraries/SafeCast.sol";
@@ -23,7 +24,7 @@ import { SushiLPPool } from "./SushiLPPool.sol";
  *      ILV Pool is trusted by other pools and verified by the factory to aggregate functions
  *      and add quality of life features for stakers.
  */
-contract ILVPool is V2Migrator {
+contract ILVPool is Initializable, V2Migrator {
     using ErrorHandler for bytes4;
     using Stake for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;

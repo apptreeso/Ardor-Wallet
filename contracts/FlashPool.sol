@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -27,7 +28,14 @@ import "hardhat/console.sol";
  *      don't lock tokens and we don't need to deal with mappings and arrays
  *      as much as we do in the ILV and Sushi LP pools.
  */
-contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgradeable, PausableUpgradeable, Timestamp {
+contract FlashPool is
+    Initializable,
+    UUPSUpgradeable,
+    FactoryControlled,
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable,
+    Timestamp
+{
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using ErrorHandler for bytes4;
     using SafeCast for uint256;

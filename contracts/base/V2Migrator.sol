@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { ICorePoolV1 } from "../interfaces/ICorePoolV1.sol";
 import { ErrorHandler } from "../libraries/ErrorHandler.sol";
 import { Stake } from "../libraries/Stake.sol";
@@ -17,7 +18,7 @@ import { CorePool } from "./CorePool.sol";
  * @dev Users will migrate their locked stakes, which are stored in the contract,
  *      and v1 total yield weights by data stored in a merkle tree using merkle proofs.
  */
-abstract contract V2Migrator is CorePool {
+abstract contract V2Migrator is Initializable, CorePool {
     using ErrorHandler for bytes4;
     using Stake for uint256;
 
