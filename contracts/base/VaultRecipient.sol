@@ -37,7 +37,7 @@ abstract contract VaultRecipient is FactoryControlled {
         fnSelector.verifyState(factory.owner() == msg.sender, 0);
 
         // verify input is set
-        fnSelector.verifyInput(_vault != address(0), 1);
+        fnSelector.verifyInput(_vault != address(0), 0);
 
         // saves current vault to memory
         address previousVault = vault;
