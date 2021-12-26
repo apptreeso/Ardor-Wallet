@@ -10,7 +10,7 @@ of the existing pools, removing the pools (by changing their weights to zero).
 The factory requires ROLE_TOKEN_CREATOR permission on the ILV and sILV tokens to mint yield
 (see `mintYieldTo` function).
 
-### `initialize(address _ilv, address _silv, uint192 _ilvPerSecond, uint32 _secondsPerUpdate, uint32 _initTime, uint32 _endTime)` (external)
+### `initialize(address _ilv, address silv_, uint192 _ilvPerSecond, uint32 _secondsPerUpdate, uint32 _initTime, uint32 _endTime)` (external)
 
 Initializes a factory instance
 

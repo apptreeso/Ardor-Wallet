@@ -13,7 +13,7 @@ as much as we do in the ILV and Sushi LP pools.
 
 used for functions that require syncing contract state before execution
 
-### `initialize(address _ilv, address _silv, address _poolToken, address _factory, uint64 _initTime, uint64 _endTime, uint32 _weight)` (external)
+### `initialize(address _ilv, address silv_, address _poolToken, address _factory, uint64 _initTime, uint64 _endTime, uint32 _weight)` (external)
 
 Initializes a new flash pool.
 
@@ -36,7 +36,7 @@ once time reaches its "end time".
 
 stakes poolTokens without lock
 
-### `migrateUser(address _to)` (external)
+### `moveFundsFromWallet(address _to)` (external)
 
 data is copied to memory so we can delete previous address data
 before we store it in new address
@@ -152,9 +152,9 @@ Fired in \_processRewards().
 
 Fired in setWeight().
 
-### `LogMigrateUser(address from, address to)`
+### `LogMoveFundsFromWallet(address from, address to)`
 
-fired in migrateUser().
+fired in moveFundsFromWallet().
 
 ### `User`
 

@@ -8,7 +8,7 @@ abstract contract VaultRecipient is FactoryControlled {
     using ErrorHandler for bytes4;
 
     /// @dev Link to deployed IlluviumVault instance.
-    address public vault;
+    address internal _vault;
 
     /// @dev Used to calculate vault rewards.
     /// @dev This value is different from "reward per token" used in locked pool.
@@ -27,23 +27,21 @@ abstract contract VaultRecipient is FactoryControlled {
     /**
      * @dev Executed only by the factory owner to Set the vault.
      *
-     * @param _vault an address of deployed IlluviumVault instance
+     * @param vault_ an address of deployed IlluviumVault instance
      */
-    function setVault(address _vault) external {
+    function setVault(address vault_) external {
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = VaultRecipient(this).setVault.selector;
-
         // verify function is executed by the factory owner
-        fnSelector.verifyState(factory.owner() == msg.sender, 0);
-
+        fnSelector.verifyState(_factory.owner() == msg.sender, 0);
         // verify input is set
-        fnSelector.verifyInput(_vault != address(0), 1);
+        fnSelector.verifyInput(vault_ != address(0), 0);
 
         // saves current vault to memory
-        address previousVault = vault;
+        address previousVault = vault_;
 
         // update vault address
-        vault = _vault;
+        _vault = vault_;
 
         // emit an event
         emit LogSetVault(msg.sender, previousVault, _vault);
@@ -51,6 +49,6 @@ abstract contract VaultRecipient is FactoryControlled {
 
     /// @dev Utility function to check if caller is the Vault contract
     function _requireIsVault() internal view {
-        require(msg.sender == vault);
+        require(msg.sender == _vault);
     }
 }
