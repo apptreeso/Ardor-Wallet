@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { SafeCast } from "../libraries/SafeCast.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -61,6 +62,7 @@ abstract contract CorePool is
     Timestamp
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeCast for uint256;
     using Stake for Stake.Data;
     using ErrorHandler for bytes4;
     using Stake for uint256;
@@ -554,12 +556,10 @@ abstract contract CorePool is
         fnSelector.verifyState(_lockedUntil < _now256(), 2);
         // retrieves original stake value by using v1 _lockedUntil and _lockedFrom, and comparing
         // to the weight originally stored in this contract during migration
-        uint120 v1StakeValue = uint120(
-            weightToUse /
-                (((_lockedUntil - _lockedFrom) * Stake.WEIGHT_MULTIPLIER) /
-                    Stake.MAX_STAKE_PERIOD +
-                    Stake.WEIGHT_MULTIPLIER)
-        );
+        uint120 v1StakeValue = (weightToUse /
+            (((_lockedUntil - _lockedFrom) * Stake.WEIGHT_MULTIPLIER) /
+                Stake.MAX_STAKE_PERIOD +
+                Stake.WEIGHT_MULTIPLIER)).toUint120();
         // makes sure stake coming from v1 isn't yield, even though it's already
         // verified before migration
         assert(!_isYield);
@@ -568,7 +568,7 @@ abstract contract CorePool is
         delete user.v1StakesIds[_stakeIdPosition];
         delete v1StakesWeightsOriginal[msg.sender][_v1StakeId];
         // adds v1 stake data to user struct
-        user.totalWeight += uint248(weightToUse);
+        user.totalWeight += (weightToUse).toUint248();
         user.stakes.push(
             Stake.Data({ value: v1StakeValue, lockedFrom: _lockedFrom, lockedUntil: _lockedUntil, isYield: false })
         );
@@ -729,7 +729,7 @@ abstract contract CorePool is
             _processRewards(_staker, v1WeightToAdd, subYieldRewards, subVaultRewards);
         }
 
-        uint64 lockUntil = uint64(_now256()) + _lockDuration;
+        uint64 lockUntil = (_now256()).toUint64() + _lockDuration;
 
         // stake weight formula rewards for locking
         uint256 stakeWeight = (((lockUntil - _now256()) * Stake.WEIGHT_MULTIPLIER) /
@@ -741,8 +741,8 @@ abstract contract CorePool is
 
         // create and save the stake (append it to stakes array)
         Stake.Data memory stake = Stake.Data({
-            value: uint120(_value),
-            lockedFrom: uint64(_now256()),
+            value: (_value).toUint120(),
+            lockedFrom: (_now256()).toUint64(),
             lockedUntil: lockUntil,
             isYield: false
         });
@@ -750,7 +750,7 @@ abstract contract CorePool is
         user.stakes.push(stake);
 
         // update user record
-        user.totalWeight += uint248(stakeWeight);
+        user.totalWeight += (stakeWeight).toUint248();
 
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
@@ -815,7 +815,7 @@ abstract contract CorePool is
             // deletes stake struct, no need to save new weight because it stays 0
             delete user.stakes[_stakeId];
         } else {
-            stake.value -= uint120(_value);
+            stake.value -= (_value).toUint120();
             // saves new weight to memory
             newWeight = stake.weight();
         }
@@ -897,7 +897,7 @@ abstract contract CorePool is
                 // deletes stake struct, no need to save new weight because it stays 0
                 delete user.stakes[_stakeId];
             } else {
-                stake.value -= uint120(_value);
+                stake.value -= (_value).toUint120();
                 // saves new weight to memory
                 newWeight = stake.weight();
             }
@@ -906,7 +906,7 @@ abstract contract CorePool is
             valueToUnstake += _value;
         }
 
-        user.totalWeight -= uint248(weightToRemove);
+        user.totalWeight -= (weightToRemove).toUint248();
 
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
@@ -959,7 +959,7 @@ abstract contract CorePool is
         uint256 v1GlobalWeight = ICorePoolV1(corePoolV1).usersLockingWeight();
         // if locking weight is zero - update only `lastYieldDistribution` and exit
         if (globalWeight == 0 && v1GlobalWeight == 0) {
-            lastYieldDistribution = uint64(_now256());
+            lastYieldDistribution = (_now256()).toUint64();
             return;
         }
 
@@ -973,7 +973,7 @@ abstract contract CorePool is
 
         // update rewards per weight and `lastYieldDistribution`
         yieldRewardsPerWeight += ilvReward.rewardPerWeight((globalWeight + v1GlobalWeight));
-        lastYieldDistribution = uint64(currentTimestamp);
+        lastYieldDistribution = (currentTimestamp).toUint64();
 
         // emit an event
         emit LogSync(msg.sender, yieldRewardsPerWeight, lastYieldDistribution);
@@ -1010,8 +1010,8 @@ abstract contract CorePool is
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
 
-        user.pendingYield += uint128(pendingYield);
-        user.pendingRevDis += uint128(pendingRevDis);
+        user.pendingYield += pendingYield.toUint128();
+        user.pendingRevDis += pendingRevDis.toUint128();
 
         // emit an event
         emit LogProcessRewards(msg.sender, _staker, pendingYield, pendingRevDis);
@@ -1057,14 +1057,14 @@ abstract contract CorePool is
             // if the pool is ILV Pool - create new ILV stake
             // and save it - push it into stakes array
             Stake.Data memory newStake = Stake.Data({
-                value: uint120(pendingYieldToClaim),
-                lockedFrom: uint64(_now256()),
-                lockedUntil: uint64(_now256() + Stake.MAX_STAKE_PERIOD), // staking yield for 1 year
+                value: (pendingYieldToClaim).toUint120(),
+                lockedFrom: (_now256()).toUint64(),
+                lockedUntil: (_now256() + Stake.MAX_STAKE_PERIOD).toUint64(), // staking yield for 1 year
                 isYield: true
             });
 
             user.stakes.push(newStake);
-            user.totalWeight += uint248(stakeWeight);
+            user.totalWeight += (stakeWeight).toUint248();
 
             // update global variable
             globalWeight += stakeWeight;

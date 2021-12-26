@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { SafeCast } from "./libraries/SafeCast.sol";
 import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { V2Migrator } from "./base/V2Migrator.sol";
@@ -26,6 +27,7 @@ contract ILVPool is V2Migrator {
     using ErrorHandler for bytes4;
     using Stake for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeCast for uint256;
     using BitMaps for BitMaps.BitMap;
 
     /// @dev stores merkle root related to users yield weight in v1.
@@ -102,13 +104,13 @@ contract ILVPool is V2Migrator {
         }
         uint256 stakeWeight = _value * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
         Stake.Data memory newStake = Stake.Data({
-            value: uint120(_value),
-            lockedFrom: uint64(_now256()),
-            lockedUntil: uint64(_now256() + Stake.MAX_STAKE_PERIOD),
+            value: (_value).toUint120(),
+            lockedFrom: (_now256()).toUint64(),
+            lockedUntil: (_now256() + Stake.MAX_STAKE_PERIOD).toUint64(),
             isYield: true
         });
 
-        user.totalWeight += uint248(stakeWeight);
+        user.totalWeight += (stakeWeight).toUint248();
         user.stakes.push(newStake);
 
         globalWeight += stakeWeight;
@@ -127,7 +129,7 @@ contract ILVPool is V2Migrator {
             _staker,
             (user.stakes.length - 1),
             _value,
-            uint64(_now256() + Stake.MAX_STAKE_PERIOD)
+            (_now256() + Stake.MAX_STAKE_PERIOD).toUint64()
         );
     }
 
@@ -255,7 +257,7 @@ contract ILVPool is V2Migrator {
             amountToMint += tokenAmount;
             weightToRemove += _weight;
         }
-        user.totalWeight -= uint248(weightToRemove);
+        user.totalWeight -= (weightToRemove).toUint248();
 
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
@@ -292,7 +294,7 @@ contract ILVPool is V2Migrator {
         bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight));
         fnSelector.verifyInput(MerkleProof.verify(_proof, merkleRoot, leaf), 0);
 
-        user.totalWeight += uint248(_yieldWeight);
+        user.totalWeight += (_yieldWeight).toUint248();
         // set user as claimed in bitmap
         _usersMigrated.set(_index);
     }
