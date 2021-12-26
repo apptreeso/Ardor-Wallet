@@ -120,12 +120,23 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     event LogSetWeight(address indexed by, uint32 fromVal, uint32 toVal);
 
     /**
-     * @dev fired in migrateUser().
+     * @dev fired in `migrateUser()`.
      *
      * @param from user asking migration
      * @param to new user address
+     * @param previousBalance balance of `from` before moving to a new address
+     * @param newBalance balance of `to` after moving to a new address
+     * @param previousYield pending yield of `from` before moving to a new address
+     * @param newYield pending yield of `to` after moving to a new address
      */
-    event LogMigrateUser(address indexed from, address indexed to);
+    event LogMigrateUser(
+        address indexed from,
+        address indexed to,
+        uint248 previousBalance,
+        uint248 newBalance,
+        uint128 previousYield,
+        uint128 newYield
+    );
 
     /// @dev used for functions that require syncing contract state before execution
     modifier updatePool() {
@@ -282,7 +293,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
     function migrateUser(address _to) external updatePool {
         require(_to != address(0), "invalid _to");
         User storage newUser = users[_to];
-        require(newUser.balance == 0 && newUser.pendingYield == 0, "invalid user, already exists");
+        require(
+            newUser.balance == 0 && newUser.pendingYield == 0 && newUser.subYieldRewards == 0,
+            "invalid user, already exists"
+        );
 
         User storage previousUser = users[msg.sender];
         uint128 balance = previousUser.balance;
@@ -296,7 +310,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         newUser.pendingYield = pendingYield;
         newUser.subYieldRewards = subYieldRewards;
 
-        emit LogMigrateUser(msg.sender, _to);
+        emit LogMigrateUser(msg.sender, _to, balance, newUser.balance, pendingYield, newUser.pendingYield);
     }
 
     /**

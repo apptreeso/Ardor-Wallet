@@ -227,8 +227,23 @@ abstract contract CorePool is
      *
      * @param from user asking migration
      * @param to new user address
+     * @param previousTotalWeight total weight of `from` before moving to a new address
+     * @param newTotalWeight total weight of `to` after moving to a new address
+     * @param previousYield pending yield of `from` before moving to a new address
+     * @param newYield pending yield of `to` after moving to a new address
+     * @param previousRevDis pending revenue distribution of `from` before moving to a new address
+     * @param newRevDis pending revenue distribution of `to` after moving to a new address
      */
-    event LogMigrateUser(address indexed from, address indexed to);
+    event LogMigrateUser(
+        address indexed from,
+        address indexed to,
+        uint248 previousTotalWeight,
+        uint248 newTotalWeight,
+        uint128 previousYield,
+        uint128 newYield,
+        uint128 previousRevDis,
+        uint128 newRevDis
+    );
 
     /**
      * @dev Fired in `receiveVaultRewards()`.
@@ -509,18 +524,34 @@ abstract contract CorePool is
                 newUser.subVaultRewards == 0,
             0
         );
-        newUser.pendingYield = previousUser.pendingYield;
-        newUser.totalWeight = previousUser.totalWeight;
+
+        uint248 previousTotalWeight = previousUser.totalWeight;
+        uint128 previousYield = previousUser.pendingYield;
+        uint128 previousRevDis = previousUser.pendingRevDis;
+
+        newUser.totalWeight = previousTotalWeight;
+        newUser.pendingYield = previousYield;
+        newUser.pendingRevDis = previousRevDis;
         newUser.subYieldRewards = uint256(previousUser.totalWeight).weightToReward(yieldRewardsPerWeight);
         newUser.subVaultRewards = uint256(previousUser.totalWeight).weightToReward(vaultRewardsPerWeight);
-        delete previousUser.pendingYield;
         delete previousUser.totalWeight;
+        delete previousUser.pendingYield;
+        delete previousUser.pendingRevDis;
         delete previousUser.stakes;
 
         previousUser.subYieldRewards = v1WeightToAdd.weightToReward(yieldRewardsPerWeight);
         previousUser.subVaultRewards = v1WeightToAdd.weightToReward(vaultRewardsPerWeight);
 
-        emit LogMigrateUser(msg.sender, _to);
+        emit LogMigrateUser(
+            msg.sender,
+            _to,
+            previousTotalWeight,
+            newUser.totalWeight,
+            previousYield,
+            newUser.pendingYield,
+            previousRevDis,
+            newUser.pendingRevDis
+        );
     }
 
     /**
