@@ -179,7 +179,7 @@ contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Time
      * @param poolToken pool token address (like ILV) to query pool address for
      * @return pool address for the token specified
      */
-    function getPoolAddress(address poolToken) external view returns (address) {
+    function getPoolAddress(address poolToken) external view virtual returns (address) {
         // read the mapping and return
         return address(pools[poolToken]);
     }
@@ -191,7 +191,7 @@ contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Time
      * @param _poolToken pool token address to query pool information for.
      * @return pool information packed in a PoolData struct.
      */
-    function getPoolData(address _poolToken) public view returns (PoolData memory) {
+    function getPoolData(address _poolToken) public view virtual returns (PoolData memory) {
         bytes4 fnSelector = this.getPoolData.selector;
         // get the pool address from the mapping
         ICorePool pool = ICorePool(pools[_poolToken]);
@@ -215,7 +215,7 @@ contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Time
      *
      * @return true if enough time has passed and `updateILVPerSecond` can be executed.
      */
-    function shouldUpdateRatio() public view returns (bool) {
+    function shouldUpdateRatio() public view virtual returns (bool) {
         // if yield farming period has ended
         if (_now256() > endTime) {
             // ILV/second reward cannot be updated anymore
@@ -233,7 +233,7 @@ contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Time
      *
      * @param pool address of the already deployed pool instance
      */
-    function registerPool(address pool) public onlyOwner {
+    function registerPool(address pool) public virtual onlyOwner {
         // read pool information from the pool smart contract
         // via the pool interface (ICorePool)
         address poolToken = ICorePool(pool).poolToken();
@@ -254,7 +254,7 @@ contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Time
      * @notice Decreases ILV/second reward by 3%, can be executed
      *      no more than once per `secondsPerUpdate` seconds.
      */
-    function updateILVPerSecond() external {
+    function updateILVPerSecond() external virtual {
         bytes4 fnSelector = this.updateILVPerSecond.selector;
         // checks if ratio can be updated i.e. if seconds/update have passed
         fnSelector.verifyState(shouldUpdateRatio(), 0);
@@ -285,7 +285,7 @@ contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Time
         address _to,
         uint256 _value,
         bool _useSILV
-    ) external {
+    ) external virtual {
         bytes4 fnSelector = this.mintYieldTo.selector;
         // verify that sender is a pool registered withing the factory
         fnSelector.verifyState(poolExists[msg.sender], 0);
@@ -304,7 +304,7 @@ contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Time
      * @param pool address of the pool to change weight for
      * @param weight new weight value to set to
      */
-    function changePoolWeight(address pool, uint32 weight) external {
+    function changePoolWeight(address pool, uint32 weight) external virtual {
         bytes4 fnSelector = this.changePoolWeight.selector;
         // verify function is executed either by factory owner or by the pool itself
         fnSelector.verifyAccess(msg.sender == owner() || poolExists[msg.sender]);
@@ -324,7 +324,7 @@ contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Time
      *
      * @param _endTime new end time value to be stored
      */
-    function setEndTime(uint32 _endTime) external onlyOwner {
+    function setEndTime(uint32 _endTime) external virtual onlyOwner {
         bytes4 fnSelector = this.setEndTime.selector;
         fnSelector.verifyInput(_endTime > lastRatioUpdate, 0);
         endTime = _endTime;
@@ -339,5 +339,5 @@ contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Time
     function renounceOwnership() public virtual override {}
 
     /// @dev See `CorePool._authorizeUpgrade()`
-    function _authorizeUpgrade(address) internal override onlyOwner {}
+    function _authorizeUpgrade(address) internal virtual override onlyOwner {}
 }

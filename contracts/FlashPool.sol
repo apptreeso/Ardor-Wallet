@@ -203,7 +203,7 @@ contract FlashPool is
      * @param _staker an address to calculate yield rewards value for
      * @return pending calculated yield reward value for the given address
      */
-    function pendingYieldRewards(address _staker) external view returns (uint256 pending) {
+    function pendingYieldRewards(address _staker) external view virtual returns (uint256 pending) {
         // `newYieldRewardsPerToken` will store stored or recalculated value for `yieldRewardsPerToken`
         uint256 newYieldRewardsPerToken;
 
@@ -236,7 +236,7 @@ contract FlashPool is
      * @param _user an address to query balance for
      * @return balance total staked token balance
      */
-    function balanceOf(address _user) external view returns (uint256 balance) {
+    function balanceOf(address _user) external view virtual returns (uint256 balance) {
         balance = users[_user].balance;
     }
 
@@ -246,7 +246,7 @@ contract FlashPool is
      *
      * @return true if pool is disabled, false otherwise
      */
-    function isPoolDisabled() public view returns (bool) {
+    function isPoolDisabled() public view virtual returns (bool) {
         // verify the pool expiration condition and return the result
         return _now256() > endTime;
     }
@@ -257,7 +257,7 @@ contract FlashPool is
      *
      * @param _value number of tokens to stake
      */
-    function stake(uint256 _value) external updatePool whenNotPaused nonReentrant {
+    function stake(uint256 _value) external virtual updatePool whenNotPaused nonReentrant {
         bytes4 fnSelector = this.stake.selector;
         // validates input
         fnSelector.verifyNonZeroInput(_value, 0);
@@ -302,7 +302,7 @@ contract FlashPool is
      *
      * @param _to new user address
      */
-    function moveFundsFromWallet(address _to) external updatePool whenNotPaused {
+    function moveFundsFromWallet(address _to) external virtual updatePool whenNotPaused {
         bytes4 fnSelector = this.moveFundsFromWallet.selector;
         fnSelector.verifyNonZeroInput(uint160(_to), 0);
 
@@ -334,7 +334,7 @@ contract FlashPool is
      * @dev When timing conditions are not met (executed too frequently, or after factory
      *      end time), function doesn't throw and exits silently
      */
-    function sync() external whenNotPaused {
+    function sync() external virtual whenNotPaused {
         // delegate call to an internal function
         _sync();
     }
@@ -344,7 +344,7 @@ contract FlashPool is
      *
      * @notice pool state is updated before calling the internal function
      */
-    function claimYieldRewards(bool _useSILV) external updatePool whenNotPaused {
+    function claimYieldRewards(bool _useSILV) external virtual updatePool whenNotPaused {
         _claimYieldRewards(msg.sender, _useSILV);
     }
 
@@ -358,7 +358,7 @@ contract FlashPool is
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
-    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external updatePool whenNotPaused {
+    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external virtual updatePool whenNotPaused {
         bytes4 fnSelector = this.claimYieldRewardsFromRouter.selector;
         bool poolIsValid = address(IFactory(_factory).pools(_ilv)) == msg.sender;
         fnSelector.verifyState(poolIsValid, 0);
@@ -374,7 +374,7 @@ contract FlashPool is
      *
      * @param _weight new weight to set for the pool
      */
-    function setWeight(uint32 _weight) external {
+    function setWeight(uint32 _weight) external virtual {
         bytes4 fnSelector = this.setWeight.selector;
         // verify function is executed by the factory
         fnSelector.verifyState(msg.sender == address(_factory), 0);
@@ -391,7 +391,7 @@ contract FlashPool is
      *
      * @param _newEndTime new flash pool end time
      */
-    function setEndTime(uint64 _newEndTime) external {
+    function setEndTime(uint64 _newEndTime) external virtual {
         bytes4 fnSelector = this.setEndTime.selector;
         fnSelector.verifyInput(_newEndTime > _now256(), 0);
         _requireIsFactoryController();
@@ -408,14 +408,14 @@ contract FlashPool is
      * @param _staker an address to calculate yield rewards value for
      * @return pending calculated yield reward value for the given address
      */
-    function _pendingYieldRewards(address _staker) internal view returns (uint256 pending) {
+    function _pendingYieldRewards(address _staker) internal view virtual returns (uint256 pending) {
         // links to _staker user struct in storage
         User storage user = users[_staker];
 
         pending = _tokensToReward(user.balance, yieldRewardsPerToken);
     }
 
-    function unstake(uint256 _value) external updatePool nonReentrant {
+    function unstake(uint256 _value) external virtual updatePool nonReentrant {
         bytes4 fnSelector = this.unstake.selector;
         // verify a value is set
         fnSelector.verifyNonZeroInput(_value, 0);
@@ -520,7 +520,7 @@ contract FlashPool is
      * @param _staker user address
      * @param _useSILV whether the user wants to claim ILV or sILV
      */
-    function _claimYieldRewards(address _staker, bool _useSILV) internal {
+    function _claimYieldRewards(address _staker, bool _useSILV) internal virtual {
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
         if (user.balance > 0) {
@@ -562,7 +562,7 @@ contract FlashPool is
      * @param __rewardPerToken ILV reward per token
      * @return reward value normalized to 10^12
      */
-    function _tokensToReward(uint256 _value, uint256 __rewardPerToken) internal pure returns (uint256) {
+    function _tokensToReward(uint256 _value, uint256 __rewardPerToken) internal pure virtual returns (uint256) {
         // apply the formula and return
         return (_value * __rewardPerToken) / REWARD_PER_TOKEN_MULTIPLIER;
     }
@@ -574,13 +574,13 @@ contract FlashPool is
      * @param _totalStaked total value staked in the pool
      * @return reward per token value
      */
-    function _rewardPerToken(uint256 _reward, uint256 _totalStaked) internal pure returns (uint256) {
+    function _rewardPerToken(uint256 _reward, uint256 _totalStaked) internal pure virtual returns (uint256) {
         // apply the reverse formula and return
         return (_reward * REWARD_PER_TOKEN_MULTIPLIER) / _totalStaked;
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address) internal view override {
+    function _authorizeUpgrade(address) internal view virtual override {
         // checks caller is _factory.owner()
         _requireIsFactoryController();
     }

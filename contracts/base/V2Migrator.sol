@@ -80,7 +80,7 @@ abstract contract V2Migrator is Initializable, CorePool {
      *
      * @param _stakeIds array of v1 stake ids
      */
-    function migrateLockedStakes(uint256[] calldata _stakeIds) external {
+    function migrateLockedStakes(uint256[] calldata _stakeIds) external virtual {
         _sync();
         _requireNotPaused();
 

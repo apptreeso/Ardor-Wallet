@@ -70,7 +70,7 @@ contract SushiLPPool is Initializable, V2Migrator {
      * @dev We are using an internal function instead of a modifier in order to
      *      reduce the contract's bytecode size.
      */
-    function _requirePoolIsValid() internal view {
+    function _requirePoolIsValid() internal view virtual {
         // we're using selector to simplify input and state validation
         // internal function simulated selector is `bytes4(keccak256("_requirePoolIsValid()"))`
         bytes4 fnSelector = 0x250f303f;

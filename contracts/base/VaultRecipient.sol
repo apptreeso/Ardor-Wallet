@@ -30,7 +30,7 @@ abstract contract VaultRecipient is Initializable, FactoryControlled {
      *
      * @param vault_ an address of deployed IlluviumVault instance
      */
-    function setVault(address vault_) external {
+    function setVault(address vault_) external virtual {
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = VaultRecipient(this).setVault.selector;
         // verify function is executed by the factory owner
@@ -49,7 +49,7 @@ abstract contract VaultRecipient is Initializable, FactoryControlled {
     }
 
     /// @dev Utility function to check if caller is the Vault contract
-    function _requireIsVault() internal view {
+    function _requireIsVault() internal view virtual {
         // we're using selector to simplify input and state validation
         // internal function simulated selector is `bytes4(keccak256("_requireIsVault()"))`
         bytes4 fnSelector = 0xeeea774b;

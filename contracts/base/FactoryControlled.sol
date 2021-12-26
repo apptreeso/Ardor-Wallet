@@ -28,7 +28,7 @@ abstract contract FactoryControlled is Initializable {
     }
 
     /// @dev checks if caller is factory admin (eDAO multisig address).
-    function _requireIsFactoryController() internal view {
+    function _requireIsFactoryController() internal view virtual {
         // we're using selector to simplify input and state validation
         // internal function simulated selector is `keccak256("_requireIsFactoryController()")`
         bytes4 fnSelector = 0x39e71deb;
