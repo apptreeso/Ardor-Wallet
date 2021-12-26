@@ -23,6 +23,10 @@ import "hardhat/console.sol";
  * @dev The factory requires ROLE_TOKEN_CREATOR permission on the ILV and sILV tokens to mint yield
  *      (see `mintYieldTo` function).
  *
+ * @notice The contract uses Ownable implementation, so only the eDAO is able to handle
+ *         admin activities, such as registering new pools, doing contract upgrades,
+ *         changing pool weights, managing emission schedules and so on.
+ *
  */
 contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     /// @dev Auxiliary data structure used only in getPoolData() view function

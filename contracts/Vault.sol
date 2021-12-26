@@ -23,6 +23,8 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
  *      all ETH balance in 1 function call. The vault is also responsible to be
  *      calling receiveVaultRewards() function in the core pools, which takes care
  *      of calculations of how much ILV should be sent to each pool as revenue distribution.
+ * @notice The contract uses Ownable implementation, so only the eDAO is able to handle
+ *         the ETH => ILV swaps and distribution schedules.
  *
  */
 contract Vault is Ownable {
