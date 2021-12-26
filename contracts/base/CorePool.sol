@@ -746,8 +746,8 @@ abstract contract CorePool is
         uint64 _lockDuration
     ) internal virtual {
         // we're using selector to simplify input and state validation
-        // since function is not public we pre-calculate the selector
-        bytes4 fnSelector = 0x867a0347;
+        // internal function simulated selector is `bytes4(keccak256("_stake(address,uint256,uint64)"))`
+        bytes4 fnSelector = 0x06151334;
 
         // validate the inputs
         fnSelector.verifyNonZeroInput(_value, 0);
