@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { SafeCast } from "./libraries/SafeCast.sol";
 import { Timestamp } from "./base/Timestamp.sol";
 // import { CorePool } from "./CorePool.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
@@ -23,8 +24,14 @@ import "hardhat/console.sol";
  * @dev The factory requires ROLE_TOKEN_CREATOR permission on the ILV and sILV tokens to mint yield
  *      (see `mintYieldTo` function).
  *
+ * @notice The contract uses Ownable implementation, so only the eDAO is able to handle
+ *         admin activities, such as registering new pools, doing contract upgrades,
+ *         changing pool weights, managing emission schedules and so on.
+ *
  */
 contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
+    using SafeCast for uint256;
+
     /// @dev Auxiliary data structure used only in getPoolData() view function
     struct PoolData {
         // @dev pool token address (like ILV)
@@ -251,7 +258,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         ilvPerSecond = (ilvPerSecond * 97) / 100;
 
         // set current timestamp as the last ratio update timestamp
-        lastRatioUpdate = uint32(_now256());
+        lastRatioUpdate = (_now256()).toUint32();
 
         // emit an event
         emit LogUpdateILVPerSecond(msg.sender, ilvPerSecond);
@@ -314,6 +321,12 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
 
         emit LogSetEndTime(msg.sender, _endTime);
     }
+
+    /**
+     * @dev Overrides `Ownable.renounceOwnership()`, to avoid accidentally
+     *      renouncing ownership of the PoolFactory contract.
+     */
+    function renounceOwnership() public virtual override {}
 
     /// @dev See `CorePool._authorizeUpgrade()`
     function _authorizeUpgrade(address) internal override onlyOwner {}

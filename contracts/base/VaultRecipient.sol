@@ -32,12 +32,10 @@ abstract contract VaultRecipient is FactoryControlled {
     function setVault(address vault_) external {
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = VaultRecipient(this).setVault.selector;
-
         // verify function is executed by the factory owner
         fnSelector.verifyState(_factory.owner() == msg.sender, 0);
-
         // verify input is set
-        fnSelector.verifyInput(vault_ != address(0), 1);
+        fnSelector.verifyInput(vault_ != address(0), 0);
 
         // saves current vault to memory
         address previousVault = vault_;

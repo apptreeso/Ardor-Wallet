@@ -23,6 +23,8 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
  *      all ETH balance in 1 function call. The vault is also responsible to be
  *      calling receiveVaultRewards() function in the core pools, which takes care
  *      of calculations of how much ILV should be sent to each pool as revenue distribution.
+ * @notice The contract uses Ownable implementation, so only the eDAO is able to handle
+ *         the ETH => ILV swaps and distribution schedules.
  *
  */
 contract Vault is Ownable {
@@ -214,16 +216,16 @@ contract Vault is Ownable {
         uint256 ilvBalance = _ilv.balanceOf(address(this));
         // approve the entire ILV balance to be sent into the pool
         if (_ilv.allowance(address(this), address(ilvPool)) < ilvBalance) {
-            _ilv.approve(address(ilvPool), type(uint256).max);
+            _ilv.approve(address(ilvPool), ilvBalance);
         }
         if (_ilv.allowance(address(this), address(pairPool)) < ilvBalance) {
-            _ilv.approve(address(pairPool), type(uint256).max);
+            _ilv.approve(address(pairPool), ilvBalance);
         }
         if (_ilv.allowance(address(this), address(lockedPoolV1)) < ilvBalance) {
-            _ilv.approve(address(lockedPoolV1), type(uint256).max);
+            _ilv.approve(address(lockedPoolV1), ilvBalance);
         }
         if (_ilv.allowance(address(this), address(lockedPoolV2)) < ilvBalance) {
-            _ilv.approve(address(lockedPoolV2), type(uint256).max);
+            _ilv.approve(address(lockedPoolV2), ilvBalance);
         }
 
         // gets poolToken reserves in each pool
@@ -340,6 +342,12 @@ contract Vault is Ownable {
         // emit an event logging the operation
         emit LogSwapEthForILV(msg.sender, amounts[0], amounts[1]);
     }
+
+    /**
+     * @dev Overrides `Ownable.renounceOwnership()`, to avoid accidentally
+     *      renouncing ownership of the Vault contract.
+     */
+    function renounceOwnership() public virtual override {}
 
     /**
      * @notice Default payable function, allows to top up contract's ETH balance
