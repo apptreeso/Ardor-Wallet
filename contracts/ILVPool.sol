@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { SafeCast } from "./libraries/SafeCast.sol";
 import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { V2Migrator } from "./base/V2Migrator.sol";
@@ -26,6 +27,7 @@ contract ILVPool is V2Migrator {
     using ErrorHandler for bytes4;
     using Stake for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeCast for uint256;
     using BitMaps for BitMaps.BitMap;
 
     /// @dev stores merkle root related to users yield weight in v1.
@@ -35,7 +37,7 @@ contract ILVPool is V2Migrator {
 
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     ///      if a v1 yield has already been minted by v2 contract.
-    mapping(address => mapping(uint256 => bool)) public v1YieldMinted;
+    mapping(address => mapping(uint256 => bool)) private _v1YieldMinted;
 
     /**
      * @dev logs `mintV1Yield()`.
@@ -48,16 +50,16 @@ contract ILVPool is V2Migrator {
 
     /// @dev Calls `__V2Migrator_init()`.
     function initialize(
-        address _ilv,
-        address _silv,
+        address ilv_,
+        address silv_,
         address _poolToken,
-        address _factory,
+        address factory_,
         uint64 _initTime,
         uint32 _weight,
         address _corePoolV1,
-        uint256 _v1StakeMaxPeriod
+        uint256 v1StakeMaxPeriod_
     ) external initializer {
-        __V2Migrator_init(_ilv, _silv, _poolToken, _corePoolV1, _factory, _initTime, _weight, _v1StakeMaxPeriod);
+        __V2Migrator_init(ilv_, silv_, _poolToken, _corePoolV1, factory_, _initTime, _weight, v1StakeMaxPeriod_);
     }
 
     /**
@@ -94,7 +96,7 @@ contract ILVPool is V2Migrator {
     function stakeAsPool(address _staker, uint256 _value) external nonReentrant {
         _sync();
         _requireNotPaused();
-        ILVPool(this).stakeAsPool.selector.verifyAccess(factory.poolExists(msg.sender));
+        ILVPool(this).stakeAsPool.selector.verifyAccess(_factory.poolExists(msg.sender));
         User storage user = users[_staker];
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
@@ -103,13 +105,13 @@ contract ILVPool is V2Migrator {
         }
         uint256 stakeWeight = _value * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
         Stake.Data memory newStake = Stake.Data({
-            value: uint120(_value),
-            lockedFrom: uint64(_now256()),
-            lockedUntil: uint64(_now256() + Stake.MAX_STAKE_PERIOD),
+            value: (_value).toUint120(),
+            lockedFrom: (_now256()).toUint64(),
+            lockedUntil: (_now256() + Stake.MAX_STAKE_PERIOD).toUint64(),
             isYield: true
         });
 
-        user.totalWeight += uint248(stakeWeight);
+        user.totalWeight += (stakeWeight).toUint248();
         user.stakes.push(newStake);
 
         globalWeight += stakeWeight;
@@ -128,7 +130,7 @@ contract ILVPool is V2Migrator {
             _staker,
             (user.stakes.length - 1),
             _value,
-            uint64(_now256() + Stake.MAX_STAKE_PERIOD)
+            (_now256() + Stake.MAX_STAKE_PERIOD).toUint64()
         );
     }
 
@@ -187,9 +189,9 @@ contract ILVPool is V2Migrator {
         fnSelector.verifyInput(_pools.length == _useSILV.length, 0);
         for (uint256 i = 0; i < _pools.length; i++) {
             address pool = _pools[i];
-            fnSelector.verifyAccess(IFactory(factory).poolExists(pool));
+            fnSelector.verifyAccess(IFactory(_factory).poolExists(pool));
 
-            if (ICorePool(pool).poolToken() == ilv) {
+            if (ICorePool(pool).poolToken() == _ilv) {
                 _claimYieldRewards(msg.sender, _useSILV[i]);
             } else {
                 SushiLPPool(pool).claimYieldRewardsFromRouter(msg.sender, _useSILV[i]);
@@ -214,10 +216,10 @@ contract ILVPool is V2Migrator {
 
             // we're using selector to simplify input and state validation
             bytes4(ILVPool(address(this)).claimVaultRewardsMultiple.selector).verifyAccess(
-                IFactory(factory).poolExists(pool)
+                IFactory(_factory).poolExists(pool)
             );
 
-            if (ICorePool(pool).poolToken() == ilv) {
+            if (ICorePool(pool).poolToken() == _ilv) {
                 _claimVaultRewards(msg.sender);
             } else {
                 SushiLPPool(pool).claimVaultRewardsFromRouter(msg.sender);
@@ -254,13 +256,13 @@ contract ILVPool is V2Migrator {
                 .getDeposit(msg.sender, _stakeId);
             fnSelector.verifyState(isYield, i * 3);
             fnSelector.verifyState(_now256() > lockedUntil, i * 3 + 1);
-            fnSelector.verifyState(!v1YieldMinted[msg.sender][_stakeId], i * 3 + 2);
+            fnSelector.verifyState(!_v1YieldMinted[msg.sender][_stakeId], i * 3 + 2);
 
-            v1YieldMinted[msg.sender][_stakeId] = true;
+            _v1YieldMinted[msg.sender][_stakeId] = true;
             amountToMint += tokenAmount;
             weightToRemove += _weight;
         }
-        user.totalWeight -= uint248(weightToRemove);
+        user.totalWeight -= (weightToRemove).toUint248();
 
         // gas savings
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
@@ -268,7 +270,7 @@ contract ILVPool is V2Migrator {
         // resets all rewards after migration
         user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
         user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
-        factory.mintYieldTo(msg.sender, amountToMint, false);
+        _factory.mintYieldTo(msg.sender, amountToMint, false);
 
         emit LogV1YieldMintedMultiple(msg.sender, amountToMint);
     }
@@ -297,7 +299,7 @@ contract ILVPool is V2Migrator {
         bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight));
         fnSelector.verifyInput(MerkleProof.verify(_proof, merkleRoot, leaf), 0);
 
-        user.totalWeight += uint248(_yieldWeight);
+        user.totalWeight += (_yieldWeight).toUint248();
         // set user as claimed in bitmap
         _usersMigrated.set(_index);
     }

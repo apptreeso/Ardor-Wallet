@@ -12,7 +12,7 @@
 
 ### `lastRatioUpdate() → uint32` (external)
 
-### `ilv() → address` (external)
+### `_ilv() → address` (external)
 
 ### `silv() → address` (external)
 
