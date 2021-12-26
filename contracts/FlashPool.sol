@@ -584,4 +584,11 @@ contract FlashPool is
         // checks caller is _factory.owner()
         _requireIsFactoryController();
     }
+
+    /**
+     * @dev Empty reserved space in storage. The size of the __gap array is calculated so that
+     *      the amount of storage used by a contract always adds up to the 50.
+     *      See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[44] private __gap;
 }

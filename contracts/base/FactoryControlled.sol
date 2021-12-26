@@ -34,4 +34,11 @@ abstract contract FactoryControlled is Initializable {
         bytes4 fnSelector = 0x39e71deb;
         fnSelector.verifyAccess(msg.sender == _factory.owner());
     }
+
+    /**
+     * @dev Empty reserved space in storage. The size of the __gap array is calculated so that
+     *      the amount of storage used by a contract always adds up to the 50.
+     *      See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[49] private __gap;
 }

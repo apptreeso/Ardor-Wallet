@@ -78,4 +78,11 @@ contract SushiLPPool is Initializable, V2Migrator {
         bool poolIsValid = address(_factory.pools(_ilv)) == msg.sender;
         fnSelector.verifyState(poolIsValid, 0);
     }
+
+    /**
+     * @dev Empty reserved space in storage. The size of the __gap array is calculated so that
+     *      the amount of storage used by a contract always adds up to the 50.
+     *      See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[50] private __gap;
 }
