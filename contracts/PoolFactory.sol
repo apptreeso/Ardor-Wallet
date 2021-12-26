@@ -315,6 +315,12 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         emit LogSetEndTime(msg.sender, _endTime);
     }
 
+    /**
+     * @dev Overrides `Ownable.renounceOwnership()`, to avoid accidentally
+     *      renouncing ownership of the PoolFactory contract.
+     */
+    function renounceOwnership() public virtual override {}
+
     /// @dev See `CorePool._authorizeUpgrade()`
     function _authorizeUpgrade(address) internal override onlyOwner {}
 }
