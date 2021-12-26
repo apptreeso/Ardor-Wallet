@@ -439,7 +439,8 @@ abstract contract CorePool is
     /**
      * @notice Returns a v1 stake position in the `user.v1StakesIds` array.
      *
-     * @dev helper function to call `getV1StakeId()`.
+     * @dev Helper function to call `getV1StakeId()`.
+     * @dev Reverts if stakeId isn't found.
      *
      * @param _user an address to query stake for
      * @param _desiredId desired stakeId position in the array to find
@@ -454,7 +455,7 @@ abstract contract CorePool is
             }
         }
 
-        return 0;
+        revert();
     }
 
     /**
