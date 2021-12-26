@@ -6,7 +6,7 @@ through functions like `claimYieldRewardsMultiple()` and `claimVaultRewardsMulti
 ILV Pool is trusted by other pools and verified by the factory to aggregate functions
 and add quality of life features for stakers.
 
-### `initialize(address _ilv, address _silv, address _poolToken, address _factory, uint64 _initTime, uint32 _weight, address _corePoolV1, uint256 _v1StakeMaxPeriod)` (external)
+### `initialize(address _ilv, address silv_, address _poolToken, address _factory, uint64 _initTime, uint32 _weight, address _corePoolV1, uint256 _v1StakeMaxPeriod)` (external)
 
 Calls `__V2Migrator_init()`.
 
