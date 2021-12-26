@@ -36,7 +36,8 @@ contract SushiLPPool is V2Migrator {
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
-    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external virtual updatePool {
+    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external virtual {
+        _sync();
         _requireNotPaused();
         _requirePoolIsValid();
 
@@ -52,7 +53,8 @@ contract SushiLPPool is V2Migrator {
      *
      * @param _staker user address
      */
-    function claimVaultRewardsFromRouter(address _staker) external virtual updatePool {
+    function claimVaultRewardsFromRouter(address _staker) external virtual {
+        _sync();
         _requireNotPaused();
         _requirePoolIsValid();
 

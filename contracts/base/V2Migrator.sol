@@ -68,7 +68,8 @@ abstract contract V2Migrator is CorePool {
      *
      * @param _stakeIds array of v1 stake ids
      */
-    function migrateLockedStakes(uint256[] calldata _stakeIds) external updatePool {
+    function migrateLockedStakes(uint256[] calldata _stakeIds) external {
+        _sync();
         _requireNotPaused();
 
         User storage user = users[msg.sender];
