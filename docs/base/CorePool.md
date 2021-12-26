@@ -33,7 +33,7 @@ For ILV Pool we use 200 as weight and for ILV/ETH SLP pool - 800.
 
 Used for functions that require syncing contract state before execution.
 
-### `__CorePool_init(address _ilv, address _silv, address _poolToken, address _corePoolV1, address _factory, uint64 _initTime, uint32 _weight)` (internal)
+### `__CorePool_init(address _ilv, address silv_, address _poolToken, address _corePoolV1, address _factory, uint64 _initTime, uint32 _weight)` (internal)
 
 Used in child contracts to initialize the pool.
 

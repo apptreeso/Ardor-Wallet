@@ -17,8 +17,6 @@ interface ICorePool {
             uint256
         );
 
-    function silv() external view returns (address);
-
     function poolToken() external view returns (address);
 
     function isFlashPool() external view returns (bool);

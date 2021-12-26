@@ -13,7 +13,7 @@ as much as we do in the ILV and Sushi LP pools.
 
 used for functions that require syncing contract state before execution
 
-### `initialize(address _ilv, address _silv, address _poolToken, address _factory, uint64 _initTime, uint64 _endTime, uint32 _weight)` (external)
+### `initialize(address _ilv, address silv_, address _poolToken, address _factory, uint64 _initTime, uint64 _endTime, uint32 _weight)` (external)
 
 Initializes a new flash pool.
 

@@ -144,7 +144,7 @@ describe("FlashPool", function () {
         ),
       ).reverted;
     });
-    it("should revert initializing a factory if _silv == address(0)", async function () {
+    it("should revert initializing a factory if silv_ == address(0)", async function () {
       await expect(
         upgrades.deployProxy(
           this.PoolFactory,

@@ -5,7 +5,7 @@ additions compared to ILV pool. Sushi LP pool basically needs to be able
 to be called by ILV pool in batch calls where we claim rewards from multiple
 pools.
 
-### `initialize(address _ilv, address _silv, address _poolToken, address _factory, uint64 _initTime, uint32 _weight, address _corePoolV1, uint256 _v1StakeMaxPeriod)` (external)
+### `initialize(address _ilv, address silv_, address _poolToken, address _factory, uint64 _initTime, uint32 _weight, address _corePoolV1, uint256 _v1StakeMaxPeriod)` (external)
 
 Calls \_\_V2Migrator_init().
 
