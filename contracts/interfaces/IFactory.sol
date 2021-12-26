@@ -16,10 +16,6 @@ interface IFactory {
 
     function lastRatioUpdate() external view returns (uint32);
 
-    function ilv() external view returns (address);
-
-    function silv() external view returns (address);
-
     function pools(address _poolToken) external view returns (ICorePool);
 
     function poolExists(address _poolAddress) external view returns (bool);

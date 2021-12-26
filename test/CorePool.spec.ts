@@ -42,7 +42,7 @@ import {
   claimYieldRewardsMultiple,
   unstakeLocked,
   unstakeLockedMultiple,
-  migrateUser,
+  moveFundsFromWallet,
   merkleTree,
   fillV1StakeId,
 } from "./CorePool.behavior";
@@ -160,9 +160,9 @@ describe("CorePools", function () {
     context("ILV Pool", setWeight("ILV"));
     context("Sushi LP Pool", setWeight("LP"));
   });
-  describe("#migrateUser", function () {
-    context("ILV Pool", migrateUser("ILV"));
-    context("Sushi LP Pool", migrateUser("LP"));
+  describe("#moveFundsFromWallet", function () {
+    context("ILV Pool", moveFundsFromWallet("ILV"));
+    context("Sushi LP Pool", moveFundsFromWallet("LP"));
   });
   describe("#unstakeLockedMultiple", function () {
     context("ILV Pool", unstakeLockedMultiple("ILV"));

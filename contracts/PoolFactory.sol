@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { SafeCast } from "./libraries/SafeCast.sol";
 import { Timestamp } from "./base/Timestamp.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 import { IERC20Mintable } from "./interfaces/IERC20Mintable.sol";
@@ -23,9 +24,14 @@ import "hardhat/console.sol";
  * @dev The factory requires ROLE_TOKEN_CREATOR permission on the ILV and sILV tokens to mint yield
  *      (see `mintYieldTo` function).
  *
+ * @notice The contract uses Ownable implementation, so only the eDAO is able to handle
+ *         admin activities, such as registering new pools, doing contract upgrades,
+ *         changing pool weights, managing emission schedules and so on.
+ *
  */
 contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     using ErrorHandler for bytes4;
+    using SafeCast for uint256;
 
     /// @dev Auxiliary data structure used only in getPoolData() view function
     struct PoolData {
@@ -72,10 +78,10 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     uint32 public lastRatioUpdate;
 
     /// @dev ILV token address.
-    address public ilv;
+    address private _ilv;
 
     /// @dev sILV token address
-    address public silv;
+    address private _silv;
 
     /// @dev Maps pool token address (like ILV) -> pool address (like core pool instance).
     mapping(address => address) public pools;
@@ -128,8 +134,8 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     /**
      * @dev Initializes a factory instance
      *
-     * @param _ilv ILV ERC20 token address
-     * @param _silv sILV ERC20 token address
+     * @param ilv_ ILV ERC20 token address
+     * @param silv_ sILV ERC20 token address
      * @param _ilvPerSecond initial ILV/second value for rewards
      * @param _secondsPerUpdate how frequently the rewards gets updated (decreased by 3%), seconds
      * @param _initTime timestamp to measure _secondsPerUpdate from
@@ -137,8 +143,8 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      */
 
     function initialize(
-        address _ilv,
-        address _silv,
+        address ilv_,
+        address silv_,
         uint192 _ilvPerSecond,
         uint32 _secondsPerUpdate,
         uint32 _initTime,
@@ -146,8 +152,8 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     ) external initializer {
         bytes4 fnSelector = this.initialize.selector;
         // verify the inputs are set
-        fnSelector.verifyNonZeroInput(uint160(_ilv), 0);
-        fnSelector.verifyNonZeroInput(uint160(_silv), 1);
+        fnSelector.verifyNonZeroInput(uint160(ilv_), 0);
+        fnSelector.verifyNonZeroInput(uint160(silv_), 1);
         fnSelector.verifyNonZeroInput(_ilvPerSecond, 2);
         fnSelector.verifyNonZeroInput(secondsPerUpdate, 3);
         fnSelector.verifyNonZeroInput(_initTime, 4);
@@ -156,8 +162,8 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         __Ownable_init();
 
         // save the inputs into internal state variables
-        ilv = _ilv;
-        silv = _silv;
+        _ilv = ilv_;
+        _silv = silv_;
         ilvPerSecond = _ilvPerSecond;
         secondsPerUpdate = _secondsPerUpdate;
         lastRatioUpdate = _initTime;
@@ -258,7 +264,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         ilvPerSecond = (ilvPerSecond * 97) / 100;
 
         // set current timestamp as the last ratio update timestamp
-        lastRatioUpdate = uint32(_now256());
+        lastRatioUpdate = (_now256()).toUint32();
 
         // emit an event
         emit LogUpdateILVPerSecond(msg.sender, ilvPerSecond);
@@ -284,9 +290,9 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         fnSelector.verifyState(poolExists[msg.sender], 0);
 
         if (!_useSILV) {
-            IERC20Mintable(ilv).mint(_to, _value);
+            IERC20Mintable(_ilv).mint(_to, _value);
         } else {
-            IERC20Mintable(silv).mint(_to, _value);
+            IERC20Mintable(_silv).mint(_to, _value);
         }
     }
 
@@ -324,6 +330,12 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
 
         emit LogSetEndTime(msg.sender, _endTime);
     }
+
+    /**
+     * @dev Overrides `Ownable.renounceOwnership()`, to avoid accidentally
+     *      renouncing ownership of the PoolFactory contract.
+     */
+    function renounceOwnership() public virtual override {}
 
     /// @dev See `CorePool._authorizeUpgrade()`
     function _authorizeUpgrade(address) internal override onlyOwner {}

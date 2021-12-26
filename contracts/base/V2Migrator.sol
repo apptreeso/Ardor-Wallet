@@ -22,7 +22,7 @@ abstract contract V2Migrator is CorePool {
     using Stake for uint256;
 
     /// @dev stores maximum timestamp of a v1 stake accepted in v2.
-    uint256 public v1StakeMaxPeriod;
+    uint256 private _v1StakeMaxPeriod;
 
     /**
      * @dev logs `_migrateYieldWeights()`
@@ -45,30 +45,42 @@ abstract contract V2Migrator is CorePool {
     /**
      * @dev V2Migrator initializer function.
      *
-     * @param _v1StakeMaxPeriod max timestamp that we accept _lockedFrom values
+     * @param v1StakeMaxPeriod_ max timestamp that we accept _lockedFrom values
      *                         in v1 stakes
      */
     function __V2Migrator_init(
-        address _ilv,
-        address _silv,
+        address ilv_,
+        address silv_,
         address _poolToken,
         address _corePoolV1,
-        address _factory,
+        address factory_,
         uint64 _initTime,
         uint32 _weight,
-        uint256 _v1StakeMaxPeriod
+        uint256 v1StakeMaxPeriod_
     ) internal initializer {
-        __CorePool_init(_ilv, _silv, _poolToken, _corePoolV1, _factory, _initTime, _weight);
+        __CorePool_init(ilv_, silv_, _poolToken, _corePoolV1, factory_, _initTime, _weight);
 
-        v1StakeMaxPeriod = _v1StakeMaxPeriod;
+        _v1StakeMaxPeriod = v1StakeMaxPeriod_;
     }
 
     /**
-     * @dev External migrateLockedStakes call, used in Sushi LP pool.
+     * @dev External migrateLockedStakes call, used in the Sushi LP pool contract.
+     * @dev The function is used by users that want to migrate locked stakes in v1,
+     *      but have no yield in the pool. This happens in two scenarios:
+     *
+     *      1 - The user pool is the Sushi LP pool, which only has stakes;
+     *      2 - The user joined ILV pool recently, doesn't have much yield and
+     *          doesn't want to migrate their yield weight in the pool;
+     * @notice Most of the times this function will be used in the inherited Sushi
+     *         LP pool contract (called by the v1 user coming from sushi pool),
+     *         but it's possible that a v1 user coming from the ILV pool decides
+     *         to use this function instead of `executeMigration()` defined in
+     *         the ILV pool contract.
      *
      * @param _stakeIds array of v1 stake ids
      */
-    function migrateLockedStakes(uint256[] calldata _stakeIds) external updatePool {
+    function migrateLockedStakes(uint256[] calldata _stakeIds) external {
+        _sync();
         _requireNotPaused();
 
         User storage user = users[msg.sender];
@@ -110,7 +122,7 @@ abstract contract V2Migrator is CorePool {
                 msg.sender,
                 _stakeIds[i]
             );
-            fnSelector.verifyState(lockedFrom <= v1StakeMaxPeriod, i * 3);
+            fnSelector.verifyState(lockedFrom <= _v1StakeMaxPeriod, i * 3);
             fnSelector.verifyState(lockedFrom > 0 && !isYield, i * 3 + 1);
             fnSelector.verifyState(v1StakesWeights[msg.sender][_stakeIds[i]] == 0, i * 3 + 2);
 

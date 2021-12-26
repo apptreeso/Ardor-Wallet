@@ -23,6 +23,8 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
  *      all ETH balance in 1 function call. The vault is also responsible to be
  *      calling receiveVaultRewards() function in the core pools, which takes care
  *      of calculations of how much ILV should be sent to each pool as revenue distribution.
+ * @notice The contract uses Ownable implementation, so only the eDAO is able to handle
+ *         the ETH => ILV swaps and distribution schedules.
  *
  */
 contract Vault is Ownable {
@@ -49,12 +51,12 @@ contract Vault is Ownable {
     /**
      * @dev Link to Sushiswap's router deployed instance
      */
-    IUniswapV2Router02 public sushiRouter;
+    IUniswapV2Router02 private _sushiRouter;
 
     /**
      * @dev Link to IlluviumERC20 token deployed instance
      */
-    IERC20Upgradeable public ilv;
+    IERC20Upgradeable private _ilv;
 
     /**
      * @dev Internal multiplier used to calculate amount to send
@@ -109,21 +111,21 @@ contract Vault is Ownable {
     /**
      * @notice Creates (deploys) Vault linked to Sushi AMM Router and IlluviumERC20 token
      *
-     * @param _sushiRouter an address of the IUniswapV2Router02 to use for ETH -> ILV exchange
-     * @param _ilv an address of the IlluviumERC20 token to use
+     * @param sushiRouter_ an address of the IUniswapV2Router02 to use for ETH -> ILV exchange
+     * @param ilv_ an address of the IlluviumERC20 token to use
      */
-    constructor(address _sushiRouter, address _ilv) {
+    constructor(address sushiRouter_, address ilv_) {
         // we're using  a fake selector in the constructor to simplify
         // input and state validation
         bytes4 fnSelector = bytes4(0);
 
         // verify the inputs are set
-        fnSelector.verifyNonZeroInput(uint160(_sushiRouter), 0);
-        fnSelector.verifyNonZeroInput(uint160(_ilv), 1);
+        fnSelector.verifyNonZeroInput(uint160(sushiRouter_), 0);
+        fnSelector.verifyNonZeroInput(uint160(ilv_), 1);
 
         // assign the values
-        sushiRouter = IUniswapV2Router02(_sushiRouter);
-        ilv = IERC20Upgradeable(_ilv);
+        _sushiRouter = IUniswapV2Router02(sushiRouter_);
+        _ilv = IERC20Upgradeable(ilv_);
     }
 
     /**
@@ -225,19 +227,19 @@ contract Vault is Ownable {
         ) = (pools.ilvPoolV1, pools.pairPoolV1, pools.ilvPool, pools.pairPool, pools.lockedPoolV1, pools.lockedPoolV2);
 
         // read contract's ILV balance
-        uint256 ilvBalance = ilv.balanceOf(address(this));
+        uint256 ilvBalance = _ilv.balanceOf(address(this));
         // approve the entire ILV balance to be sent into the pool
-        if (ilv.allowance(address(this), address(ilvPool)) < ilvBalance) {
-            ilv.approve(address(ilvPool), type(uint256).max);
+        if (_ilv.allowance(address(this), address(ilvPool)) < ilvBalance) {
+            _ilv.approve(address(ilvPool), ilvBalance);
         }
-        if (ilv.allowance(address(this), address(pairPool)) < ilvBalance) {
-            ilv.approve(address(pairPool), type(uint256).max);
+        if (_ilv.allowance(address(this), address(pairPool)) < ilvBalance) {
+            _ilv.approve(address(pairPool), ilvBalance);
         }
-        if (ilv.allowance(address(this), address(lockedPoolV1)) < ilvBalance) {
-            ilv.approve(address(lockedPoolV1), type(uint256).max);
+        if (_ilv.allowance(address(this), address(lockedPoolV1)) < ilvBalance) {
+            _ilv.approve(address(lockedPoolV1), ilvBalance);
         }
-        if (ilv.allowance(address(this), address(lockedPoolV2)) < ilvBalance) {
-            ilv.approve(address(lockedPoolV2), type(uint256).max);
+        if (_ilv.allowance(address(this), address(lockedPoolV2)) < ilvBalance) {
+            _ilv.approve(address(lockedPoolV2), ilvBalance);
         }
 
         // gets poolToken reserves in each pool
@@ -293,7 +295,7 @@ contract Vault is Ownable {
         //    based on the total value of ILV tokens represented by the total
         //    supply of LP tokens, we are able to calculate through a simple rule
         //    of 3 how much ILV the amount of staked LP tokens represent.
-        uint256 ilvTotal = ilv.balanceOf(ICorePool(_pairPool).poolToken());
+        uint256 ilvTotal = _ilv.balanceOf(ICorePool(_pairPool).poolToken());
         // we store the result
         ilvAmount = (ilvTotal * lpAmount) / lpTotal;
     }
@@ -339,12 +341,12 @@ contract Vault is Ownable {
         // last element determines output token (what we receive from uniwsap)
         address[] memory path = new address[](2);
         // we send ETH wrapped as WETH into Sushiswap
-        path[0] = sushiRouter.WETH();
+        path[0] = _sushiRouter.WETH();
         // we receive ILV from Sushiswap
-        path[1] = address(ilv);
+        path[1] = address(_ilv);
 
         // exchange ETH -> ILV via Sushiswap
-        uint256[] memory amounts = sushiRouter.swapExactETHForTokens{ value: _ethIn }(
+        uint256[] memory amounts = _sushiRouter.swapExactETHForTokens{ value: _ethIn }(
             _ilvOut,
             path,
             address(this),
@@ -354,6 +356,12 @@ contract Vault is Ownable {
         // emit an event logging the operation
         emit LogSwapEthForILV(msg.sender, amounts[0], amounts[1]);
     }
+
+    /**
+     * @dev Overrides `Ownable.renounceOwnership()`, to avoid accidentally
+     *      renouncing ownership of the Vault contract.
+     */
+    function renounceOwnership() public virtual override {}
 
     /**
      * @notice Default payable function, allows to top up contract's ETH balance

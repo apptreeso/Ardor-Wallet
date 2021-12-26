@@ -17,16 +17,16 @@ contract SushiLPPool is V2Migrator {
 
     /// @dev Calls __V2Migrator_init().
     function initialize(
-        address _ilv,
-        address _silv,
+        address ilv_,
+        address silv_,
         address _poolToken,
         address _factory,
         uint64 _initTime,
         uint32 _weight,
         address _corePoolV1,
-        uint256 _v1StakeMaxPeriod
+        uint256 v1StakeMaxPeriod_
     ) external initializer {
-        __V2Migrator_init(_ilv, _silv, _poolToken, _corePoolV1, _factory, _initTime, _weight, _v1StakeMaxPeriod);
+        __V2Migrator_init(ilv_, silv_, _poolToken, _corePoolV1, _factory, _initTime, _weight, v1StakeMaxPeriod_);
     }
 
     /**
@@ -39,7 +39,8 @@ contract SushiLPPool is V2Migrator {
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
-    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external virtual updatePool {
+    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external virtual {
+        _sync();
         _requireNotPaused();
         _requirePoolIsValid();
 
@@ -55,7 +56,8 @@ contract SushiLPPool is V2Migrator {
      *
      * @param _staker user address
      */
-    function claimVaultRewardsFromRouter(address _staker) external virtual updatePool {
+    function claimVaultRewardsFromRouter(address _staker) external virtual {
+        _sync();
         _requireNotPaused();
         _requirePoolIsValid();
 
@@ -72,7 +74,7 @@ contract SushiLPPool is V2Migrator {
         // internal function simulated selector is `bytes4(keccak256("_requirePoolIsValid()"))`
         bytes4 fnSelector = 0x250f303f;
 
-        bool poolIsValid = address(factory.pools(ilv)) == msg.sender;
+        bool poolIsValid = address(_factory.pools(_ilv)) == msg.sender;
         fnSelector.verifyState(poolIsValid, 0);
     }
 }

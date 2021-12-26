@@ -15,16 +15,16 @@ import { ErrorHandler } from "../libraries/ErrorHandler.sol";
 abstract contract FactoryControlled is Initializable {
     using ErrorHandler for bytes4;
     /// @dev Link to the pool factory IlluviumPoolFactory instance.
-    IFactory public factory;
+    IFactory internal _factory;
 
     /// @dev Attachs PoolFactory address to the FactoryControlled contract.
-    function __FactoryControlled_init(address _factory) internal initializer {
+    function __FactoryControlled_init(address factory_) internal initializer {
         // we're using selector to simplify input and state validation
         // internal function simulated selector is `keccak256("__FactoryControlled_init(address)")`
         bytes4 fnSelector = 0xbb6c0dbf;
-        fnSelector.verifyNonZeroInput(uint160(_factory), 0);
+        fnSelector.verifyNonZeroInput(uint160(factory_), 0);
 
-        factory = IFactory(_factory);
+        _factory = IFactory(factory_);
     }
 
     /// @dev checks if caller is factory admin (eDAO multisig address).
@@ -32,6 +32,6 @@ abstract contract FactoryControlled is Initializable {
         // we're using selector to simplify input and state validation
         // internal function simulated selector is `keccak256("_requireIsFactoryController()")`
         bytes4 fnSelector = 0x39e71deb;
-        fnSelector.verifyAccess(msg.sender == factory.owner());
+        fnSelector.verifyAccess(msg.sender == _factory.owner());
     }
 }

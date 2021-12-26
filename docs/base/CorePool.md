@@ -33,7 +33,7 @@ For ILV Pool we use 200 as weight and for ILV/ETH SLP pool - 800.
 
 Used for functions that require syncing contract state before execution.
 
-### `__CorePool_init(address _ilv, address _silv, address _poolToken, address _corePoolV1, address _factory, uint64 _initTime, uint32 _weight)` (internal)
+### `__CorePool_init(address _ilv, address silv_, address _poolToken, address _corePoolV1, address _factory, uint64 _initTime, uint32 _weight)` (internal)
 
 Used in child contracts to initialize the pool.
 
@@ -83,7 +83,7 @@ and pays pending yield rewards if any.
 
 Requires value to stake and lock duration to be greater than zero.
 
-### `migrateUser(address _to)` (external)
+### `moveFundsFromWallet(address _to)` (external)
 
 Migrates msg.sender data to a new address.
 V1 stakes are never migrated to the new address. We process all rewards,
@@ -262,9 +262,9 @@ Fired in `_claimVaultRewards()`.
 
 Fired in `_processRewards()`.
 
-### `LogMigrateUser(address from, address to)`
+### `LogMoveFundsFromWallet(address from, address to)`
 
-fired in `migrateUser()`.
+fired in `moveFundsFromWallet()`.
 
 ### `LogReceiveVaultRewards(address by, uint256 value)`
 
