@@ -727,8 +727,10 @@ abstract contract CorePool is
         // coming from v1 and new v2 users.
         vaultRewardsPerWeight += _value.rewardPerWeight(globalWeight + v1GlobalWeight);
 
+        // transfers ILV from the Vault contract to the pool
         IERC20Upgradeable(_ilv).safeTransferFrom(msg.sender, address(this), _value);
 
+        // emits an event
         emit LogReceiveVaultRewards(msg.sender, _value);
     }
 

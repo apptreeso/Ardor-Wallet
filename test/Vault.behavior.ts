@@ -4,7 +4,7 @@ import chai from "chai";
 import chaiSubset from "chai-subset";
 import { solidity } from "ethereum-waffle";
 
-import { ONE_YEAR, toWei, getUsers0 } from "./utils";
+import { ONE_YEAR, toWei, getUsers0, getUsers3 } from "./utils";
 
 const { MaxUint256, AddressZero } = ethers.constants;
 
@@ -416,16 +416,19 @@ export function claimVaultRewards(): () => void {
       await this.lpPool.connect(this.signers.deployer).setVault(this.vault.address);
     });
     it("should claim vault rewards", async function () {
-      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+      const users = getUsers3([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
       await this.ilvPoolV1.setUsers(users);
       await this.lpPoolV1.setUsers(users);
 
-      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.ilvPool.connect(this.signers.bob).migrateLockedStakes([0, 1]);
+      await this.lpPool.connect(this.signers.bob).migrateLockedStakes([0, 1]);
 
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
-      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.ilv.connect(this.signers.bob).approve(this.ilvPool.address, MaxUint256);
+      await this.lp.connect(this.signers.bob).approve(this.lpPool.address, MaxUint256);
+
+      await this.ilvPool.connect(this.signers.bob).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.bob).stakePoolToken(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
       const ethIn = toWei(50);
@@ -440,20 +443,18 @@ export function claimVaultRewards(): () => void {
       const ilvPoolILVReceived1 = await this.ilv.balanceOf(this.ilvPool.address);
       const lpPoolILVReceived1 = await this.ilv.balanceOf(this.lpPool.address);
 
-      const ilvBalance0 = await this.ilv.balanceOf(this.signers.alice.address);
+      const ilvBalance0 = await this.ilv.balanceOf(this.signers.bob.address);
 
-      const { pendingRevDis: alicePendingRevDisILVPool } = await this.ilvPool.pendingRewards(
-        this.signers.alice.address,
-      );
-      const { pendingRevDis: alicePendingRevDisLPPool } = await this.lpPool.pendingRewards(this.signers.alice.address);
+      const { pendingRevDis: alicePendingRevDisILVPool } = await this.ilvPool.pendingRewards(this.signers.bob.address);
+      const { pendingRevDis: alicePendingRevDisLPPool } = await this.lpPool.pendingRewards(this.signers.bob.address);
 
-      await this.ilvPool.connect(this.signers.alice).claimVaultRewards();
+      await this.ilvPool.connect(this.signers.bob).claimVaultRewards();
 
-      const ilvBalance1 = await this.ilv.balanceOf(this.signers.alice.address);
+      const ilvBalance1 = await this.ilv.balanceOf(this.signers.bob.address);
 
-      await this.lpPool.connect(this.signers.alice).claimVaultRewards();
+      await this.lpPool.connect(this.signers.bob).claimVaultRewards();
 
-      const ilvBalance2 = await this.ilv.balanceOf(this.signers.alice.address);
+      const ilvBalance2 = await this.ilv.balanceOf(this.signers.bob.address);
 
       expect(ethers.utils.formatEther(alicePendingRevDisILVPool).slice(0, 6)).to.be.equal(
         ethers.utils.formatEther(ilvPoolILVReceived1.sub(ilvPoolILVReceived0)).slice(0, 6),
@@ -465,11 +466,6 @@ export function claimVaultRewards(): () => void {
       expect(ilvBalance2.sub(ilvBalance1)).to.be.equal(alicePendingRevDisLPPool);
     });
     it("should return if 0 rev dis", async function () {
-      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
-
-      await this.ilvPoolV1.setUsers(users);
-      await this.lpPoolV1.setUsers(users);
-
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
@@ -511,11 +507,6 @@ export function claimVaultRewards(): () => void {
       expect(ilvBalance2.sub(ilvBalance1)).to.be.equal(alicePendingRevDisLPPool);
     });
     it("should claim vault rewards in multiple pools", async function () {
-      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
-
-      await this.ilvPoolV1.setUsers(users);
-      await this.lpPoolV1.setUsers(users);
-
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
