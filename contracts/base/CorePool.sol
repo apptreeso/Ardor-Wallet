@@ -305,9 +305,9 @@ abstract contract CorePool is
     /**
      * @notice Calculates current yield rewards value available for address specified.
      *
-     * @dev see `_pendingRewards()` for further details.
+     * @dev See `_pendingRewards()` for further details.
      *
-     * @dev external `pendingRewards()` returns pendingYield and pendingRevDis
+     * @dev External `pendingRewards()` returns pendingYield and pendingRevDis
      *         accumulated with already stored user.pendingYield and user.pendingRevDis.
      *
      * @param _staker an address to calculate yield rewards value for
@@ -403,14 +403,17 @@ abstract contract CorePool is
 
     /**
      * @notice Returns total staked token balance for the given address.
-     * @dev loops through stakes and returns total balance.
+     * @dev Loops through stakes and returns total balance.
+     * @notice Expected to be called externally through `eth_call`. Gas shouldn't
+     *         be an issue here.
      *
      * @param _user an address to query balance for
      * @return balance total staked token balance
      */
     function balanceOf(address _user) external view virtual returns (uint256 balance) {
+        // gets storage pointer to _user
         User storage user = users[_user];
-
+        // loops over each user stake and adds to the total balance.
         for (uint256 i = 0; i < user.stakes.length; i++) {
             balance += user.stakes[i].value;
         }
@@ -440,6 +443,7 @@ abstract contract CorePool is
      * @return stakeId value
      */
     function getV1StakeId(address _user, uint256 _position) external view virtual returns (uint256) {
+        // returns the v1 stake id indicated at _position value
         return users[_user].v1StakesIds[_position];
     }
 
@@ -454,10 +458,14 @@ abstract contract CorePool is
      * @return position stake info as Stake structure
      */
     function getV1StakePosition(address _user, uint256 _desiredId) external view virtual returns (uint256 position) {
+        // gets storage pointer to user
         User storage user = users[_user];
 
+        // loops over each v1 stake id and checks if it's the one
+        // that the caller is looking for
         for (uint256 i = 0; i < user.v1IdsLength; i++) {
             if (user.v1StakesIds[i] == _desiredId) {
+                // if it's the desired stake id, return the array index (i.e position)
                 return i;
             }
         }
@@ -488,7 +496,9 @@ abstract contract CorePool is
      * @param _lockDuration stake duration as unix timestamp
      */
     function stakePoolToken(uint256 _value, uint64 _lockDuration) external virtual nonReentrant {
+        // always sync the pool state vars before moving forward
         _sync();
+        // checks if the contract is in a paused state
         _requireNotPaused();
         // calls internal function
         _stake(msg.sender, _value, _lockDuration);
@@ -505,14 +515,20 @@ abstract contract CorePool is
      */
 
     function moveFundsFromWallet(address _to) external virtual {
+        // always sync the pool state vars before moving forward
         _sync();
+        // checks if the contract is in a paused state
         _requireNotPaused();
+        // gets storage pointer to msg.sender user struct
         User storage previousUser = users[msg.sender];
+        // gets storage pointer to desired address user struct
         User storage newUser = users[_to];
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
         if (previousUser.totalWeight > 0 || v1WeightToAdd > 0) {
-            // we process all pending rewards before migration
+            // We process all pending rewards before moving the user funds to a new wallet.
+            // This way we can ensure that all v1 ids weight have been used before the v2
+            // stakes to a new address.
             _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
         }
         // we're using selector to simplify input and state validation
@@ -530,11 +546,19 @@ abstract contract CorePool is
                 newUser.subVaultRewards == 0,
             0
         );
-
+        // saves previous user total weight
         uint248 previousTotalWeight = previousUser.totalWeight;
+        // saves previous user pending yield
         uint128 previousYield = previousUser.pendingYield;
+        // saves previous user pending rev dis
         uint128 previousRevDis = previousUser.pendingRevDis;
 
+        // It's expected to have all previous user values
+        // migrated to the new user address (_to).
+        // We recalculate sub yield rewards and sub vault rewards values
+        // to make sure new user pending yield and pending rev dis to be stored
+        // at newUser.pendingYield and newUser.pendingRevDis is 0, since we just processed
+        // all pending rewards calling _processRewards.
         newUser.totalWeight = previousTotalWeight;
         newUser.pendingYield = previousYield;
         newUser.pendingRevDis = previousRevDis;
@@ -548,6 +572,7 @@ abstract contract CorePool is
         previousUser.subYieldRewards = v1WeightToAdd.weightToReward(yieldRewardsPerWeight);
         previousUser.subVaultRewards = v1WeightToAdd.weightToReward(vaultRewardsPerWeight);
 
+        // emits an event
         emit LogMoveFundsFromWallet(
             msg.sender,
             _to,
@@ -570,7 +595,9 @@ abstract contract CorePool is
      *                         array
      */
     function fillV1StakeId(uint256 _v1StakeId, uint256 _stakeIdPosition) external virtual {
+        // always sync the pool state vars before moving forward
         _sync();
+        // checks if the contract is in a paused state
         _requireNotPaused();
         User storage user = users[msg.sender];
         // we're using selector to simplify input and state validation
@@ -647,8 +674,11 @@ abstract contract CorePool is
      * @notice Pool state is updated before calling the internal function.
      */
     function claimYieldRewards(bool _useSILV) external virtual {
+        // always sync the pool state vars before moving forward
         _sync();
+        // checks if the contract is in a paused state
         _requireNotPaused();
+        // calls internal function
         _claimYieldRewards(msg.sender, _useSILV);
     }
 
@@ -658,8 +688,11 @@ abstract contract CorePool is
      * @notice Pool state is updated before calling the internal function.
      */
     function claimVaultRewards() external virtual {
+        // always sync the pool state vars before moving forward
         _sync();
+        // checks if the contract is in a paused state
         _requireNotPaused();
+        // calls internal function
         _claimVaultRewards(msg.sender);
     }
 
@@ -672,7 +705,9 @@ abstract contract CorePool is
      * @param _value amount of ILV rewards to transfer into the pool
      */
     function receiveVaultRewards(uint256 _value) external virtual {
+        // always sync the pool state vars before moving forward
         _sync();
+        // checks if the contract is in a paused state
         _requireNotPaused();
         // checks if msg.sender is the vault contract
         _requireIsVault();
@@ -683,10 +718,14 @@ abstract contract CorePool is
         if (_value == 0) {
             return;
         }
+        // reads total weight staked in v1
+        uint256 v1GlobalWeight = ICorePoolV1(corePoolV1).usersLockingWeight();
         // verify weight is not zero
-        fnSelector.verifyState(globalWeight > 0, 0);
-
-        vaultRewardsPerWeight += _value.rewardPerWeight(globalWeight);
+        fnSelector.verifyState(globalWeight > 0 || v1GlobalWeight > 0, 0);
+        // we update vaultRewardsPerWeight value using v1 and v2 global weight,
+        // expecting to distribute revenue distribution correctly to all users
+        // coming from v1 and new v2 users.
+        vaultRewardsPerWeight += _value.rewardPerWeight(globalWeight + v1GlobalWeight);
 
         IERC20Upgradeable(_ilv).safeTransferFrom(msg.sender, address(this), _value);
 
@@ -824,7 +863,9 @@ abstract contract CorePool is
      * @param _value value of tokens to unstake
      */
     function unstakeLocked(uint256 _stakeId, uint256 _value) external virtual {
+        // always sync the pool state vars before moving forward
         _sync();
+        // checks if the contract is in a paused state
         _requireNotPaused();
 
         // we're using selector to simplify input and state validation
@@ -903,7 +944,9 @@ abstract contract CorePool is
      *                        i.e if we're minting ILV or transferring pool tokens
      */
     function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external virtual {
+        // always sync the pool state vars before moving forward
         _sync();
+        // checks if the contract is in a paused state
         _requireNotPaused();
 
         // we're using selector to simplify input and state validation
