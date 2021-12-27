@@ -318,7 +318,7 @@ abstract contract CorePool is
         virtual
         returns (uint256 pendingYield, uint256 pendingRevDis)
     {
-        CorePool(this).pendingRewards.selector.verifyNonZeroInput(uint160(_staker), 0);
+        this.pendingRewards.selector.verifyNonZeroInput(uint160(_staker), 0);
         // `newYieldRewardsPerWeight` will be the stored or recalculated value for `yieldRewardsPerWeight`
         uint256 newYieldRewardsPerWeight;
         // gas savings
@@ -532,7 +532,7 @@ abstract contract CorePool is
             _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
         }
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = CorePool(this).moveFundsFromWallet.selector;
+        bytes4 fnSelector = this.moveFundsFromWallet.selector;
 
         // validate input is set
         fnSelector.verifyNonZeroInput(uint160(_to), 0);
@@ -601,7 +601,7 @@ abstract contract CorePool is
         _requireNotPaused();
         User storage user = users[msg.sender];
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = CorePool(this).fillV1StakeId.selector;
+        bytes4 fnSelector = this.fillV1StakeId.selector;
         // we read the original v1 weight stored in the initial migration
         uint256 weightToUse = v1StakesWeightsOriginal[msg.sender][_v1StakeId];
         // checks if v1StakeId has already been filled
@@ -712,7 +712,7 @@ abstract contract CorePool is
         // checks if msg.sender is the vault contract
         _requireIsVault();
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = CorePool(this).receiveVaultRewards.selector;
+        bytes4 fnSelector = this.receiveVaultRewards.selector;
 
         // return silently if there is no reward to receive
         if (_value == 0) {
@@ -744,7 +744,7 @@ abstract contract CorePool is
      */
     function setWeight(uint32 _weight) external virtual {
         // verify function is executed by the factory
-        CorePool(this).setWeight.selector.verifyAccess(msg.sender == address(_factory));
+        this.setWeight.selector.verifyAccess(msg.sender == address(_factory));
 
         // set the new weight value
         weight = _weight;
@@ -871,7 +871,7 @@ abstract contract CorePool is
         _requireNotPaused();
 
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = CorePool(this).unstakeLocked.selector;
+        bytes4 fnSelector = this.unstakeLocked.selector;
 
         // verify a value is set
         fnSelector.verifyNonZeroInput(_value, 0);
@@ -955,7 +955,7 @@ abstract contract CorePool is
         _requireNotPaused();
 
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = CorePool(this).unstakeLockedMultiple.selector;
+        bytes4 fnSelector = this.unstakeLockedMultiple.selector;
         // verifies if user has passed any value to be unstaked
         fnSelector.verifyNonZeroInput(_stakes.length, 0);
         // gets storage pointer to the user

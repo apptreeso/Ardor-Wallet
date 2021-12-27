@@ -97,7 +97,7 @@ contract ILVPool is Initializable, V2Migrator {
     function stakeAsPool(address _staker, uint256 _value) external nonReentrant {
         _sync();
         _requireNotPaused();
-        ILVPool(this).stakeAsPool.selector.verifyAccess(_factory.poolExists(msg.sender));
+        this.stakeAsPool.selector.verifyAccess(_factory.poolExists(msg.sender));
         User storage user = users[_staker];
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
@@ -243,7 +243,7 @@ contract ILVPool is Initializable, V2Migrator {
         uint256 weightToRemove;
 
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = ILVPool(this).mintV1YieldMultiple.selector;
+        bytes4 fnSelector = this.mintV1YieldMultiple.selector;
 
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);

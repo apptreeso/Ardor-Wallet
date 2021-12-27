@@ -32,7 +32,7 @@ abstract contract VaultRecipient is Initializable, FactoryControlled {
      */
     function setVault(address vault_) external virtual {
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = VaultRecipient(this).setVault.selector;
+        bytes4 fnSelector = this.setVault.selector;
         // verify function is executed by the factory owner
         fnSelector.verifyState(_factory.owner() == msg.sender, 0);
         // verify input is set
@@ -53,7 +53,7 @@ abstract contract VaultRecipient is Initializable, FactoryControlled {
         // we're using selector to simplify input and state validation
         // internal function simulated selector is `bytes4(keccak256("_requireIsVault()"))`
         bytes4 fnSelector = 0xeeea774b;
-
+        // checks if caller is the same stored vault address
         fnSelector.verifyAccess(msg.sender == _vault);
     }
 
