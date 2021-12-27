@@ -290,6 +290,7 @@ contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Time
         // verify that sender is a pool registered withing the factory
         fnSelector.verifyState(poolExists[msg.sender], 0);
 
+        // mints the requested token to the indicated address
         if (!_useSILV) {
             IERC20Mintable(_ilv).mint(_to, _value);
         } else {
@@ -326,9 +327,13 @@ contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Time
      */
     function setEndTime(uint32 _endTime) external virtual onlyOwner {
         bytes4 fnSelector = this.setEndTime.selector;
+        // checks if _endTime is a timestap after the last time that
+        // ILV/second has been updated
         fnSelector.verifyInput(_endTime > lastRatioUpdate, 0);
+        // updates endTime state var
         endTime = _endTime;
 
+        // emits an event
         emit LogSetEndTime(msg.sender, _endTime);
     }
 

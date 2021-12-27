@@ -237,6 +237,7 @@ contract FlashPool is
      * @return balance total staked token balance
      */
     function balanceOf(address _user) external view virtual returns (uint256 balance) {
+        // return entire user balance
         balance = users[_user].balance;
     }
 
