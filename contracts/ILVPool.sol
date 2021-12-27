@@ -303,6 +303,9 @@ contract ILVPool is Initializable, V2Migrator {
         user.totalWeight += (_yieldWeight).toUint248();
         // set user as claimed in bitmap
         _usersMigrated.set(_index);
+
+        // emits an event
+        emit LogMigrateYieldWeight(msg.sender, _yieldWeight);
     }
 
     /**

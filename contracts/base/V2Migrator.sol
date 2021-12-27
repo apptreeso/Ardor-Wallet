@@ -22,7 +22,7 @@ abstract contract V2Migrator is Initializable, CorePool {
     using ErrorHandler for bytes4;
     using Stake for uint256;
 
-    /// @dev stores maximum timestamp of a v1 stake accepted in v2.
+    /// @dev Stores maximum timestamp of a v1 stake accepted in v2.
     uint256 private _v1StakeMaxPeriod;
 
     /**
@@ -59,8 +59,9 @@ abstract contract V2Migrator is Initializable, CorePool {
         uint32 _weight,
         uint256 v1StakeMaxPeriod_
     ) internal initializer {
+        // call internal core pool intializar
         __CorePool_init(ilv_, silv_, _poolToken, _corePoolV1, factory_, _initTime, _weight);
-
+        // sets max period for upgrading to V2 contracts i.e migrating
         _v1StakeMaxPeriod = v1StakeMaxPeriod_;
     }
 
@@ -81,9 +82,11 @@ abstract contract V2Migrator is Initializable, CorePool {
      * @param _stakeIds array of v1 stake ids
      */
     function migrateLockedStakes(uint256[] calldata _stakeIds) external virtual {
+        // update pool contract state variables
         _sync();
+        // checks if contract is paused
         _requireNotPaused();
-
+        // gets storage pointer to user
         User storage user = users[msg.sender];
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
@@ -91,6 +94,9 @@ abstract contract V2Migrator is Initializable, CorePool {
             // update user state
             _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
         }
+        // call internal migrate locked stake function
+        // which does the loop to store each v1 stake
+        // reference in v2 and all required data
         _migrateLockedStakes(_stakeIds);
 
         // gas savings
@@ -116,22 +122,40 @@ abstract contract V2Migrator is Initializable, CorePool {
         // internal function simulated selector is `keccak256("_migrateLockedStakes(uint256[])")`
         bytes4 fnSelector = 0x80812525;
 
+        // initializes variable which will tell how much
+        // weight in v1 the user is bringing to v2
         uint256 totalV1WeightAdded;
 
+        // loops over each v1 stake id passed to do the necessary validity checks
+        // and store the values required in v2 to keep track of v1 weight in order
+        // to include it in v2 rewards (yield and revenue distribution) calculations
         for (uint256 i = 0; i < _stakeIds.length; i++) {
+            // reads the v1 stake by calling the v1 core pool getDeposit and separates
+            // all required data in the struct to be used
             (, uint256 _weight, uint64 lockedFrom, , bool isYield) = ICorePoolV1(corePoolV1).getDeposit(
                 msg.sender,
                 _stakeIds[i]
             );
+            // checks if the v1 stake is in the valid period for migration
             fnSelector.verifyState(lockedFrom <= _v1StakeMaxPeriod, i * 3);
+            // checks if the v1 stake has been locked originally and isn't a yield
+            // stake, which are the requirements for moving to v2 through this function
             fnSelector.verifyState(lockedFrom > 0 && !isYield, i * 3 + 1);
+            // checks if the user has already brought those v1 stakes to v2
             fnSelector.verifyState(v1StakesWeights[msg.sender][_stakeIds[i]] == 0, i * 3 + 2);
 
+            // adds v1 weight to the dynamic mapping which will be used in calculations
             v1StakesWeights[msg.sender][_stakeIds[i]] = _weight;
+            // adds v1 weight to the mapping which will be used for filling a v1 stake
+            // id in the future through `CorePool.fillV1StakeId()`;
             v1StakesWeightsOriginal[msg.sender][_stakeIds[i]] = _weight;
+            // updates the variable keeping track of the total weight migrated
             totalV1WeightAdded += _weight;
             user.v1IdsLength++;
             user.v1StakesIds[i] = _stakeIds[i];
+
+            // emits an event
+            emit LogMigrateLockedStakes(msg.sender, totalV1WeightAdded);
         }
     }
 
