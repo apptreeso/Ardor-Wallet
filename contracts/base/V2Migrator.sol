@@ -151,7 +151,9 @@ abstract contract V2Migrator is Initializable, CorePool {
             v1StakesWeightsOriginal[msg.sender][_stakeIds[i]] = _weight;
             // updates the variable keeping track of the total weight migrated
             totalV1WeightAdded += _weight;
+            // update value keeping track of v1 stakes ids mapping length
             user.v1IdsLength++;
+            // adds stake id to mapping keeping track of each v1 stake id
             user.v1StakesIds[i] = _stakeIds[i];
 
             // emits an event

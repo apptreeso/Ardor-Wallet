@@ -344,7 +344,7 @@ abstract contract CorePool is
 
         // based on the rewards per weight value, calculate pending rewards;
         User storage user = users[_staker];
-
+        // initializes both variables from one storage slot
         (uint256 v1StakesLength, uint256 userWeight) = (uint256(user.v1IdsLength), uint256(user.totalWeight));
 
         uint256 totalV1Weight;
