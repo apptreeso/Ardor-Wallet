@@ -252,5 +252,79 @@ export const getUsers2 = (addresses: string[]) => [
   },
 ];
 
+export const getUsers3 = (addresses: string[]) => [
+  {
+    userAddress: addresses[0],
+    deposits: [
+      {
+        tokenAmount: toWei(200),
+        weight: toWei(0).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(500),
+        weight: toWei(0).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: true,
+      },
+      {
+        tokenAmount: toWei(300),
+        weight: toWei(0).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+  {
+    userAddress: addresses[1],
+    deposits: [
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(10000).mul(1e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100000).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+  {
+    userAddress: addresses[2],
+    deposits: [
+      {
+        tokenAmount: toWei(500),
+        weight: toWei(0).mul(1.5e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR / 2,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(400),
+        weight: toWei(0).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: true,
+      },
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(0).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+];
+
 // based on getUsers2
 export const getTotalV1WeightMocked = () => toWei(2250).mul(1e6);

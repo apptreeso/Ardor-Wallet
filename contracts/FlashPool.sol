@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -27,7 +28,14 @@ import "hardhat/console.sol";
  *      don't lock tokens and we don't need to deal with mappings and arrays
  *      as much as we do in the ILV and Sushi LP pools.
  */
-contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgradeable, PausableUpgradeable, Timestamp {
+contract FlashPool is
+    Initializable,
+    UUPSUpgradeable,
+    FactoryControlled,
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable,
+    Timestamp
+{
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using ErrorHandler for bytes4;
     using SafeCast for uint256;
@@ -167,9 +175,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
         uint64 _endTime,
         uint32 _weight
     ) external initializer {
-        require(_poolToken != address(0), "pool token address not set");
-        require(_initTime > 0, "init time not set");
-        require(_weight > 0, "pool weight not set");
+        bytes4 fnSelector = this.initialize.selector;
+        fnSelector.verifyNonZeroInput(uint160(_poolToken), 2);
+        fnSelector.verifyNonZeroInput(_initTime, 4);
+        fnSelector.verifyNonZeroInput(_weight, 6);
 
         __FactoryControlled_init(factory_);
         __ReentrancyGuard_init();
@@ -194,7 +203,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _staker an address to calculate yield rewards value for
      * @return pending calculated yield reward value for the given address
      */
-    function pendingYieldRewards(address _staker) external view returns (uint256 pending) {
+    function pendingYieldRewards(address _staker) external view virtual returns (uint256 pending) {
         // `newYieldRewardsPerToken` will store stored or recalculated value for `yieldRewardsPerToken`
         uint256 newYieldRewardsPerToken;
 
@@ -227,7 +236,8 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _user an address to query balance for
      * @return balance total staked token balance
      */
-    function balanceOf(address _user) external view returns (uint256 balance) {
+    function balanceOf(address _user) external view virtual returns (uint256 balance) {
+        // return entire user balance
         balance = users[_user].balance;
     }
 
@@ -237,7 +247,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *
      * @return true if pool is disabled, false otherwise
      */
-    function isPoolDisabled() public view returns (bool) {
+    function isPoolDisabled() public view virtual returns (bool) {
         // verify the pool expiration condition and return the result
         return _now256() > endTime;
     }
@@ -248,9 +258,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *
      * @param _value number of tokens to stake
      */
-    function stake(uint256 _value) external updatePool whenNotPaused nonReentrant {
+    function stake(uint256 _value) external virtual updatePool whenNotPaused nonReentrant {
+        bytes4 fnSelector = this.stake.selector;
         // validates input
-        require(_value > 0, "zero value");
+        fnSelector.verifyNonZeroInput(_value, 0);
 
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
@@ -292,13 +303,12 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *
      * @param _to new user address
      */
-    function moveFundsFromWallet(address _to) external updatePool whenNotPaused {
-        require(_to != address(0), "invalid _to");
+    function moveFundsFromWallet(address _to) external virtual updatePool whenNotPaused {
+        bytes4 fnSelector = this.moveFundsFromWallet.selector;
+        fnSelector.verifyNonZeroInput(uint160(_to), 0);
+
         User storage newUser = users[_to];
-        require(
-            newUser.balance == 0 && newUser.pendingYield == 0 && newUser.subYieldRewards == 0,
-            "invalid user, already exists"
-        );
+        fnSelector.verifyState(newUser.balance == 0 && newUser.pendingYield == 0 && newUser.subYieldRewards == 0, 1);
 
         User storage previousUser = users[msg.sender];
         uint128 balance = previousUser.balance;
@@ -325,7 +335,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @dev When timing conditions are not met (executed too frequently, or after factory
      *      end time), function doesn't throw and exits silently
      */
-    function sync() external whenNotPaused {
+    function sync() external virtual whenNotPaused {
         // delegate call to an internal function
         _sync();
     }
@@ -335,7 +345,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *
      * @notice pool state is updated before calling the internal function
      */
-    function claimYieldRewards(bool _useSILV) external updatePool whenNotPaused {
+    function claimYieldRewards(bool _useSILV) external virtual updatePool whenNotPaused {
         _claimYieldRewards(msg.sender, _useSILV);
     }
 
@@ -349,9 +359,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _staker user address
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
-    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external updatePool whenNotPaused {
+    function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external virtual updatePool whenNotPaused {
+        bytes4 fnSelector = this.claimYieldRewardsFromRouter.selector;
         bool poolIsValid = address(IFactory(_factory).pools(_ilv)) == msg.sender;
-        require(poolIsValid, "invalid caller");
+        fnSelector.verifyState(poolIsValid, 0);
 
         _claimYieldRewards(_staker, _useSILV);
     }
@@ -364,9 +375,10 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *
      * @param _weight new weight to set for the pool
      */
-    function setWeight(uint32 _weight) external {
-        // verify function is executed by the _factory
-        require(msg.sender == address(_factory), "access denied");
+    function setWeight(uint32 _weight) external virtual {
+        bytes4 fnSelector = this.setWeight.selector;
+        // verify function is executed by the factory
+        fnSelector.verifyState(msg.sender == address(_factory), 0);
 
         // set the new weight value
         weight = _weight;
@@ -380,7 +392,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      *
      * @param _newEndTime new flash pool end time
      */
-    function setEndTime(uint64 _newEndTime) external {
+    function setEndTime(uint64 _newEndTime) external virtual {
         bytes4 fnSelector = this.setEndTime.selector;
         fnSelector.verifyInput(_newEndTime > _now256(), 0);
         _requireIsFactoryController();
@@ -397,20 +409,21 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _staker an address to calculate yield rewards value for
      * @return pending calculated yield reward value for the given address
      */
-    function _pendingYieldRewards(address _staker) internal view returns (uint256 pending) {
+    function _pendingYieldRewards(address _staker) internal view virtual returns (uint256 pending) {
         // links to _staker user struct in storage
         User storage user = users[_staker];
 
         pending = _tokensToReward(user.balance, yieldRewardsPerToken);
     }
 
-    function unstake(uint256 _value) external updatePool nonReentrant {
+    function unstake(uint256 _value) external virtual updatePool nonReentrant {
+        bytes4 fnSelector = this.unstake.selector;
         // verify a value is set
-        require(_value > 0, "zero value");
+        fnSelector.verifyNonZeroInput(_value, 0);
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
         // verify available balance
-        require(user.balance >= _value, "value exceeds user balance");
+        fnSelector.verifyState(user.balance >= _value, 1);
         // and process current pending rewards if any
         _processRewards(msg.sender);
 
@@ -508,7 +521,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _staker user address
      * @param _useSILV whether the user wants to claim ILV or sILV
      */
-    function _claimYieldRewards(address _staker, bool _useSILV) internal {
+    function _claimYieldRewards(address _staker, bool _useSILV) internal virtual {
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
         if (user.balance > 0) {
@@ -550,7 +563,7 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param __rewardPerToken ILV reward per token
      * @return reward value normalized to 10^12
      */
-    function _tokensToReward(uint256 _value, uint256 __rewardPerToken) internal pure returns (uint256) {
+    function _tokensToReward(uint256 _value, uint256 __rewardPerToken) internal pure virtual returns (uint256) {
         // apply the formula and return
         return (_value * __rewardPerToken) / REWARD_PER_TOKEN_MULTIPLIER;
     }
@@ -562,14 +575,21 @@ contract FlashPool is UUPSUpgradeable, FactoryControlled, ReentrancyGuardUpgrade
      * @param _totalStaked total value staked in the pool
      * @return reward per token value
      */
-    function _rewardPerToken(uint256 _reward, uint256 _totalStaked) internal pure returns (uint256) {
+    function _rewardPerToken(uint256 _reward, uint256 _totalStaked) internal pure virtual returns (uint256) {
         // apply the reverse formula and return
         return (_reward * REWARD_PER_TOKEN_MULTIPLIER) / _totalStaked;
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address) internal view override {
+    function _authorizeUpgrade(address) internal view virtual override {
         // checks caller is _factory.owner()
         _requireIsFactoryController();
     }
+
+    /**
+     * @dev Empty reserved space in storage. The size of the __gap array is calculated so that
+     *      the amount of storage used by a contract always adds up to the 50.
+     *      See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[44] private __gap;
 }

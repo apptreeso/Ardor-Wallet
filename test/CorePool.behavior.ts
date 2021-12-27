@@ -629,14 +629,12 @@ export function migrationTests(usingPool: string): () => void {
         expect(aliceV1StakeIds[0]).to.be.equal(0);
         expect(aliceV1StakeIds[1]).to.be.equal(2);
       });
-      it("should return 0 if _stakeId doesn't exist", async function () {
+      it("should revert if _stakeId doesn't exist", async function () {
         const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
         await pool.connect(this.signers.alice).migrateLockedStakes([0, 2]);
 
-        const aliceInvalidV1StakePosition = await pool.getV1StakePosition(this.signers.alice.address, 4);
-
-        expect(aliceInvalidV1StakePosition).to.be.equal(0);
+        await expect(pool.getV1StakePosition(this.signers.alice.address, 4)).reverted;
       });
       it("should migrate locked stakes - carol", async function () {
         const pool = getPool(this.ilvPool, this.lpPool, usingPool);

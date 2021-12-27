@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { SafeCast } from "./libraries/SafeCast.sol";
 import { Timestamp } from "./base/Timestamp.sol";
-// import { CorePool } from "./CorePool.sol";
 import { ICorePool } from "./interfaces/ICorePool.sol";
 import { IERC20Mintable } from "./interfaces/IERC20Mintable.sol";
+import { ErrorHandler } from "./libraries/ErrorHandler.sol";
 
 import "hardhat/console.sol";
 
@@ -29,7 +30,8 @@ import "hardhat/console.sol";
  *         changing pool weights, managing emission schedules and so on.
  *
  */
-contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
+contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Timestamp {
+    using ErrorHandler for bytes4;
     using SafeCast for uint256;
 
     /// @dev Auxiliary data structure used only in getPoolData() view function
@@ -149,13 +151,14 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         uint32 _initTime,
         uint32 _endTime
     ) external initializer {
+        bytes4 fnSelector = this.initialize.selector;
         // verify the inputs are set
-        require(ilv_ != address(0), "ILV address not set");
-        require(silv_ != address(0), "sILV address not set");
-        require(_ilvPerSecond > 0, "ILV/second not set");
-        require(_secondsPerUpdate > 0, "seconds/update not set");
-        require(_initTime > 0, "init seconds not set");
-        require(_endTime > _initTime, "invalid end time: must be greater than init time");
+        fnSelector.verifyNonZeroInput(uint160(ilv_), 0);
+        fnSelector.verifyNonZeroInput(uint160(silv_), 1);
+        fnSelector.verifyNonZeroInput(_ilvPerSecond, 2);
+        fnSelector.verifyNonZeroInput(_secondsPerUpdate, 3);
+        fnSelector.verifyNonZeroInput(_initTime, 4);
+        fnSelector.verifyNonZeroInput(_endTime, 5);
 
         __Ownable_init();
 
@@ -176,7 +179,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      * @param poolToken pool token address (like ILV) to query pool address for
      * @return pool address for the token specified
      */
-    function getPoolAddress(address poolToken) external view returns (address) {
+    function getPoolAddress(address poolToken) external view virtual returns (address) {
         // read the mapping and return
         return address(pools[poolToken]);
     }
@@ -188,12 +191,13 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      * @param _poolToken pool token address to query pool information for.
      * @return pool information packed in a PoolData struct.
      */
-    function getPoolData(address _poolToken) public view returns (PoolData memory) {
+    function getPoolData(address _poolToken) public view virtual returns (PoolData memory) {
+        bytes4 fnSelector = this.getPoolData.selector;
         // get the pool address from the mapping
         ICorePool pool = ICorePool(pools[_poolToken]);
 
         // throw if there is no pool registered for the token specified
-        require(address(pool) != address(0), "pool not found");
+        fnSelector.verifyState(uint160(address(pool)) != 0, 0);
 
         // read pool information from the pool smart contract
         // via the pool interface (ICorePool)
@@ -211,7 +215,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      *
      * @return true if enough time has passed and `updateILVPerSecond` can be executed.
      */
-    function shouldUpdateRatio() public view returns (bool) {
+    function shouldUpdateRatio() public view virtual returns (bool) {
         // if yield farming period has ended
         if (_now256() > endTime) {
             // ILV/second reward cannot be updated anymore
@@ -229,7 +233,7 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      *
      * @param pool address of the already deployed pool instance
      */
-    function registerPool(address pool) public onlyOwner {
+    function registerPool(address pool) public virtual onlyOwner {
         // read pool information from the pool smart contract
         // via the pool interface (ICorePool)
         address poolToken = ICorePool(pool).poolToken();
@@ -250,11 +254,14 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      * @notice Decreases ILV/second reward by 3%, can be executed
      *      no more than once per `secondsPerUpdate` seconds.
      */
-    function updateILVPerSecond() external {
+    function updateILVPerSecond() external virtual {
+        bytes4 fnSelector = this.updateILVPerSecond.selector;
         // checks if ratio can be updated i.e. if seconds/update have passed
-        require(shouldUpdateRatio(), "too frequent");
+        fnSelector.verifyState(shouldUpdateRatio(), 0);
 
-        // decreases ILV/second reward by 3%
+        // decreases ILV/second reward by 3%.
+        // To achieve that we multiply by 97 and then
+        // divide by 100
         ilvPerSecond = (ilvPerSecond * 97) / 100;
 
         // set current timestamp as the last ratio update timestamp
@@ -278,10 +285,12 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
         address _to,
         uint256 _value,
         bool _useSILV
-    ) external {
+    ) external virtual {
+        bytes4 fnSelector = this.mintYieldTo.selector;
         // verify that sender is a pool registered withing the factory
-        require(poolExists[msg.sender], "access denied");
+        fnSelector.verifyState(poolExists[msg.sender], 0);
 
+        // mints the requested token to the indicated address
         if (!_useSILV) {
             IERC20Mintable(_ilv).mint(_to, _value);
         } else {
@@ -296,9 +305,10 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      * @param pool address of the pool to change weight for
      * @param weight new weight value to set to
      */
-    function changePoolWeight(address pool, uint32 weight) external {
+    function changePoolWeight(address pool, uint32 weight) external virtual {
+        bytes4 fnSelector = this.changePoolWeight.selector;
         // verify function is executed either by factory owner or by the pool itself
-        require(msg.sender == owner() || poolExists[msg.sender]);
+        fnSelector.verifyAccess(msg.sender == owner() || poolExists[msg.sender]);
 
         // recalculate total weight
         totalWeight = totalWeight + weight - ICorePool(pool).weight();
@@ -315,10 +325,15 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
      *
      * @param _endTime new end time value to be stored
      */
-    function setEndTime(uint32 _endTime) external onlyOwner {
-        require(_endTime > lastRatioUpdate, "invalid _endTime");
+    function setEndTime(uint32 _endTime) external virtual onlyOwner {
+        bytes4 fnSelector = this.setEndTime.selector;
+        // checks if _endTime is a timestap after the last time that
+        // ILV/second has been updated
+        fnSelector.verifyInput(_endTime > lastRatioUpdate, 0);
+        // updates endTime state var
         endTime = _endTime;
 
+        // emits an event
         emit LogSetEndTime(msg.sender, _endTime);
     }
 
@@ -329,5 +344,12 @@ contract PoolFactory is UUPSUpgradeable, OwnableUpgradeable, Timestamp {
     function renounceOwnership() public virtual override {}
 
     /// @dev See `CorePool._authorizeUpgrade()`
-    function _authorizeUpgrade(address) internal override onlyOwner {}
+    function _authorizeUpgrade(address) internal virtual override onlyOwner {}
+
+    /**
+     * @dev Empty reserved space in storage. The size of the __gap array is calculated so that
+     *      the amount of storage used by a contract always adds up to the 50.
+     *      See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[45] private __gap;
 }

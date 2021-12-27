@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { V2Migrator } from "./base/V2Migrator.sol";
+import { ErrorHandler } from "./libraries/ErrorHandler.sol";
 
 /**
  * @title The Sushi LP Pool.
@@ -11,7 +13,9 @@ import { V2Migrator } from "./base/V2Migrator.sol";
  *      to be called by ILV pool in batch calls where we claim rewards from multiple
  *      pools.
  */
-contract SushiLPPool is V2Migrator {
+contract SushiLPPool is Initializable, V2Migrator {
+    using ErrorHandler for bytes4;
+
     /// @dev Calls __V2Migrator_init().
     function initialize(
         address ilv_,
@@ -37,10 +41,14 @@ contract SushiLPPool is V2Migrator {
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
     function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external virtual {
+        // update pool contract state
         _sync();
+        // checks if contract is paused
         _requireNotPaused();
+        // checks if caller is the ILV pool
         _requirePoolIsValid();
 
+        // calls internal _claimYieldRewards function (in CorePool.sol)
         _claimYieldRewards(_staker, _useSILV);
     }
 
@@ -54,16 +62,36 @@ contract SushiLPPool is V2Migrator {
      * @param _staker user address
      */
     function claimVaultRewardsFromRouter(address _staker) external virtual {
+        // update pool contract state
         _sync();
+        // checks if contract is paused
         _requireNotPaused();
+        // checks if caller is the ILV pool
         _requirePoolIsValid();
 
+        // calls internal _claimVaultRewards function (in CorePool.sol)
         _claimVaultRewards(_staker);
     }
 
-    /// @dev Checks if caller is ILVPool.
-    function _requirePoolIsValid() internal view {
+    /**
+     * @dev Checks if caller is ILV pool.
+     * @dev We are using an internal function instead of a modifier in order to
+     *      reduce the contract's bytecode size.
+     */
+    function _requirePoolIsValid() internal view virtual {
+        // we're using selector to simplify input and state validation
+        // internal function simulated selector is `bytes4(keccak256("_requirePoolIsValid()"))`
+        bytes4 fnSelector = 0x250f303f;
+
+        // checks if pool is the ILV pool
         bool poolIsValid = address(_factory.pools(_ilv)) == msg.sender;
-        require(poolIsValid);
+        fnSelector.verifyState(poolIsValid, 0);
     }
+
+    /**
+     * @dev Empty reserved space in storage. The size of the __gap array is calculated so that
+     *      the amount of storage used by a contract always adds up to the 50.
+     *      See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[50] private __gap;
 }
