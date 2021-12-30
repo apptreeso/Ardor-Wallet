@@ -66,7 +66,7 @@
     "compile": "hardhat compile",
     "coverage": "hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"./test/**/*.ts\"",
     "deploy:core": "hardhat run scripts/deploy_core.ts",
-    "deploy:flash": "hardhat run scripts/deploy_flash.ts",
+    "deploy:flash": "hardhat run scripts/deploy_flash_pool.ts",
     "deploy:network": "hardhat run scripts/deploy.ts --network",
     "lint": "yarn run lint:sol && yarn run lint:ts && yarn run prettier:check",
     "lint:sol": "solhint --config ./.solhint.json --max-warnings 0 \"contracts/**/*.sol\"",

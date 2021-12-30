@@ -29,7 +29,7 @@ async function main(): Promise<void> {
 
   const tx0 = await factory.registerPool(flashPool.address);
   await tx0.wait();
-  console.log("ILV pool registered successfully!");
+  console.log("Flash pool registered successfully!");
 }
 
 main()
