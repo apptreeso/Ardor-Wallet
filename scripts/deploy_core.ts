@@ -2,15 +2,11 @@ import { ethers, upgrades } from "hardhat";
 
 import {
   ILVPool__factory,
-  ILVPoolUpgrade__factory,
   ILVPool,
   SushiLPPool__factory,
-  SushiLPPoolUpgrade__factory,
   SushiLPPool,
   PoolFactory__factory,
-  PoolFactoryUpgrade__factory,
   PoolFactory,
-  ERC20Mock__factory,
 } from "../typechain";
 
 import { config } from "./config/index";
@@ -19,6 +15,8 @@ async function main(): Promise<void> {
   const ILVPool = <ILVPool__factory>await ethers.getContractFactory("ILVPool");
   const SushiLPPool = <SushiLPPool__factory>await ethers.getContractFactory("SushiLPPool");
   const PoolFactory = <PoolFactory__factory>await ethers.getContractFactory("PoolFactory");
+
+  console.log("deploying pool factory...");
 
   const factoryPending = (await upgrades.deployProxy(
     PoolFactory,
@@ -35,6 +33,9 @@ async function main(): Promise<void> {
 
   const factory = await factoryPending.deployed();
 
+  console.log(`Pool factory deployed at ${factory.address}`);
+  console.log("deploying ILV pool...");
+
   const ilvPoolPending = (await upgrades.deployProxy(
     ILVPool,
     [
@@ -49,6 +50,11 @@ async function main(): Promise<void> {
     ],
     { kind: "uups" },
   )) as ILVPool;
+
+  const ilvPool = await ilvPoolPending.deployed();
+  console.log(`ILV Pool deployed at ${ilvPool.address}`);
+
+  console.log("deploying Sushi LP pool...");
   const lpPoolPending = (await upgrades.deployProxy(
     SushiLPPool,
     [
@@ -64,15 +70,14 @@ async function main(): Promise<void> {
     { kind: "uups" },
   )) as SushiLPPool;
 
-  const ilvPool = await ilvPoolPending.deployed();
   const lpPool = await lpPoolPending.deployed();
+  console.log(`LP Pool deployed at ${lpPool.address}`);
 
   console.log(ilvPool.address);
   console.log(lpPool.address);
   console.log(factory.address);
 }
 
-// We recommend this pattern to be able to use async/await everywhere and properly handle errors.
 main()
   .then(() => process.exit(0))
   .catch((error: Error) => {
