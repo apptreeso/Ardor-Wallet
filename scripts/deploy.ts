@@ -22,7 +22,14 @@ async function main(): Promise<void> {
 
   const factoryPending = (await upgrades.deployProxy(
     PoolFactory,
-    [config.ilv, config.silv, config.ILV_PER_SECOND, config.SECONDS_PER_UPDATE, "1640734004", "1640850162"],
+    [
+      config.ilv,
+      config.silv,
+      config.ILV_PER_SECOND,
+      config.SECONDS_PER_UPDATE,
+      (new Date().getTime() / 1000).toFixed(0),
+      (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+    ],
     { kind: "uups" },
   )) as PoolFactory;
 
@@ -35,11 +42,10 @@ async function main(): Promise<void> {
       config.silv,
       config.ilv,
       factory.address,
-      (new Date().getTime() / 1000).toString(),
+      (new Date().getTime() / 1000).toFixed(0),
       config.ILV_POOL_WEIGHT,
       config.ilvPoolV1,
-      // adds three years to init time
-      ((new Date().getTime() / 1000) * (config.SECONDS_PER_UPDATE * 96)).toString(),
+      (new Date().getTime() / 1000).toFixed(0),
     ],
     { kind: "uups" },
   )) as ILVPool;
@@ -50,10 +56,10 @@ async function main(): Promise<void> {
       config.silv,
       config.lp,
       factory.address,
-      (new Date().getTime() / 1000).toString(),
+      (new Date().getTime() / 1000).toFixed(0),
       config.LP_POOL_WEIGHT,
       config.lpPoolV1,
-      ((new Date().getTime() / 1000) * (config.SECONDS_PER_UPDATE * 96)).toString(),
+      (new Date().getTime() / 1000).toFixed(0),
     ],
     { kind: "uups" },
   )) as SushiLPPool;
