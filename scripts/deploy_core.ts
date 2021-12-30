@@ -73,6 +73,15 @@ async function main(): Promise<void> {
   const lpPool = await lpPoolPending.deployed();
   console.log(`LP Pool deployed at ${lpPool.address}`);
 
+  console.log("registering deployed core pools in the factory..");
+
+  const tx0 = await factory.registerPool(ilvPool.address);
+  await tx0.wait();
+  console.log("ILV pool registered successfully!");
+  const tx1 = await factory.registerPool(lpPool.address);
+  await tx1.wait();
+  console.log("Sushi LP pool registered successfully!");
+
   console.log(ilvPool.address);
   console.log(lpPool.address);
   console.log(factory.address);

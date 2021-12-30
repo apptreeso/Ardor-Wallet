@@ -72,7 +72,7 @@ const config: HardhatUserConfig = {
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts: [`0x${process.env.PRIVATE_KEY}`],
-      gasPrice: 95000000000,
+      gasPrice: 10000000000,
     },
   },
   paths: {
