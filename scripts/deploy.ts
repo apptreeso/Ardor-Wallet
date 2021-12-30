@@ -35,10 +35,11 @@ async function main(): Promise<void> {
       config.silv,
       config.ilv,
       factory.address,
-      "1640734004",
-      200,
-      "0xD0768dbCA432F405331685eFEE23f1a8b7bD72F7",
-      "1640734004",
+      (new Date().getTime() / 1000).toString(),
+      config.ILV_POOL_WEIGHT,
+      config.ilvPoolV1,
+      // adds three years to init time
+      ((new Date().getTime() / 1000) * (config.SECONDS_PER_UPDATE * 96)).toString(),
     ],
     { kind: "uups" },
   )) as ILVPool;
@@ -47,12 +48,12 @@ async function main(): Promise<void> {
     [
       config.ilv,
       config.silv,
-      "0x65544e52fc7ab9281b6d543012825e810cd86f4f",
+      config.lp,
       factory.address,
-      "1640734004",
-      800,
-      "0xf763B017E5dd298dCE2c24729aF54e9fD76Cfca8",
-      "1640734004",
+      (new Date().getTime() / 1000).toString(),
+      config.LP_POOL_WEIGHT,
+      config.lpPoolV1,
+      ((new Date().getTime() / 1000) * (config.SECONDS_PER_UPDATE * 96)).toString(),
     ],
     { kind: "uups" },
   )) as SushiLPPool;
