@@ -555,10 +555,6 @@ describe("FlashPool", function () {
       const { pendingYield: pendingYield0 } = await this.flashPool.users(this.signers.alice.address);
       await this.flashPool.connect(this.signers.alice).unstake(toWei(1));
       const { pendingYield: pendingYield1 } = await this.flashPool.users(this.signers.alice.address);
-      await this.flashPool.connect(this.signers.alice).unstake(toWei(1));
-      const { pendingYield: pendingYield2 } = await this.flashPool.users(this.signers.alice.address);
-
-      console.log(pendingYield1, pendingYield2);
 
       const poolWeight = await this.flashPool.weight();
       const totalWeight = await this.factory.totalWeight();
