@@ -1221,6 +1221,7 @@ abstract contract CorePool is
         user.pendingRevDis = 0;
 
         // subYieldRewards and subVaultRewards needs to be updated on every `_processRewards` call
+        user.subYieldRewards = uint256(user.totalWeight).weightToReward(vaultRewardsPerWeight);
         user.subVaultRewards = uint256(user.totalWeight).weightToReward(vaultRewardsPerWeight);
 
         IERC20Upgradeable(_ilv).safeTransfer(_staker, pendingRevDis);
