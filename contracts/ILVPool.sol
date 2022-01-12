@@ -297,6 +297,10 @@ contract ILVPool is Initializable, V2Migrator {
      * @param _stakeIds array of yield ids in v1 from msg.sender user
      */
     function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
+        // we're using selector to simplify validation
+        bytes4 fnSelector = this.mintV1YieldMultiple.selector;
+        // makes sure caller isn't a blacklisted v1 user
+        fnSelector.verifyAccess(!_isBlacklisted[msg.sender]);
         // updates pool contract state variables
         _sync();
         // gets storage pointer to the user
@@ -306,9 +310,6 @@ contract ILVPool is Initializable, V2Migrator {
         // weight needs to be removed from the user
         uint256 amountToMint;
         uint256 weightToRemove;
-
-        // we're using selector to simplify input and state validation
-        bytes4 fnSelector = this.mintV1YieldMultiple.selector;
 
         // uses v1 weight values for rewards calculations
         (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
