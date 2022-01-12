@@ -99,8 +99,21 @@ contract ILVPool is Initializable, V2Migrator {
     function setMerkleRoot(bytes32 _merkleRoot) external {
         // checks if function is being called by PoolFactory.owner()
         _requireIsFactoryController();
-        // stores the new merkle root
+        // stores the merkle root
         merkleRoot = _merkleRoot;
+    }
+
+    /**
+     * @dev Sets the bonus multiplier which will be used by `_migratePendingRewards()`
+     * @dev Value needs to be calculated off-chain by taking the time we stop v1 rewards
+     *      emissions, and the time when v2 rewards start accruing. This value will represent
+     *      the value used to derive the rewards value during this period from the user total weight.
+     */
+    function setBonusMultiplier(uint256 v1RewardsBonusMultiplier_) external {
+        // checks if function is being called by PoolFactory.owner()
+        _requireIsFactoryController();
+        // stores the v1 pending rewards bonus multiplier
+        _v1RewardsBonusMultiplier = v1RewardsBonusMultiplier_;
     }
 
     /**
