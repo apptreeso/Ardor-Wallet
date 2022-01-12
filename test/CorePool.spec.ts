@@ -44,7 +44,6 @@ import {
   unstakeLockedMultiple,
   moveFundsFromWallet,
   merkleTree,
-  fillV1StakeId,
 } from "./CorePool.behavior";
 
 chai.use(solidity);
@@ -175,9 +174,5 @@ describe("CorePools", function () {
   });
   describe("Merkle tree tests", function () {
     context("ILV Pool", merkleTree());
-  });
-  describe("Fill V1 stakeIds", function () {
-    context("ILV Pool", fillV1StakeId("ILV"));
-    context("Sushi LP Pool", fillV1StakeId("LP"));
   });
 });
