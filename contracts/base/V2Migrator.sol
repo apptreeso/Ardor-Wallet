@@ -22,6 +22,9 @@ abstract contract V2Migrator is Initializable, CorePool {
     using ErrorHandler for bytes4;
     using Stake for uint256;
 
+    /// @dev Maps v1 addresses that are black listed for v2 migration.
+    mapping(address => bool) public isBlacklisted;
+
     /// @dev Stores maximum timestamp of a v1 stake accepted in v2.
     uint256 private _v1StakeMaxPeriod;
 
@@ -63,6 +66,20 @@ abstract contract V2Migrator is Initializable, CorePool {
         __CorePool_init(ilv_, silv_, _poolToken, _corePoolV1, factory_, _initTime, _weight);
         // sets max period for upgrading to V2 contracts i.e migrating
         _v1StakeMaxPeriod = v1StakeMaxPeriod_;
+    }
+
+    /**
+     * @notice Blacklists a v1 user address by setting the isBlacklisted flag to true.
+     *
+     * @dev The intention is to prevent addresses that exploited v1 to be able to move
+     *      stake ids to the v2 contracts and to be able to mint any yield from a v1
+     *      stake id with the isYield flag set to true.
+     *
+     * @param _user v1 user address
+     */
+    function blacklistUser(address _user) external virtual {
+        // updates mapping
+        isBlacklisted[_user] = true;
     }
 
     /**
