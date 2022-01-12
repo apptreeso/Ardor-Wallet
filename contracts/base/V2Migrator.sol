@@ -177,9 +177,6 @@ abstract contract V2Migrator is Initializable, CorePool {
 
             // adds v1 weight to the dynamic mapping which will be used in calculations
             v1StakesWeights[msg.sender][_stakeIds[i]] = _weight;
-            // adds v1 weight to the mapping which will be used for filling a v1 stake
-            // id in the future through `CorePool.fillV1StakeId()`;
-            v1StakesWeightsOriginal[msg.sender][_stakeIds[i]] = _weight;
             // updates the variable keeping track of the total weight migrated
             totalV1WeightAdded += _weight;
             // update value keeping track of v1 stakes ids mapping length

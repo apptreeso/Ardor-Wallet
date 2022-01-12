@@ -103,11 +103,6 @@ abstract contract CorePool is
     ///      and is updated through _useV1Weight.
     mapping(address => mapping(uint256 => uint256)) public v1StakesWeights;
 
-    /// @dev Maps `keccak256(userAddress,stakeId)` to a uint256 value that tells
-    ///      a v1 locked stake weight that has already been migrated to v2
-    ///      and keeps the original weight migrated.
-    mapping(address => mapping(uint256 => uint256)) public v1StakesWeightsOriginal;
-
     /// @dev Link to sILV ERC20 Token instance.
     address internal _silv;
 
@@ -583,73 +578,6 @@ abstract contract CorePool is
             previousRevDis,
             newUser.pendingRevDis
         );
-    }
-
-    /**
-     * @dev Allows an user that is currently in v1 with locked tokens, that have
-     *      just been unlocked, to transfer to v2 and keep the same weight that was
-     *      used in v1.
-     *
-     * @param _v1StakeId id of a stake in v1 migrated to v2
-     * @param _stakeIdPosition position of the desired stake id in the user.v1StakesIds
-     *                         array
-     */
-    function fillV1StakeId(uint256 _v1StakeId, uint256 _stakeIdPosition) external virtual {
-        // always sync the pool state vars before moving forward
-        _sync();
-        // checks if the contract is in a paused state
-        _requireNotPaused();
-        User storage user = users[msg.sender];
-        // we're using selector to simplify input and state validation
-        bytes4 fnSelector = this.fillV1StakeId.selector;
-        // we read the original v1 weight stored in the initial migration
-        uint256 weightToUse = v1StakesWeightsOriginal[msg.sender][_v1StakeId];
-        // checks if v1StakeId has already been filled
-        fnSelector.verifyState(weightToUse > 0, 0);
-        // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
-            // and process current pending rewards if any
-            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
-        }
-        // queries v1 data
-        (uint256 _tokenAmount, , uint64 _lockedFrom, uint64 _lockedUntil, bool _isYield) = ICorePoolV1(corePoolV1)
-            .getDeposit(msg.sender, _v1StakeId);
-        // checks if user unstaked all of the tokens in order to fill the v1 stake id
-        fnSelector.verifyState(_tokenAmount == 0, 1);
-        // verifies if v1 stake is unlocked
-        fnSelector.verifyState(_lockedUntil < _now256(), 2);
-        // retrieves original stake value by using v1 _lockedUntil and _lockedFrom, and comparing
-        // to the weight originally stored in this contract during migration
-        uint120 v1StakeValue = (weightToUse /
-            (((_lockedUntil - _lockedFrom) * Stake.WEIGHT_MULTIPLIER) /
-                Stake.MAX_STAKE_PERIOD +
-                Stake.WEIGHT_MULTIPLIER)).toUint120();
-        // makes sure stake coming from v1 isn't yield, even though it's already
-        // verified before migration
-        assert(!_isYield);
-
-        // delete v1StakeId and original v1 stake weight
-        delete user.v1StakesIds[_stakeIdPosition];
-        delete v1StakesWeightsOriginal[msg.sender][_v1StakeId];
-        // adds v1 stake data to user struct
-        user.totalWeight += (weightToUse).toUint248();
-        user.stakes.push(
-            Stake.Data({ value: v1StakeValue, lockedFrom: _lockedFrom, lockedUntil: _lockedUntil, isYield: false })
-        );
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-        // resets rewards
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
-
-        // update global variable
-        globalWeight += weightToUse;
-        // update reserve count
-        poolTokenReserve += v1StakeValue;
-
-        // transfers poolTokens from msg.sender
-        IERC20Upgradeable(poolToken).safeTransferFrom(msg.sender, address(this), v1StakeValue);
     }
 
     /**
