@@ -168,6 +168,10 @@ contract ILVPool is Initializable, V2Migrator {
         uint248 _yieldWeight,
         uint256[] calldata _stakeIds
     ) external {
+        // we're using selector to simplify input and access validation
+        bytes4 fnSelector = this.executeMigration.selector;
+        // makes sure that msg.sender isn't a blacklisted address
+        fnSelector.verifyAccess(!_isBlacklisted[msg.sender]);
         // update pool contract state
         _sync();
         // gets user storage pointer

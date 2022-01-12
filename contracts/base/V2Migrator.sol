@@ -23,7 +23,7 @@ abstract contract V2Migrator is Initializable, CorePool {
     using Stake for uint256;
 
     /// @dev Maps v1 addresses that are black listed for v2 migration.
-    mapping(address => bool) public isBlacklisted;
+    mapping(address => bool) internal _isBlacklisted;
 
     /// @dev Stores maximum timestamp of a v1 stake accepted in v2.
     uint256 private _v1StakeMaxPeriod;
@@ -69,7 +69,8 @@ abstract contract V2Migrator is Initializable, CorePool {
     }
 
     /**
-     * @notice Blacklists a v1 user address by setting the isBlacklisted flag to true.
+     * @notice Blacklists a list of v1 user addresses by setting the
+     *         _isBlacklisted flag to true.
      *
      * @dev The intention is to prevent addresses that exploited v1 to be able to move
      *      stake ids to the v2 contracts and to be able to mint any yield from a v1
@@ -77,9 +78,9 @@ abstract contract V2Migrator is Initializable, CorePool {
      *
      * @param _user v1 user address
      */
-    function blacklistUser(address _user) external virtual {
+    function blacklistUsers(address _user) external virtual {
         // updates mapping
-        isBlacklisted[_user] = true;
+        _isBlacklisted[_user] = true;
     }
 
     /**
@@ -99,6 +100,10 @@ abstract contract V2Migrator is Initializable, CorePool {
      * @param _stakeIds array of v1 stake ids
      */
     function migrateLockedStakes(uint256[] calldata _stakeIds) external virtual {
+        // we're using selector to simplify input and access validation
+        bytes4 fnSelector = this.migrateLockedStakes.selector;
+        // makes sure that msg.sender isn't a blacklisted address
+        fnSelector.verifyAccess(!_isBlacklisted[msg.sender]);
         // update pool contract state variables
         _sync();
         // checks if contract is paused
@@ -183,5 +188,5 @@ abstract contract V2Migrator is Initializable, CorePool {
      *      the amount of storage used by a contract always adds up to the 50.
      *      See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[49] private __gap;
+    uint256[48] private __gap;
 }
