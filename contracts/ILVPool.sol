@@ -42,6 +42,30 @@ contract ILVPool is Initializable, V2Migrator {
     ///      if a v1 yield has already been minted by v2 contract.
     mapping(address => mapping(uint256 => bool)) private _v1YieldMinted;
 
+    /// @dev this value is calculated beforehand depending how much time v1 rewards
+    ///      remain stopped. V1 users that keep staking in the period between rewards stopping,
+    ///      and launching the V2 contracts are eligible to use this multiplier as a bonus
+    ///      when they migrate their V1 pending rewards through `_migratePendingRewards()`.
+    uint256 private _v1RewardsBonusMultiplier;
+
+    /**
+     * @dev logs `_migratePendingRewards()`
+     *
+     * @param from user address
+     * @param pendingRewardsMigrated value of pending rewards migrated
+     * @param useSILV whether user claimed v1 pending rewards as ILV or sILV
+     */
+    event LogMigratePendingRewards(address indexed from, uint256 pendingRewardsMigrated, bool useSILV);
+
+    /**
+     * @dev logs `_migrateYieldWeights()`
+     *
+     * @param from user address
+     * @param yieldWeightMigrated total amount of weight coming from yield in v1
+     *
+     */
+    event LogMigrateYieldWeight(address indexed from, uint256 yieldWeightMigrated);
+
     /**
      * @dev logs `mintV1Yield()`.
      *
@@ -158,20 +182,22 @@ contract ILVPool is Initializable, V2Migrator {
     }
 
     /**
-     * @dev Calls internal `_migrateLockedStakes` and _`migrateYieldWeights`
-     *      functions for a complete migration of a v1 user to v2.
+     * @dev Calls internal `_migrateLockedStakes`,  `_migrateYieldWeights`
+     *      and `_migratePendingRewards` functions for a complete migration
+     *      of a v1 user to v2.
      * @dev See `_migrateLockedStakes` and _`migrateYieldWeights`.
      */
     function executeMigration(
         bytes32[] calldata _proof,
         uint256 _index,
         uint248 _yieldWeight,
+        uint256 _pendingV1Rewards,
+        bool _useSILV,
+        bool _eligibleForBonus,
         uint256[] calldata _stakeIds
     ) external {
-        // we're using selector to simplify input and access validation
-        bytes4 fnSelector = this.executeMigration.selector;
-        // makes sure that msg.sender isn't a blacklisted address
-        fnSelector.verifyAccess(!_isBlacklisted[msg.sender]);
+        // verifies that user isn't a v1 blacklisted user
+        _requireNotBlacklisted(msg.sender);
         // update pool contract state
         _sync();
         // gets user storage pointer
@@ -195,7 +221,7 @@ contract ILVPool is Initializable, V2Migrator {
             // in the merkle tree, and the yield weight being migrated
             // which will be verified, and then update user state values by the
             // internal function
-            _migrateYieldWeights(_proof, _index, _yieldWeight);
+            _migrateYieldWeights(_proof, _index, _yieldWeight, _pendingV1Rewards, _useSILV, _eligibleForBonus);
         }
 
         // gas savings
@@ -297,10 +323,12 @@ contract ILVPool is Initializable, V2Migrator {
      * @param _stakeIds array of yield ids in v1 from msg.sender user
      */
     function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
-        // we're using selector to simplify validation
+        // we're using function selector to simplify validation
         bytes4 fnSelector = this.mintV1YieldMultiple.selector;
-        // makes sure caller isn't a blacklisted v1 user
-        fnSelector.verifyAccess(!_isBlacklisted[msg.sender]);
+        // verifies that user isn't a v1 blacklisted user
+        _requireNotBlacklisted(msg.sender);
+        // checks if contract is paused
+        _requireNotPaused();
         // updates pool contract state variables
         _sync();
         // gets storage pointer to the user
@@ -370,11 +398,18 @@ contract ILVPool is Initializable, V2Migrator {
      * @param _proof bytes32 array with the proof generated off-chain
      * @param _index user index in the merkle tree
      * @param _yieldWeight user yield weight in v1 stored by the merkle tree
+     * @param _pendingV1Rewards user pending rewards in v1 stored by the merkle tree
+     * @param _useSILV whether the user wants rewards in sILV token or in a v2 ILV yield stake
+     * @param _eligibleForBonus whether the user stayed in v1 contracts and can receive
+     *                          the bonus in pendingRewards
      */
     function _migrateYieldWeights(
         bytes32[] calldata _proof,
         uint256 _index,
-        uint256 _yieldWeight
+        uint256 _yieldWeight,
+        uint256 _pendingV1Rewards,
+        bool _useSILV,
+        bool _eligibleForBonus
     ) private {
         // gets storage pointer to the user
         User storage user = users[msg.sender];
@@ -384,12 +419,23 @@ contract ILVPool is Initializable, V2Migrator {
         // requires that the user hasn't migrated the yield yet
         fnSelector.verifyAccess(!hasMigratedYield(_index));
         // compute leaf and verify merkle proof
-        bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight));
+        bytes32 leaf = keccak256(
+            abi.encodePacked(_index, msg.sender, _yieldWeight, _pendingV1Rewards, _eligibleForBonus)
+        );
+
         // verifies the merkle proof and requires the return value to be true
         fnSelector.verifyInput(MerkleProof.verify(_proof, merkleRoot, leaf), 0);
-
+        // gets the value compounded into v2 as ILV yield to be added into v2 user.totalWeight
+        uint256 pendingRewardsCompounded = _migratePendingRewards(_pendingV1Rewards, _useSILV, _eligibleForBonus);
+        uint256 weightCompounded = pendingRewardsCompounded * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
         // add v1 yield weight to the v2 user
-        user.totalWeight += (_yieldWeight).toUint248();
+        user.totalWeight += (_yieldWeight + weightCompounded).toUint248();
+        if (pendingRewardsCompounded > 0) {
+            // adds v1 pending rewards compounded into this v2 contract to global weight
+            // and poolTokenReserve
+            globalWeight += weightCompounded;
+            poolTokenReserve += pendingRewardsCompounded;
+        }
         // set user as claimed in bitmap
         _usersMigrated.set(_index);
 
@@ -398,9 +444,60 @@ contract ILVPool is Initializable, V2Migrator {
     }
 
     /**
+     * @dev Gets pending rewards in the v1 ilv pool and v1 lp pool stored in the merkle tree,
+     *      and allows the v1 users of those pools to claim them as ILV compounded in the v2 pool or
+     *      sILV minted to their wallet.
+     * @dev Users that stayed in the v1 pools while they were disabled pre V2 launch, are eligible for a
+     *      bonus multiplier which will increase their stored _pendingV1Rewards value.
+     * @dev Eligible users are filtered and stored in the merkle tree.
+     *
+     * @param _pendingV1Rewards user pending rewards in v1 stored by the merkle tree
+     * @param _useSILV whether the user wants rewards in sILV token or in a v2 ILV yield stake
+     * @param _eligibleForBonus whether the user stayed in v1 contracts and can receive
+     *                          the bonus in pendingRewards
+     *
+     * @return pendingRewardsCompounded returns the value compounded into the v2 pool (if the user selects ILV)
+     */
+    function _migratePendingRewards(
+        uint256 _pendingV1Rewards,
+        bool _useSILV,
+        bool _eligibleForBonus
+    ) internal virtual returns (uint256 pendingRewardsCompounded) {
+        // gets pointer to user
+        User storage user = users[msg.sender];
+        // if msg.sender is eligible for the bonus rewards, multiply by the _v1RewardsBonusMultiplier;
+        // else just uses the pending rewards value stored in the merkle tree.
+        uint256 rewardsValue = !_eligibleForBonus ? _pendingV1Rewards : _pendingV1Rewards * _v1RewardsBonusMultiplier;
+
+        // if the user (msg.sender) wants to mint pending rewards as sILV, simply mint
+        if (_useSILV) {
+            // calls the factory to mint sILV
+            _factory.mintYieldTo(msg.sender, rewardsValue, _useSILV);
+        } else {
+            // otherwise we create a new v2 yield stake (ILV)
+            Stake.Data memory stake = Stake.Data({
+                value: (rewardsValue).toUint120(),
+                lockedFrom: (_now256()).toUint64(),
+                lockedUntil: (_now256() + Stake.MAX_STAKE_PERIOD).toUint64(),
+                isYield: true
+            });
+            // adds new ILV yield stake to user array
+            // notice that further values will be updated later in execution
+            // (user.totalWeight, user.subYieldRewards, user.subVaultRewards, ...)
+            user.stakes.push(stake);
+
+            // updates function's return value
+            pendingRewardsCompounded = rewardsValue;
+        }
+
+        // emits an event
+        emit LogMigratePendingRewards(msg.sender, rewardsValue, _useSILV);
+    }
+
+    /**
      * @dev Empty reserved space in storage. The size of the __gap array is calculated so that
      *      the amount of storage used by a contract always adds up to the 50.
      *      See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[47] private __gap;
+    uint256[46] private __gap;
 }

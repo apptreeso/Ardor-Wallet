@@ -29,15 +29,6 @@ abstract contract V2Migrator is Initializable, CorePool {
     uint256 private _v1StakeMaxPeriod;
 
     /**
-     * @dev logs `_migrateYieldWeights()`
-     *
-     * @param from user address
-     * @param yieldWeightMigrated total amount of weight coming from yield in v1
-     *
-     */
-    event LogMigrateYieldWeight(address indexed from, uint256 yieldWeightMigrated);
-
-    /**
      * @dev logs `_migrateLockedStakes()`
      *
      * @param from user address
@@ -109,10 +100,8 @@ abstract contract V2Migrator is Initializable, CorePool {
      * @param _stakeIds array of v1 stake ids
      */
     function migrateLockedStakes(uint256[] calldata _stakeIds) external virtual {
-        // we're using selector to simplify input and access validation
-        bytes4 fnSelector = this.migrateLockedStakes.selector;
-        // makes sure that msg.sender isn't a blacklisted address
-        fnSelector.verifyAccess(!_isBlacklisted[msg.sender]);
+        // verifies that user isn't a v1 blacklisted user
+        _requireNotBlacklisted(msg.sender);
         // update pool contract state variables
         _sync();
         // checks if contract is paused
@@ -187,6 +176,18 @@ abstract contract V2Migrator is Initializable, CorePool {
             // emits an event
             emit LogMigrateLockedStakes(msg.sender, totalV1WeightAdded);
         }
+    }
+
+    /**
+     * @dev Utility used by functions that can't allow blacklisted users to call.
+     * @dev Blocks user addresses stored in the _isBlacklisted mapping to call actions like
+     *      minting v1 yield stake ids and migrating locked stakes.
+     */
+    function _requireNotBlacklisted(address _user) internal view virtual {
+        // we're using selector to simplify input and access validation
+        bytes4 fnSelector = this.migrateLockedStakes.selector;
+        // makes sure that msg.sender isn't a blacklisted address
+        fnSelector.verifyAccess(!_isBlacklisted[_user]);
     }
 
     /**
