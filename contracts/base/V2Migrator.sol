@@ -76,11 +76,20 @@ abstract contract V2Migrator is Initializable, CorePool {
      *      stake ids to the v2 contracts and to be able to mint any yield from a v1
      *      stake id with the isYield flag set to true.
      *
-     * @param _user v1 user address
+     * @param _users v1 users address array
      */
-    function blacklistUsers(address _user) external virtual {
-        // updates mapping
-        _isBlacklisted[_user] = true;
+    function blacklistUsers(address[] calldata _users) external virtual {
+        // only the factory controller can blacklist users
+        _requireIsFactoryController();
+        // we're using selector to simplify validation
+        bytes4 fnSelector = this.blacklistUsers.selector;
+        // gets each user in the array to be blacklisted
+        for (uint256 i = 0; i < _users.length; i++) {
+            // makes sure user passed isn't the address 0
+            fnSelector.verifyInput(_users[i] != address(0), 0);
+            // updates mapping
+            _isBlacklisted[_users[i]] = true;
+        }
     }
 
     /**
