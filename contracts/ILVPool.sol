@@ -399,7 +399,7 @@ contract ILVPool is Initializable, V2Migrator {
         uint256 _index,
         uint256 _yieldWeight,
         uint256 _pendingV1Rewards,
-        bool _useSILV,
+        bool _useSILV
     ) private {
         // gets storage pointer to the user
         User storage user = users[msg.sender];
@@ -409,9 +409,7 @@ contract ILVPool is Initializable, V2Migrator {
         // requires that the user hasn't migrated the yield yet
         fnSelector.verifyAccess(!hasMigratedYield(_index));
         // compute leaf and verify merkle proof
-        bytes32 leaf = keccak256(
-            abi.encodePacked(_index, msg.sender, _yieldWeight, _pendingV1Rewards)
-        );
+        bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight, _pendingV1Rewards));
 
         // verifies the merkle proof and requires the return value to be true
         fnSelector.verifyInput(MerkleProof.verify(_proof, merkleRoot, leaf), 0);
@@ -444,10 +442,11 @@ contract ILVPool is Initializable, V2Migrator {
      *
      * @return pendingRewardsCompounded returns the value compounded into the v2 pool (if the user selects ILV)
      */
-    function _migratePendingRewards(
-        uint256 _pendingV1Rewards,
-        bool _useSILV,
-    ) internal virtual returns (uint256 pendingRewardsCompounded) {
+    function _migratePendingRewards(uint256 _pendingV1Rewards, bool _useSILV)
+        internal
+        virtual
+        returns (uint256 pendingRewardsCompounded)
+    {
         // gets pointer to user
         User storage user = users[msg.sender];
 
@@ -458,7 +457,7 @@ contract ILVPool is Initializable, V2Migrator {
         } else {
             // otherwise we create a new v2 yield stake (ILV)
             Stake.Data memory stake = Stake.Data({
-                value: (rewardsValue).toUint120(),
+                value: (_pendingV1Rewards).toUint120(),
                 lockedFrom: (_now256()).toUint64(),
                 lockedUntil: (_now256() + Stake.MAX_STAKE_PERIOD).toUint64(),
                 isYield: true
@@ -469,11 +468,11 @@ contract ILVPool is Initializable, V2Migrator {
             user.stakes.push(stake);
 
             // updates function's return value
-            pendingRewardsCompounded = rewardsValue;
+            pendingRewardsCompounded = _pendingV1Rewards;
         }
 
         // emits an event
-        emit LogMigratePendingRewards(msg.sender, rewardsValue, _useSILV);
+        emit LogMigratePendingRewards(msg.sender, _pendingV1Rewards, _useSILV);
     }
 
     /**
