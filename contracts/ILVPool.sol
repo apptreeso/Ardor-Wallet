@@ -480,5 +480,5 @@ contract ILVPool is Initializable, V2Migrator {
      *      the amount of storage used by a contract always adds up to the 50.
      *      See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[46] private __gap;
+    uint256[47] private __gap;
 }
