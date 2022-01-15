@@ -25,7 +25,7 @@ abstract contract V2Migrator is Initializable, CorePool {
     /// @dev Maps v1 addresses that are black listed for v2 migration.
     mapping(address => bool) internal _isBlacklisted;
 
-    /// @dev Stores maximum timestamp of a v1 stake accepted in v2.
+    /// @dev Stores maximum timestamp of a v1 stake (yield or deposit) accepted in v2.
     uint256 internal _v1StakeMaxPeriod;
 
     /**
