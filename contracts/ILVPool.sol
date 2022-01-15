@@ -335,6 +335,7 @@ contract ILVPool is Initializable, V2Migrator {
         // initializes variable that will store how much v1 weight the user has
         uint256 v1WeightToAdd;
 
+        // avoids stack too deep error
         {
             // uses v1 weight values for rewards calculations
             (uint256 _v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);

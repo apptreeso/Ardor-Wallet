@@ -40,14 +40,17 @@ export function merkleTree(): () => void {
         {
           account: this.signers.alice.address,
           weight: toWei(2000),
+          pendingV1Rewards: toWei(1000),
         },
         {
           account: this.signers.bob.address,
           weight: toWei(10000),
+          pendingV1Rewards: toWei(5000),
         },
         {
           account: this.signers.carol.address,
           weight: toWei(4000),
+          pendingV1Rewards: toWei(500),
         },
       ]);
       await this.ilvPool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
@@ -58,52 +61,99 @@ export function merkleTree(): () => void {
 
       expect(expectedRoot).to.be.equal(root);
     });
-    it("should validate a merkle proof correctly", async function () {
-      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000));
+    it("should validate a merkle proof correctly and mint sILV", async function () {
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000), toWei(1000));
 
-      await this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), [0, 2]);
+      await this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), toWei(1000), true, [0, 2]);
+
+      const sILVBalance = await this.silv.balanceOf(this.signers.alice.address);
+
+      expect(sILVBalance).to.be.equal(toWei(1000));
+    });
+    it("should validate a merkle proof correctly and claim vested ILV", async function () {
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000), toWei(1000));
+
+      await this.ilvPool
+        .connect(this.signers.alice)
+        .executeMigration(proof, 0, toWei(2000), toWei(1000), false, [0, 2]);
+
+      const { value: newILVStakeValue } = await this.ilvPool.getStake(this.signers.alice.address, 0);
+
+      expect(newILVStakeValue).to.be.equal(toWei(1000));
     });
     it("should validate a merkle proof correctly without stakeIds", async function () {
-      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000));
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000), toWei(1000));
 
-      await this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), []);
+      await this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), toWei(1000), false, []);
     });
-    it("should fail claiming twice", async function () {
-      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000));
+    it("should fail claiming twice - with sILV", async function () {
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000), toWei(1000));
 
-      await this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), [0, 2]);
-      await expect(this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), [0, 2])).reverted;
+      await this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), toWei(1000), true, [0, 2]);
+      await expect(
+        this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), toWei(1000), true, [0, 2]),
+      ).reverted;
+    });
+    it("should fail claiming twice - with ILV", async function () {
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000), toWei(1000));
+
+      await this.ilvPool
+        .connect(this.signers.alice)
+        .executeMigration(proof, 0, toWei(2000), toWei(1000), false, [0, 2]);
+      await expect(
+        this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), toWei(1000), false, [0, 2]),
+      ).reverted;
+    });
+    it("should fail claiming twice - with ILV and sILV", async function () {
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000), toWei(1000));
+
+      await this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), toWei(1000), true, [0, 2]);
+      await expect(
+        this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), toWei(1000), false, [0, 2]),
+      ).reverted;
     });
     it("should fail claiming twice without stakeIds array", async function () {
-      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000));
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000), toWei(1000));
 
-      await this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), [0, 2]);
-      await expect(this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), [0, 2])).reverted;
+      await this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), toWei(1000), true, []);
+      await expect(
+        this.ilvPool.connect(this.signers.alice).executeMigration(proof, 0, toWei(2000), toWei(1000), false, []),
+      ).reverted;
     });
     it("should fail with empty proof", async function () {
-      await expect(this.ilvPool.connect(this.signers.alice).executeMigration([], 0, toWei(2000), [0, 2])).reverted;
+      await expect(
+        this.ilvPool.connect(this.signers.alice).executeMigration([], 0, toWei(2000), toWei(1000), false, [0, 2]),
+      ).reverted;
     });
     it("should fail with invalid index - alice", async function () {
-      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000));
+      const proof = this.tree.getProof(0, this.signers.alice.address, toWei(2000), toWei(1000));
 
-      await expect(this.ilvPool.connect(this.signers.alice).executeMigration(proof, 1, toWei(2000), [0, 2])).reverted;
+      await expect(
+        this.ilvPool.connect(this.signers.alice).executeMigration(proof, 1, toWei(2000), toWei(1000), true, [0, 2]),
+      ).reverted;
     });
     it("should fail with invalid index - bob", async function () {
-      const proof = this.tree.getProof(1, this.signers.bob.address, toWei(10000));
+      const proof = this.tree.getProof(1, this.signers.bob.address, toWei(10000), toWei(5000));
 
-      await expect(this.ilvPool.connect(this.signers.bob).executeMigration(proof, 2, toWei(10000), [])).reverted;
+      await expect(
+        this.ilvPool.connect(this.signers.bob).executeMigration(proof, 2, toWei(10000), toWei(5000), false, []),
+      ).reverted;
     });
     it("should fail with invalid msg.sender", async function () {
-      const proof = this.tree.getProof(1, this.signers.bob.address, toWei(10000));
+      const proof = this.tree.getProof(1, this.signers.bob.address, toWei(10000), toWei(5000));
 
-      await expect(this.ilvPool.connect(this.signers.carol).executeMigration(proof, 1, toWei(10000), [])).reverted;
+      await expect(
+        this.ilvPool.connect(this.signers.carol).executeMigration(proof, 1, toWei(10000), toWei(5000), true, []),
+      ).reverted;
     });
     it("should set hasMigratedYield correctly", async function () {
-      const proof0 = this.tree.getProof(0, this.signers.alice.address, toWei(2000));
-      const proof1 = this.tree.getProof(1, this.signers.bob.address, toWei(10000));
+      const proof0 = this.tree.getProof(0, this.signers.alice.address, toWei(2000), toWei(1000));
+      const proof1 = this.tree.getProof(1, this.signers.bob.address, toWei(10000), toWei(5000));
 
-      await this.ilvPool.connect(this.signers.alice).executeMigration(proof0, 0, toWei(2000), [0, 2]);
-      await this.ilvPool.connect(this.signers.bob).executeMigration(proof1, 1, toWei(10000), []);
+      await this.ilvPool
+        .connect(this.signers.alice)
+        .executeMigration(proof0, 0, toWei(2000), toWei(1000), true, [0, 2]);
+      await this.ilvPool.connect(this.signers.bob).executeMigration(proof1, 1, toWei(10000), toWei(5000), false, []);
 
       const hasAliceMigrated = await this.ilvPool.hasMigratedYield(0);
       const hasBobMigratedYield = await this.ilvPool.hasMigratedYield(1);
@@ -113,10 +163,19 @@ export function merkleTree(): () => void {
       expect(hasBobMigratedYield).to.be.true;
       expect(hasCarolMigrated).to.be.false;
     });
-    it("should not migrate more yield than allowed weight", async function () {
-      const proof = this.tree.getProof(2, this.signers.carol.address, toWei(4000));
+    it("should not migrate more yieldWeight than allowed", async function () {
+      const proof = this.tree.getProof(2, this.signers.carol.address, toWei(4000), toWei(500));
 
-      await expect(this.ilvPool.connect(this.signers.carol).executeMigration(proof, 0, toWei(4001), [])).reverted;
+      await expect(
+        this.ilvPool.connect(this.signers.carol).executeMigration(proof, 0, toWei(4001), toWei(500), true, []),
+      ).reverted;
+    });
+    it("should not migrate more pendingV1Rewards than allowed", async function () {
+      const proof = this.tree.getProof(2, this.signers.carol.address, toWei(4000), toWei(500));
+
+      await expect(
+        this.ilvPool.connect(this.signers.carol).executeMigration(proof, 0, toWei(4000), toWei(501), true, []),
+      ).reverted;
     });
   };
 }
@@ -673,21 +732,27 @@ export function mintV1Yield(): () => void {
         {
           account: this.signers.alice.address,
           weight: toWei(1000e6),
+          pendingV1Rewards: toWei(100),
         },
         {
           account: this.signers.carol.address,
           weight: toWei(2000e6),
+          pendingV1Rewards: toWei(100),
         },
       ]);
       await this.ilvPool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
 
       await this.ilvPoolV1.setUsers(users);
 
-      const aliceProof = this.tree.getProof(0, this.signers.alice.address, toWei(1000e6));
-      const carolProof = this.tree.getProof(1, this.signers.carol.address, toWei(2000e6));
+      const aliceProof = this.tree.getProof(0, this.signers.alice.address, toWei(1000e6), toWei(100));
+      const carolProof = this.tree.getProof(1, this.signers.carol.address, toWei(2000e6), toWei(100));
 
-      await this.ilvPool.connect(this.signers.alice).executeMigration(aliceProof, 0, toWei(1000e6), []);
-      await this.ilvPool.connect(this.signers.carol).executeMigration(carolProof, 1, toWei(2000e6), []);
+      await this.ilvPool
+        .connect(this.signers.alice)
+        .executeMigration(aliceProof, 0, toWei(1000e6), toWei(100), true, []);
+      await this.ilvPool
+        .connect(this.signers.carol)
+        .executeMigration(carolProof, 1, toWei(2000e6), toWei(100), true, []);
     });
 
     it("should mint v1 yield", async function () {
