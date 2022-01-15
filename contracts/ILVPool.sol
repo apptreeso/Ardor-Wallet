@@ -332,12 +332,19 @@ contract ILVPool is Initializable, V2Migrator {
         uint256 amountToMint;
         uint256 weightToRemove;
 
-        // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        // if user has weight in v2 or v2, process the rewards
-        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
-            // calls internal function
-            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        // initializes variable that will store how much v1 weight the user has
+        uint256 v1WeightToAdd;
+
+        {
+            // uses v1 weight values for rewards calculations
+            (uint256 _v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+            // if user has weight in v2 or v2, process the rewards
+            if (user.totalWeight > 0 || _v1WeightToAdd > 0) {
+                // calls internal function
+                _processRewards(msg.sender, _v1WeightToAdd, subYieldRewards, subVaultRewards);
+            }
+
+            v1WeightToAdd = _v1WeightToAdd;
         }
 
         // loops over each stake id, doing the necessary checks and
@@ -347,8 +354,9 @@ contract ILVPool is Initializable, V2Migrator {
             uint256 _stakeId = _stakeIds[i];
             // call v1 core pool to get all required data associated with
             // the passed v1 stake id
-            (uint256 tokenAmount, uint256 _weight, , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1)
-                .getDeposit(msg.sender, _stakeId);
+            (uint256 tokenAmount, uint256 _weight, uint64 lockedFrom, uint64 lockedUntil, bool isYield) = ICorePoolV1(
+                corePoolV1
+            ).getDeposit(msg.sender, _stakeId);
             // checks if the obtained v1 stake (through getDeposit)
             // is indeed yield
             fnSelector.verifyState(isYield, i * 3);
@@ -356,6 +364,8 @@ contract ILVPool is Initializable, V2Migrator {
             fnSelector.verifyState(_now256() > lockedUntil, i * 3 + 1);
             // expects that the v1 stake hasn't been minted yet
             fnSelector.verifyState(!_v1YieldMinted[msg.sender][_stakeId], i * 3 + 2);
+            // verifies if the yield has been created before v2 launches
+            fnSelector.verifyState(lockedFrom < _v1StakeMaxPeriod, i * 3 + 3);
 
             // marks v1 yield as minted
             _v1YieldMinted[msg.sender][_stakeId] = true;

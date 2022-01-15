@@ -126,7 +126,7 @@ abstract contract CorePool is
     /// @dev Note: stakes are different in duration and "weight" reflects that.
     uint256 public yieldRewardsPerWeight;
 
-    /// @dev Used to calculate yield rewards, keeps track of the tokens weight locked in staking.
+    /// @dev Used to calculate rewards, keeps track of the tokens weight locked in staking.
     uint256 public globalWeight;
 
     /// @dev Pool tokens value available in the pool;
