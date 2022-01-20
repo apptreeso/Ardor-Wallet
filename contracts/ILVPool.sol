@@ -8,6 +8,7 @@ import { SafeCast } from "./libraries/SafeCast.sol";
 import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { V2Migrator } from "./base/V2Migrator.sol";
+import { CorePool } from "./base/CorePool.sol";
 import { ErrorHandler } from "./libraries/ErrorHandler.sol";
 import { Stake } from "./libraries/Stake.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
@@ -61,7 +62,7 @@ contract ILVPool is Initializable, V2Migrator {
     event LogMigrateYieldWeight(address indexed from, uint256 yieldWeightMigrated);
 
     /**
-     * @dev logs `mintV1Yield()`.
+     * @dev logs `mintV1YieldMultiple()`.
      *
      * @param from user address
      * @param value number of ILV tokens minted
@@ -484,6 +485,26 @@ contract ILVPool is Initializable, V2Migrator {
 
         // emits an event
         emit LogMigratePendingRewards(msg.sender, _pendingV1Rewards, _useSILV);
+    }
+
+    /**
+     * @inheritdoc CorePool
+     * @dev In the ILV Pool we verify that the user isn't coming from v1.
+     * @dev If user has weight in v1, we can't allow them to call this
+     *      function, otherwise it would throw an error in the new address when calling
+     *      mintV1YieldMultiple if the user migrates.
+     */
+
+    function moveFundsFromWallet(address _to) public virtual override {
+        // we're using function selector to simplify validation
+        bytes4 fnSelector = this.moveFundsFromWallet.selector;
+        // we query v1 ilv pool contract
+        (, uint256 totalWeight, , ) = ICorePoolV1(corePoolV1).users(msg.sender);
+        // we check that the v1 total weight is 0 i.e the user can't have any yield
+        fnSelector.verifyState(totalWeight == 0, 0);
+        // call parent moveFundsFromWalet which contains further checks and the actual
+        // execution
+        super.moveFundsFromWallet(_to);
     }
 
     /**

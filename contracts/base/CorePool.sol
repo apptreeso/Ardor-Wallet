@@ -509,7 +509,7 @@ abstract contract CorePool is
      * @param _to new user address, needs to be a fresh address with no stakes
      */
 
-    function moveFundsFromWallet(address _to) external virtual {
+    function moveFundsFromWallet(address _to) public virtual {
         // always sync the pool state vars before moving forward
         _sync();
         // checks if the contract is in a paused state
