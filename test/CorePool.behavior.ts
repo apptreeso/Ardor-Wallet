@@ -261,7 +261,7 @@ export function getPoolData(usingPool: string): () => void {
 
 export function moveFundsFromWallet(usingPool: string): () => void {
   return function () {
-    it("should migrate an user stake", async function () {
+    it("should migrate a user stake", async function () {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
       const token = getToken(this.ilv, this.lp, usingPool);
 
@@ -412,6 +412,41 @@ export function moveFundsFromWallet(usingPool: string): () => void {
       await this.ilvPool.connect(this.signers.alice).migrateLockedStakes([0, 2]);
 
       await expect(this.ilvPool.connect(this.signers.carol).moveFundsFromWallet(this.signers.alice.address)).reverted;
+    });
+    it("should revert if user has weight in v1", async function () {
+      // removes carol from array
+      const [alice, bob] = getUsers0([
+        this.signers.alice.address,
+        this.signers.bob.address,
+        this.signers.carol.address,
+      ]);
+
+      await this.ilvPoolV1.setUsers([alice, bob]);
+
+      this.tree = new YieldTree([
+        {
+          account: this.signers.alice.address,
+          weight: toWei(2000),
+          pendingV1Rewards: toWei(1000),
+        },
+        {
+          account: this.signers.bob.address,
+          weight: toWei(10000),
+          pendingV1Rewards: toWei(5000),
+        },
+        {
+          account: this.signers.carol.address,
+          weight: toWei(4000),
+          pendingV1Rewards: toWei(500),
+        },
+      ]);
+      await this.ilvPool.connect(this.signers.deployer).setMerkleRoot(this.tree.getHexRoot());
+      const aliceProof = this.tree.getProof(0, this.signers.alice.address, toWei(2000), toWei(1000));
+      await this.ilvPool
+        .connect(this.signers.alice)
+        .executeMigration(aliceProof, 0, toWei(2000), toWei(1000), true, []);
+
+      await expect(this.ilvPool.connect(this.signers.alice).moveFundsFromWallet(this.signers.carol.address)).reverted;
     });
   };
 }
