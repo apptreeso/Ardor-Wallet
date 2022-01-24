@@ -22,18 +22,27 @@ contract CorePoolV1Mock is ICorePoolV1 {
         poolToken = _poolToken;
     }
 
+    /**
+     * @dev Mocks V1 user mapping functionality, by returning some total weight
+     *      if the mocked user has any stake.
+     */
     function users(address _who)
         external
         view
         virtual
         override
         returns (
-            uint256,
-            uint256,
-            uint256,
-            uint256
+            uint256 tokenAmount,
+            uint256 totalWeight,
+            uint256 subYieldRewards,
+            uint256 subVaultRewards
         )
-    {}
+    {
+        // mocks some total weight
+        if (mockedUsers[_who].length > 0) {
+            totalWeight = 100;
+        }
+    }
 
     function setUsers(UserParameter[] calldata _userParameter) external {
         for (uint256 i = 0; i < _userParameter.length; i++) {
