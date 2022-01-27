@@ -80,13 +80,9 @@ abstract contract CorePool is
         /// @dev number of v1StakesIds
         uint8 v1IdsLength;
         /// @dev Checkpoint variable for yield calculation
-        // uint256 yieldRewardsPerWeightPaid;
+        uint256 yieldRewardsPerWeightPaid;
         /// @dev Checkpoint variable for vault rewards calculation
-        // uint256 vaultRewardsPerWeightPaid;
-        /// @dev Auxiliary variable for yield calculation
-        uint256 subYieldRewards;
-        /// @dev Auxiliary variable for vault rewards calculation
-        uint256 subVaultRewards;
+        uint256 vaultRewardsPerWeightPaid;
         /// @dev An array of holder's stakes
         Stake.Data[] stakes;
         /// @dev A mapping of holder's stakes ids in V1
@@ -334,7 +330,7 @@ abstract contract CorePool is
 
             // recalculated value for `yieldRewardsPerWeight`
             newYieldRewardsPerWeight =
-                ilvRewards.rewardPerWeight((globalWeight + v1GlobalWeight)) +
+                ilvRewards.getRewardPerWeight((globalWeight + v1GlobalWeight)) +
                 yieldRewardsPerWeight;
         } else {
             // if smart contract state is up to date, we don't recalculate
@@ -393,10 +389,10 @@ abstract contract CorePool is
         }
 
         pendingYield =
-            ((userWeight + totalV1Weight).weightToReward(newYieldRewardsPerWeight) - subYieldRewards) +
+            ((userWeight + totalV1Weight).earned(newYieldRewardsPerWeight) - subYieldRewards) +
             user.pendingYield;
         pendingRevDis =
-            ((userWeight + totalV1Weight).weightToReward(vaultRewardsPerWeight) - subVaultRewards) +
+            ((userWeight + totalV1Weight).earned(vaultRewardsPerWeight) - subVaultRewards) +
             user.pendingRevDis;
     }
 
@@ -561,15 +557,15 @@ abstract contract CorePool is
         newUser.totalWeight = previousTotalWeight;
         newUser.pendingYield = previousYield;
         newUser.pendingRevDis = previousRevDis;
-        newUser.subYieldRewards = uint256(previousUser.totalWeight).weightToReward(yieldRewardsPerWeight);
-        newUser.subVaultRewards = uint256(previousUser.totalWeight).weightToReward(vaultRewardsPerWeight);
+        newUser.subYieldRewards = uint256(previousUser.totalWeight).earned(yieldRewardsPerWeight);
+        newUser.subVaultRewards = uint256(previousUser.totalWeight).earned(vaultRewardsPerWeight);
         delete previousUser.totalWeight;
         delete previousUser.pendingYield;
         delete previousUser.pendingRevDis;
         delete previousUser.stakes;
 
-        previousUser.subYieldRewards = v1WeightToAdd.weightToReward(yieldRewardsPerWeight);
-        previousUser.subVaultRewards = v1WeightToAdd.weightToReward(vaultRewardsPerWeight);
+        previousUser.subYieldRewards = v1WeightToAdd.earned(yieldRewardsPerWeight);
+        previousUser.subVaultRewards = v1WeightToAdd.earned(vaultRewardsPerWeight);
 
         // emits an event
         emit LogMoveFundsFromWallet(
@@ -657,7 +653,7 @@ abstract contract CorePool is
         // we update vaultRewardsPerWeight value using v1 and v2 global weight,
         // expecting to distribute revenue distribution correctly to all users
         // coming from v1 and new v2 users.
-        vaultRewardsPerWeight += _value.rewardPerWeight(globalWeight + v1GlobalWeight);
+        vaultRewardsPerWeight += _value.getRewardPerWeight(globalWeight + v1GlobalWeight);
 
         // transfers ILV from the Vault contract to the pool
         IERC20Upgradeable(_ilv).safeTransferFrom(msg.sender, address(this), _value);
@@ -710,8 +706,8 @@ abstract contract CorePool is
         // gas savings
         uint256 userWeight = uint256(user.totalWeight);
 
-        pendingYield = (userWeight + _totalV1Weight).weightToReward(yieldRewardsPerWeight) - _subYieldRewards;
-        pendingRevDis = (userWeight + _totalV1Weight).weightToReward(vaultRewardsPerWeight) - _subVaultRewards;
+        pendingYield = (userWeight + _totalV1Weight).earned(yieldRewardsPerWeight) - _subYieldRewards;
+        pendingRevDis = (userWeight + _totalV1Weight).earned(vaultRewardsPerWeight) - _subVaultRewards;
     }
 
     /**
@@ -772,8 +768,8 @@ abstract contract CorePool is
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
 
         // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
+        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
 
         // update global variable
         globalWeight += stakeWeight;
@@ -846,8 +842,8 @@ abstract contract CorePool is
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
 
         // resets all rewards after moving funds from the user wallet
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
+        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
 
         // update global variable
         globalWeight = globalWeight - previousWeight + newWeight;
@@ -949,8 +945,8 @@ abstract contract CorePool is
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
 
         // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
+        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
 
         // update global variable
         globalWeight -= weightToRemove;
@@ -1010,7 +1006,7 @@ abstract contract CorePool is
         uint256 ilvReward = (secondsPassed * ilvPerSecond * weight) / factory_.totalWeight();
 
         // update rewards per weight and `lastYieldDistribution`
-        yieldRewardsPerWeight += ilvReward.rewardPerWeight((globalWeight + v1GlobalWeight));
+        yieldRewardsPerWeight += ilvReward.getRewardPerWeight((globalWeight + v1GlobalWeight));
         lastYieldDistribution = (currentTimestamp).toUint64();
 
         // emit an event
@@ -1120,8 +1116,8 @@ abstract contract CorePool is
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
 
         // subYieldRewards and subVaultRewards needs to be updated on every `_processRewards` call
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
+        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
 
         // emits an event
         emit LogClaimYieldRewards(msg.sender, _staker, _useSILV, (user.stakes.length - 1), pendingYieldToClaim);
@@ -1153,8 +1149,8 @@ abstract contract CorePool is
         user.pendingRevDis = 0;
 
         // subYieldRewards and subVaultRewards needs to be updated on every `_processRewards` call
-        user.subYieldRewards = uint256(user.totalWeight).weightToReward(vaultRewardsPerWeight);
-        user.subVaultRewards = uint256(user.totalWeight).weightToReward(vaultRewardsPerWeight);
+        user.subYieldRewards = uint256(user.totalWeight).earned(vaultRewardsPerWeight);
+        user.subVaultRewards = uint256(user.totalWeight).earned(vaultRewardsPerWeight);
 
         IERC20Upgradeable(_ilv).safeTransfer(_staker, pendingRevDis);
 
@@ -1299,9 +1295,14 @@ abstract contract CorePool is
         fnSelector.verifyState(!paused(), 0);
     }
 
-    // function _updateCheckpointValues() internal virtual {
+    function _updateCheckpointValues(address _staker, uint256 _v1WeightToAdd) internal virtual {
+        _sync();
+        _processRewards(_staker, _v1WeightToAdd);
+        User storage user = users[_staker];
+        user.yieldRewardsPerWeightPaid = yieldRewardsPerWeight;
+        user.vaultRewardsPerWeightPaid = vaultRewardsPerWeight;
 
-    // }
+    }
 
     /**
      * @dev See UUPSUpgradeable `_authorizeUpgrade()`.

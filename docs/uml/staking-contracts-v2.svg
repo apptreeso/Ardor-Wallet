@@ -375,7 +375,7 @@
 <polyline fill="none" stroke="#000000" points="4553.5739,-4041.3 4998.4261,-4041.3 "/>
 <text text-anchor="start" x="4561.5739" y="-4024.7" font-family="Times,serif" font-size="14.00" fill="#000000">Internal:</text>
 <text text-anchor="start" x="4561.5739" y="-4007.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;weight(_self: Data): uint256</text>
-<text text-anchor="start" x="4561.5739" y="-3991.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;weightToReward(_weight: uint256, _rewardPerWeight: uint256): uint256</text>
+<text text-anchor="start" x="4561.5739" y="-3991.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;earned(_weight: uint256, _rewardPerWeight: uint256): uint256</text>
 <text text-anchor="start" x="4561.5739" y="-3974.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;rewardPerWeight(_reward: uint256, _globalWeight: uint256): uint256</text>
 </g>
 <!-- 1&#45;&gt;19 -->

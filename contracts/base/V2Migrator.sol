@@ -123,8 +123,8 @@ abstract contract V2Migrator is Initializable, CorePool {
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
 
         // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
+        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
     }
 
     /**

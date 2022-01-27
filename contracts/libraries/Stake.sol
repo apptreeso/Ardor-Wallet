@@ -73,7 +73,7 @@ library Stake {
      * @param _rewardPerWeight ILV reward per weight
      * @return reward value normalized to 10^12
      */
-    function weightToReward(uint256 _weight, uint256 _rewardPerWeight) internal pure returns (uint256) {
+    function earned(uint256 _weight, uint256 _rewardPerWeight) internal pure returns (uint256) {
         // apply the formula and return
         return (_weight * _rewardPerWeight) / REWARD_PER_WEIGHT_MULTIPLIER;
     }
@@ -89,7 +89,7 @@ library Stake {
      * @param _globalWeight total weight in the pool
      * @return reward per weight value
      */
-    function rewardPerWeight(uint256 _reward, uint256 _globalWeight) internal pure returns (uint256) {
+    function getRewardPerWeight(uint256 _reward, uint256 _globalWeight) internal pure returns (uint256) {
         // apply the reverse formula and return
         return (_reward * REWARD_PER_WEIGHT_MULTIPLIER) / _globalWeight;
     }

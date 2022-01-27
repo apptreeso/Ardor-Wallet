@@ -160,8 +160,8 @@ contract ILVPool is Initializable, V2Migrator {
 
         // resets all rewards by having a subtract value == the value returned
         // when multiplying the user weight by the rewards per weight rate
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
+        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
 
         // update `poolTokenReserve` only if this is a LP Core Pool (stakeAsPool can be executed only for LP pool)
         poolTokenReserve += _value;
@@ -222,8 +222,8 @@ contract ILVPool is Initializable, V2Migrator {
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
 
         // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
+        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
     }
 
     /**
@@ -383,8 +383,8 @@ contract ILVPool is Initializable, V2Migrator {
         uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
 
         // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
+        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
+        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
         // expects the factory to mint ILV yield to the msg.sender user
         // after all checks and calculations have been successfully
         // executed
