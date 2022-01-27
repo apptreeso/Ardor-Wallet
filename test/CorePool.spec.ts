@@ -163,16 +163,16 @@ describe("CorePools", function () {
     context("ILV Pool", moveFundsFromWallet("ILV"));
     context("Sushi LP Pool", moveFundsFromWallet("LP"));
   });
-  // describe("#unstakeLockedMultiple", function () {
-  //   context("ILV Pool", unstakeLockedMultiple("ILV"));
-  //   context("Sushi LP Pool", unstakeLockedMultiple("LP"));
-  // });
-  // describe("Migration tests", function () {
-  //   context("ILV Pool", migrationTests("ILV"));
-  //   context("Sushi LP Pool", migrationTests("LP"));
-  //   context("Mint yield", mintV1Yield());
-  // });
-  // describe("Merkle tree tests", function () {
-  //   context("ILV Pool", merkleTree());
-  // });
+  describe("#unstakeLockedMultiple", function () {
+    context("ILV Pool", unstakeLockedMultiple("ILV"));
+    context("Sushi LP Pool", unstakeLockedMultiple("LP"));
+  });
+  describe("Migration tests", function () {
+    context("ILV Pool", migrationTests("ILV"));
+    context("Sushi LP Pool", migrationTests("LP"));
+    context("Mint yield", mintV1Yield());
+  });
+  describe("Merkle tree tests", function () {
+    context("ILV Pool", merkleTree());
+  });
 });

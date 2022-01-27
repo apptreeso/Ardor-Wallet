@@ -266,7 +266,7 @@ export function moveFundsFromWallet(usingPool: string): () => void {
       const token = getToken(this.ilv, this.lp, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 100);
       await this.factory.setNow256(INIT_TIME + 100);
@@ -305,7 +305,7 @@ export function moveFundsFromWallet(usingPool: string): () => void {
       const token = getToken(this.ilv, this.lp, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 100);
       await this.factory.setNow256(INIT_TIME + 100);
@@ -322,7 +322,7 @@ export function moveFundsFromWallet(usingPool: string): () => void {
       const token = getToken(this.ilv, this.lp, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 100);
       await this.factory.setNow256(INIT_TIME + 100);
@@ -333,7 +333,7 @@ export function moveFundsFromWallet(usingPool: string): () => void {
       await this.factory.setNow256(INIT_TIME + 200);
 
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.bob).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.bob).stake(toWei(100), ONE_YEAR);
 
       await expect(pool.connect(this.signers.alice).moveFundsFromWallet(this.signers.bob.address)).reverted;
     });
@@ -343,10 +343,10 @@ export function moveFundsFromWallet(usingPool: string): () => void {
       const token = getToken(this.ilv, this.lp, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.bob).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.bob).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 100);
       await this.factory.setNow256(INIT_TIME + 100);
@@ -360,10 +360,10 @@ export function moveFundsFromWallet(usingPool: string): () => void {
       await this.factory.setNow256(INIT_TIME + 201 + ONE_YEAR);
       await this.ilvPool.setNow256(INIT_TIME + 201 + ONE_YEAR);
 
-      await pool.connect(this.signers.bob).unstakeLocked(0, toWei(100));
+      await pool.connect(this.signers.bob).unstake(0, toWei(100));
       await this.ilvPool
         .connect(this.signers.bob)
-        .unstakeLocked(
+        .unstake(
           usingPool === "ILV" ? 1 : 0,
           (
             await this.ilvPool.getStake(this.signers.bob.address, usingPool === "ILV" ? 1 : 0)
@@ -378,10 +378,10 @@ export function moveFundsFromWallet(usingPool: string): () => void {
       const token = getToken(this.ilv, this.lp, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.bob).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.bob).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 100);
       await this.factory.setNow256(INIT_TIME + 100);
@@ -395,7 +395,7 @@ export function moveFundsFromWallet(usingPool: string): () => void {
     });
     it("should revert if newUser v1IdsLength > 0", async function () {
       await this.ilv.connect(this.signers.carol).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.carol).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.carol).stake(toWei(100), ONE_YEAR);
 
       await this.ilvPool.setNow256(INIT_TIME + 100);
       await this.factory.setNow256(INIT_TIME + 100);
@@ -571,11 +571,11 @@ export function migrationTests(usingPool: string): () => void {
       await pool.connect(this.signers.alice).migrateLockedStakes([0, 2]);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 10);
 
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       const totalWeight = await this.factory.totalWeight();
       const poolWeight = await pool.weight();
@@ -604,8 +604,8 @@ export function migrationTests(usingPool: string): () => void {
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
-      await pool.connect(this.signers.bob).stakePoolToken(toWei(600), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.bob).stake(toWei(600), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 10);
       await this.factory.setNow256(INIT_TIME + 10);
@@ -683,8 +683,8 @@ export function migrationTests(usingPool: string): () => void {
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
-      await pool.connect(this.signers.bob).stakePoolToken(toWei(600), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.bob).stake(toWei(600), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 10);
       await this.factory.setNow256(INIT_TIME + 10);
@@ -848,7 +848,7 @@ export function sync(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR / 10);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR / 10);
 
       await pool.setNow256(INIT_TIME + 10);
       await pool.sync();
@@ -900,7 +900,7 @@ export function sync(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR / 10);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR / 10);
 
       await pool.setNow256(END_TIME + 100);
       await this.factory.setNow256(END_TIME + 100);
@@ -937,7 +937,7 @@ export function sync(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_MONTH);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_MONTH);
 
       await pool.setNow256(END_TIME - 100);
       await this.factory.setNow256(END_TIME - 100);
@@ -964,10 +964,10 @@ export function unstakeLockedMultiple(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
 
       await pool.setNow256(ONE_YEAR + 1);
 
@@ -985,7 +985,7 @@ export function unstakeLockedMultiple(usingPool: string): () => void {
         { stakeId: 3, value: toWei(25) },
       ];
 
-      await pool.connect(this.signers.alice).unstakeLockedMultiple(unstakeParameters, false);
+      await pool.connect(this.signers.alice).unstakeMultiple(unstakeParameters, false);
 
       const balance1 = await pool.balanceOf(this.signers.alice.address);
 
@@ -1010,10 +1010,10 @@ export function unstakeLockedMultiple(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
 
       await pool.setNow256(ONE_YEAR + 1);
 
@@ -1024,17 +1024,17 @@ export function unstakeLockedMultiple(usingPool: string): () => void {
 
       const unstakeParameters: any[] = [];
 
-      await expect(pool.connect(this.signers.alice).unstakeLockedMultiple(unstakeParameters, false)).reverted;
+      await expect(pool.connect(this.signers.alice).unstakeMultiple(unstakeParameters, false)).reverted;
     });
     it("should revert if unstaking value is higher than stake value", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
 
       await pool.setNow256(ONE_YEAR + 1);
 
@@ -1050,17 +1050,17 @@ export function unstakeLockedMultiple(usingPool: string): () => void {
         { stakeId: 3, value: toWei(25) },
       ];
 
-      await expect(pool.connect(this.signers.alice).unstakeLockedMultiple(unstakeParameters, false)).reverted;
+      await expect(pool.connect(this.signers.alice).unstakeMultiple(unstakeParameters, false)).reverted;
     });
     it("should unstake multiple locked tokens partially", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
 
       await pool.setNow256(ONE_YEAR + 1);
 
@@ -1078,7 +1078,7 @@ export function unstakeLockedMultiple(usingPool: string): () => void {
         { stakeId: 3, value: toWei(22) },
       ];
 
-      await pool.connect(this.signers.alice).unstakeLockedMultiple(unstakeParameters, false);
+      await pool.connect(this.signers.alice).unstakeMultiple(unstakeParameters, false);
 
       const balance1 = await pool.balanceOf(this.signers.alice.address);
 
@@ -1100,7 +1100,7 @@ export function unstakeLockedMultiple(usingPool: string): () => void {
     });
     it("should unstake multiple locked yield after unlock", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
 
       await this.ilvPool.setNow256(INIT_TIME + 100);
 
@@ -1131,7 +1131,7 @@ export function unstakeLockedMultiple(usingPool: string): () => void {
       ];
 
       await this.ilvPool.setNow256(INIT_TIME + 401 + ONE_YEAR);
-      await this.ilvPool.connect(this.signers.alice).unstakeLockedMultiple(unstakeParameters, true);
+      await this.ilvPool.connect(this.signers.alice).unstakeMultiple(unstakeParameters, true);
 
       const { value: value01 } = await this.ilvPool.getStake(this.signers.alice.address, 1);
       const { value: value11 } = await this.ilvPool.getStake(this.signers.alice.address, 2);
@@ -1145,7 +1145,7 @@ export function unstakeLockedMultiple(usingPool: string): () => void {
     });
     it("should revert unstaking multiple locked yield before unlock", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(25), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(25), ONE_YEAR);
 
       await this.ilvPool.setNow256(INIT_TIME + 100);
 
@@ -1175,7 +1175,7 @@ export function unstakeLockedMultiple(usingPool: string): () => void {
         { stakeId: usingPool === "ILV" ? 4 : 3, value: value30 },
       ];
 
-      await expect(this.ilvPool.connect(this.signers.alice).unstakeLockedMultiple(unstakeParameters, true)).reverted;
+      await expect(this.ilvPool.connect(this.signers.alice).unstakeMultiple(unstakeParameters, true)).reverted;
     });
   };
 }
@@ -1187,7 +1187,7 @@ export function unstakeLocked(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(ONE_YEAR + 1);
 
@@ -1196,7 +1196,7 @@ export function unstakeLocked(usingPool: string): () => void {
       const { totalWeight: totalWeight0 } = await pool.users(this.signers.alice.address);
       const globalWeight0 = await pool.globalWeight();
 
-      await pool.connect(this.signers.alice).unstakeLocked(0, toWei(100));
+      await pool.connect(this.signers.alice).unstake(0, toWei(100));
 
       const balance1 = await pool.balanceOf(this.signers.alice.address);
       const { value: value1 } = await pool.getStake(this.signers.alice.address, 0);
@@ -1217,14 +1217,14 @@ export function unstakeLocked(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(ONE_YEAR + 1);
 
       const balance0 = await pool.balanceOf(this.signers.alice.address);
       const { value: value0 } = await pool.getStake(this.signers.alice.address, 0);
 
-      await pool.connect(this.signers.alice).unstakeLocked(0, toWei(99));
+      await pool.connect(this.signers.alice).unstake(0, toWei(99));
 
       const balance1 = await pool.balanceOf(this.signers.alice.address);
       const { value: value1 } = await pool.getStake(this.signers.alice.address, 0);
@@ -1239,44 +1239,44 @@ export function unstakeLocked(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(ONE_YEAR + 1);
 
-      await expect(pool.connect(this.signers.alice).unstakeLocked(1, toWei(100))).reverted;
+      await expect(pool.connect(this.signers.alice).unstake(1, toWei(100))).reverted;
     });
     it("should revert when _value is 0", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(ONE_YEAR + 1);
 
-      await expect(pool.connect(this.signers.alice).unstakeLocked(0, 0)).reverted;
+      await expect(pool.connect(this.signers.alice).unstake(0, 0)).reverted;
     });
     it("should revert when _value is higher than stake", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(ONE_YEAR + 1);
 
-      await expect(pool.connect(this.signers.alice).unstakeLocked(0, toWei(101))).reverted;
+      await expect(pool.connect(this.signers.alice).unstake(0, toWei(101))).reverted;
     });
     it("should revert when tokens are still locked", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(ONE_YEAR);
 
-      await expect(pool.connect(this.signers.alice).unstakeLocked(0, toWei(100))).reverted;
+      await expect(pool.connect(this.signers.alice).unstake(0, toWei(100))).reverted;
     });
   };
 }
@@ -1285,10 +1285,10 @@ export function claimYieldRewardsMultiple(): () => void {
   return function () {
     it("should correctly claim multiple pools as ILV", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
-      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.ilvPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
@@ -1309,10 +1309,10 @@ export function claimYieldRewardsMultiple(): () => void {
     });
     it("should correctly claim multiple pools as sILV", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
-      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.ilvPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
@@ -1332,10 +1332,10 @@ export function claimYieldRewardsMultiple(): () => void {
     });
     it("should correctly claim multiple pools as ILV and sILV", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
-      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.ilvPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
@@ -1356,10 +1356,10 @@ export function claimYieldRewardsMultiple(): () => void {
     });
     it("should revert if claiming invalid pool", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
-      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.ilvPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
@@ -1373,10 +1373,10 @@ export function claimYieldRewardsMultiple(): () => void {
     });
     it("should revert if claiming from invalid address", async function () {
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
-      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
-      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.lpPool.setNow256(INIT_TIME + 1000);
       await this.lpPool.setNow256(INIT_TIME + 1000);
@@ -1399,7 +1399,7 @@ export function claimYieldRewards(usingPool: string): () => void {
       const totalWeight = await this.factory.totalWeight();
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 100);
       await this.factory.setNow256(INIT_TIME + 100);
@@ -1426,9 +1426,9 @@ export function claimYieldRewards(usingPool: string): () => void {
       const totalWeight = await this.factory.totalWeight();
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 100);
       await this.ilvPool.setNow256(INIT_TIME + 100);
@@ -1442,10 +1442,10 @@ export function claimYieldRewards(usingPool: string): () => void {
       const balanceBeforeMint = await this.ilv.balanceOf(this.signers.alice.address);
 
       if (usingPool === "ILV") {
-        await pool.connect(this.signers.alice).unstakeLocked(2, expectedMintedYield);
+        await pool.connect(this.signers.alice).unstake(2, expectedMintedYield);
       } else {
         await this.ilvPool.setNow256(INIT_TIME + 101 + ONE_YEAR);
-        await this.ilvPool.connect(this.signers.alice).unstakeLocked(1, expectedMintedYield);
+        await this.ilvPool.connect(this.signers.alice).unstake(1, expectedMintedYield);
       }
 
       const balanceAfterMint = await this.ilv.balanceOf(this.signers.alice.address);
@@ -1460,7 +1460,7 @@ export function claimYieldRewards(usingPool: string): () => void {
       const totalWeight = await this.factory.totalWeight();
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 100);
       await this.factory.setNow256(INIT_TIME + 100);
@@ -1483,7 +1483,7 @@ export function pendingYield(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(1);
       await this.factory.setNow256(1);
@@ -1497,7 +1497,7 @@ export function pendingYield(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 10);
       await this.factory.setNow256(INIT_TIME + 10);
@@ -1516,10 +1516,10 @@ export function pendingYield(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.bob).stakePoolToken(toWei(100), ONE_YEAR);
+      await pool.connect(this.signers.bob).stake(toWei(100), ONE_YEAR);
 
       await pool.setNow256(INIT_TIME + 10);
       await this.factory.setNow256(INIT_TIME + 10);
@@ -1543,7 +1543,7 @@ export function pendingYield(usingPool: string): () => void {
       const totalWeight = await this.factory.totalWeight();
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(10), ONE_MONTH);
+      await pool.connect(this.signers.alice).stake(toWei(10), ONE_MONTH);
 
       await pool.setNow256(INIT_TIME + 50);
       await this.factory.setNow256(INIT_TIME + 50);
@@ -1553,7 +1553,7 @@ export function pendingYield(usingPool: string): () => void {
       const expectedAliceYield0 = ILV_PER_SECOND.mul(50).mul(poolWeight).div(totalWeight);
 
       await token.connect(this.signers.bob).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.bob).stakePoolToken(toWei(5000), ONE_YEAR);
+      await pool.connect(this.signers.bob).stake(toWei(5000), ONE_YEAR);
 
       const totalInPool = toWei(10 * 1.1e6).add(toWei(5000 * 2e6));
 
@@ -1604,7 +1604,7 @@ export function pendingYield(usingPool: string): () => void {
       const totalWeight = await this.factory.totalWeight();
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_MONTH);
+      await pool.connect(this.signers.alice).stake(toWei(100), ONE_MONTH);
 
       await pool.setNow256(INIT_TIME + 20);
       await this.factory.setNow256(INIT_TIME + 20);
@@ -1652,9 +1652,9 @@ export function stake(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
 
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
 
       const balance = await pool.balanceOf(this.signers.alice.address);
       const { totalWeight } = await pool.users(this.signers.alice.address);
@@ -1669,9 +1669,9 @@ export function stake(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
 
-      await pool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await pool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
 
       const balance = await pool.balanceOf(this.signers.alice.address);
       const stakesLength = await pool.getStakesLength(this.signers.alice.address);
@@ -1684,21 +1684,21 @@ export function stake(usingPool: string): () => void {
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await expect(pool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR + 1)).reverted;
+      await expect(pool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR + 1)).reverted;
     });
     it("should revert when _lockDuration = 0", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await expect(pool.connect(this.signers.alice).stakePoolToken(toWei(100), 0)).reverted;
+      await expect(pool.connect(this.signers.alice).stake(toWei(100), 0)).reverted;
     });
     it("should revert when _value = 0", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
       await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
-      await expect(pool.connect(this.signers.alice).stakePoolToken(toWei(0), ONE_YEAR)).reverted;
+      await expect(pool.connect(this.signers.alice).stake(toWei(0), ONE_YEAR)).reverted;
     });
   };
 }

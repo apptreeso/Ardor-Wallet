@@ -79,6 +79,10 @@ abstract contract CorePool is
         uint248 totalWeight;
         /// @dev number of v1StakesIds
         uint8 v1IdsLength;
+        /// @dev Checkpoint variable for yield calculation
+        // uint256 yieldRewardsPerWeightPaid;
+        /// @dev Checkpoint variable for vault rewards calculation
+        // uint256 vaultRewardsPerWeightPaid;
         /// @dev Auxiliary variable for yield calculation
         uint256 subYieldRewards;
         /// @dev Auxiliary variable for vault rewards calculation
@@ -490,7 +494,7 @@ abstract contract CorePool is
      * @param _value value of tokens to stake
      * @param _lockDuration stake duration as unix timestamp
      */
-    function stakePoolToken(uint256 _value, uint64 _lockDuration) external virtual nonReentrant {
+    function stake(uint256 _value, uint64 _lockDuration) external virtual nonReentrant {
         // always sync the pool state vars before moving forward
         _sync();
         // checks if the contract is in a paused state
@@ -792,14 +796,14 @@ abstract contract CorePool is
      * @param _stakeId stake ID to unstake from, zero-indexed
      * @param _value value of tokens to unstake
      */
-    function unstakeLocked(uint256 _stakeId, uint256 _value) external virtual {
+    function unstake(uint256 _stakeId, uint256 _value) external virtual {
         // always sync the pool state vars before moving forward
         _sync();
         // checks if the contract is in a paused state
         _requireNotPaused();
 
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = this.unstakeLocked.selector;
+        bytes4 fnSelector = this.unstake.selector;
 
         // verify a value is set
         fnSelector.verifyNonZeroInput(_value, 0);
@@ -876,14 +880,14 @@ abstract contract CorePool is
      * @param _unstakingYield whether all stakeIds have isYield flag set to true or false,
      *                        i.e if we're minting ILV or transferring pool tokens
      */
-    function unstakeLockedMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external virtual {
+    function unstakeMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external virtual {
         // always sync the pool state vars before moving forward
         _sync();
         // checks if the contract is in a paused state
         _requireNotPaused();
 
         // we're using selector to simplify input and state validation
-        bytes4 fnSelector = this.unstakeLockedMultiple.selector;
+        bytes4 fnSelector = this.unstakeMultiple.selector;
         // verifies if user has passed any value to be unstaked
         fnSelector.verifyNonZeroInput(_stakes.length, 0);
         // gets storage pointer to the user
@@ -1294,6 +1298,10 @@ abstract contract CorePool is
         // checks paused variable value from Pausable Open Zeppelin
         fnSelector.verifyState(!paused(), 0);
     }
+
+    // function _updateCheckpointValues() internal virtual {
+
+    // }
 
     /**
      * @dev See UUPSUpgradeable `_authorizeUpgrade()`.
