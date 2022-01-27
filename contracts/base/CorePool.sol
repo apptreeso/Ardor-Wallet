@@ -679,38 +679,6 @@ abstract contract CorePool is
     }
 
     /**
-     * @dev Similar to public pendingYieldRewards, but performs calculations based on
-     *      current smart contract state only, not taking into account any additional
-     *      time which might have passed.
-     * @dev It performs a check on v1StakesIds and calls the corresponding V1 core pool
-     *      in order to add v1 weight into v2 yield calculations.
-     *
-     * @dev V1 weight is kept the same used in v1, as a bonus to V1 stakers.
-     *
-     * @dev pending values retured are used by `_processRewards()` calls, which means
-     *         we aren't counting `user.pendingYield` and `user.pendingRevDis` here.
-     *
-     * @param _staker an address to calculate yield rewards value for
-     * @param _totalV1Weight v1 weight used in calculations
-     * @param _subYieldRewards value subtracted for yield calculation
-     */
-    function _pendingRewards(
-        address _staker,
-        uint256 _totalV1Weight,
-        uint256 _subYieldRewards,
-        uint256 _subVaultRewards
-    ) internal view virtual returns (uint256 pendingYield, uint256 pendingRevDis) {
-        // links to _staker user struct in storage
-        User storage user = users[_staker];
-
-        // gas savings
-        uint256 userWeight = uint256(user.totalWeight);
-
-        pendingYield = (userWeight + _totalV1Weight).earned(yieldRewardsPerWeight) - _subYieldRewards;
-        pendingRevDis = (userWeight + _totalV1Weight).earned(vaultRewardsPerWeight) - _subVaultRewards;
-    }
-
-    /**
      * @dev Used internally, mostly by children implementations, see `stake()`.
      *
      * @param _staker an address which stakes tokens and which will receive them back
@@ -1029,17 +997,25 @@ abstract contract CorePool is
      * @return pendingRevDis the revenue distribution reward calculated and
      *         saved to the user struct
      */
-    function _processRewards(
-        address _staker,
-        uint256 _v1WeightToAdd,
-        uint256 _subYieldRewards,
-        uint256 _subVaultRewards
-    ) internal virtual returns (uint256 pendingYield, uint256 pendingRevDis) {
-        // calculate pending yield rewards, this value will be returned
-        (pendingYield, pendingRevDis) = _pendingRewards(_staker, _v1WeightToAdd, _subYieldRewards, _subVaultRewards);
+    function _processRewards(address _staker, uint256 _v1WeightToAdd)
+        internal
+        virtual
+        returns (uint256 pendingYield, uint256 pendingRevDis)
+    {
+        // links to _staker user struct in storage
+        User storage user = users[_staker];
 
-        // if pending yield is zero - just return silently
-        if (pendingYield == 0 && pendingRevDis == 0) return (0, 0);
+        // gas savings
+        uint256 userWeight = uint256(user.totalWeight);
+
+        uint256 pendingYield = (userWeight + _v1WeightToAdd).earned(
+            yieldRewardsPerWeight,
+            user.yieldRewardsPerWeightPaid
+        );
+        uint256 pendingRevDis = (userWeight + _v1WeightToAdd).earned(
+            vaultRewardsPerWeight,
+            user.vaultRewardsPerWeightPaid
+        );
 
         // get link to a user data structure, we will write into it later
         User storage user = users[_staker];
@@ -1253,36 +1229,6 @@ abstract contract CorePool is
     }
 
     /**
-     * @dev Recalculates subYieldRewards or subVaultRewards using most recent
-     *      _totalV1Weight, by getting previous `yieldRewardsPerWeight` used in
-     *      last subYieldRewards or subVaultRewards update (through `_previousTotalV1Weight`)
-     *      and returns equivalent value using most recent v1 weight.
-     *
-     * @dev This function is very important in order to keep calculations correct even
-     *      after an user unstakes in v1.
-     *
-     * @dev If an user in v1 unstakes before claiming yield in v2, it will be considered
-     *      as if the user has been accumulating yield and revenue distributions
-     *      with most recent weight since the last user.subYieldRewards and
-     *      user.subVaultRewards update.
-     * @dev v1 stake token amount of a given stakeId can never increase in v1 contracts.
-     *         this way we are safe of attacks by adding more tokens in v1 and having
-     *         a higher accumulation of yield and revenue distributions
-     *
-     */
-    function _getSubRewardsValue(
-        uint256 _subRewardsStored,
-        uint256 _totalWeightStored,
-        uint256 _totalV1Weight,
-        uint256 _previousTotalV1Weight
-    ) internal pure virtual returns (uint256 subRewards) {
-        subRewards =
-            (((_subRewardsStored * Stake.REWARD_PER_WEIGHT_MULTIPLIER) /
-                (_totalWeightStored + _previousTotalV1Weight)) * (_totalWeightStored + _totalV1Weight)) /
-            Stake.REWARD_PER_WEIGHT_MULTIPLIER;
-    }
-
-    /**
      * @dev Checks if pool is paused.
      * @dev We use this internal function instead of the modifier coming from
      *      Pausable contract in order to decrease contract's bytecode size.
@@ -1295,13 +1241,26 @@ abstract contract CorePool is
         fnSelector.verifyState(!paused(), 0);
     }
 
-    function _updateCheckpointValues(address _staker, uint256 _v1WeightToAdd) internal virtual {
+    /**
+     * @dev Must be called every time user.totalWeight is changed.
+     * @dev Syncs the global pool state, processes the user pending rewards (if any),
+     *      and updates check points values stored in the user struct.
+     * @dev If user is coming from v1 pool, it expects to receive this v1 user weight
+     *      to include in rewards calculations.
+     *
+     * @param _staker user address
+     * @param _v1WeightToAdd v1 weight to be added to calculations
+     */
+    function _updateReward(address _staker, uint256 _v1WeightToAdd) internal virtual {
+        // update pool state
         _sync();
+        // processes all rewards with current rewardsPerWeight values
         _processRewards(_staker, _v1WeightToAdd);
         User storage user = users[_staker];
+
+        // updates user checkpoint values for future calculations
         user.yieldRewardsPerWeightPaid = yieldRewardsPerWeight;
         user.vaultRewardsPerWeightPaid = vaultRewardsPerWeight;
-
     }
 
     /**

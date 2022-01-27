@@ -71,11 +71,16 @@ library Stake {
      *
      * @param _weight stake weight
      * @param _rewardPerWeight ILV reward per weight
+     * @param _rewardPerWeightPaid last reward per weight value used for user earnings
      * @return reward value normalized to 10^12
      */
-    function earned(uint256 _weight, uint256 _rewardPerWeight) internal pure returns (uint256) {
+    function earned(
+        uint256 _weight,
+        uint256 _rewardPerWeight,
+        uint256 _rewardPerWeightPaid
+    ) internal pure returns (uint256) {
         // apply the formula and return
-        return (_weight * _rewardPerWeight) / REWARD_PER_WEIGHT_MULTIPLIER;
+        return (_weight * (_rewardPerWeight - _rewardPerWeightPaid)) / REWARD_PER_WEIGHT_MULTIPLIER;
     }
 
     /**
