@@ -1138,19 +1138,13 @@ abstract contract CorePool is
         internal
         virtual
         returns (
-            uint256 totalV1Weight,
-            uint256 subYieldRewards,
-            uint256 subVaultRewards
+            uint256 totalV1Weight
         )
     {
         // gets user storage pointer
         User storage user = users[_staker];
         // gas savings
         uint256 v1StakesLength = user.v1IdsLength;
-        // initialize variable that will be responsible to keep track
-        // of the user v1 weight in the last time that _staker interacted
-        // with the pool contract
-        uint256 previousTotalV1Weight;
 
         // checks if user has any migrated stake from v1
         if (v1StakesLength > 0) {
@@ -1163,13 +1157,11 @@ abstract contract CorePool is
                 // gets weight stored initially in the v1StakesWeights mapping
                 // through V2Migrator contract
                 uint256 storedWeight = v1StakesWeights[_staker][stakeId];
-                // adds stored weight to the previous total v1 weight value
-                previousTotalV1Weight += storedWeight;
                 // only stores the current v1 weight that is going to be used for calculations
                 // if current v1 weight is equal to or less than the stored weight.
                 // This way we make sure that v1 weight never increases for any reason
                 // (e.g increasing a v1 stake lock through v1 contract) and messes up calculations.
-                totalV1Weight += _weight <= storedWeight ? _weight : storedWeight;
+                totalV1Weight += _weight <= storedWeight ? 0 : storedWeight;
 
                 // if _weight has updated in v1 to a lower value, we also update
                 // stored weight in v2 for next calculations
@@ -1180,34 +1172,6 @@ abstract contract CorePool is
                     v1StakesWeights[_staker][stakeId] = _weight == 0 ? 1 : _weight;
                 }
             }
-        }
-        // gas savings
-        uint256 subYieldRewardsStored = user.subYieldRewards;
-        // gas savings
-        uint256 subVaultRewardsStored = user.subVaultRewards;
-
-        if (previousTotalV1Weight != totalV1Weight) {
-            uint256 totalWeightStored = user.totalWeight;
-
-            // gets subYieldRewards value to be used for yield calculations
-            // during execution
-            subYieldRewards = _getSubRewardsValue(
-                subYieldRewardsStored,
-                totalWeightStored,
-                totalV1Weight,
-                previousTotalV1Weight
-            );
-            // gets subVaultRewards value to be used for revenue distribution
-            // calculations during execution
-            subVaultRewards = _getSubRewardsValue(
-                subVaultRewardsStored,
-                totalWeightStored,
-                totalV1Weight,
-                previousTotalV1Weight
-            );
-        } else {
-            subYieldRewards = subYieldRewardsStored;
-            subVaultRewards = subVaultRewardsStored;
         }
     }
 
