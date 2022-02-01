@@ -458,8 +458,49 @@ abstract contract CorePool is
     function stake(uint256 _value, uint64 _lockDuration) external virtual nonReentrant {
         // checks if the contract is in a paused state
         _requireNotPaused();
-        // calls internal function
-        _stake(msg.sender, _value, _lockDuration);
+        // we're using selector to simplify input and state validation
+        bytes4 fnSelector = this.stake.selector;
+        // validate the inputs
+        fnSelector.verifyNonZeroInput(uint160(msg.sender), 0);
+        fnSelector.verifyNonZeroInput(_value, 1);
+        fnSelector.verifyInput(_lockDuration >= Stake.MIN_STAKE_PERIOD && _lockDuration <= Stake.MAX_STAKE_PERIOD, 2);
+
+        // get a link to user data struct, we will write to it later
+        User storage user = users[msg.sender];
+        // uses v1 weight values for rewards calculations
+        uint256 v1WeightToAdd = _useV1Weight(msg.sender);
+
+        // update user state
+        _updateReward(msg.sender, v1WeightToAdd);
+
+        // calculates until when a stake is going to be locked
+        uint64 lockUntil = (_now256()).toUint64() + _lockDuration;
+        // stake weight formula rewards for locking
+        uint256 stakeWeight = (((lockUntil - _now256()) * Stake.WEIGHT_MULTIPLIER) /
+            Stake.MAX_STAKE_PERIOD +
+            Stake.WEIGHT_MULTIPLIER) * _value;
+        // makes sure stakeWeight is valid
+        assert(stakeWeight > 0);
+        // create and save the stake (append it to stakes array)
+        Stake.Data memory stake = Stake.Data({
+            value: (_value).toUint120(),
+            lockedFrom: (_now256()).toUint64(),
+            lockedUntil: lockUntil,
+            isYield: false
+        });
+        // pushes new stake to `stakes` array
+        user.stakes.push(stake);
+        // update user weight
+        user.totalWeight += (stakeWeight).toUint248();
+        // update global weight value and global pool token count
+        globalWeight += stakeWeight;
+        poolTokenReserve += _value;
+
+        // transfer `_value`
+        IERC20Upgradeable(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
+
+        // emit an event
+        emit LogStake(msg.sender, msg.sender, (user.stakes.length - 1), _value, lockUntil);
     }
 
     /**
@@ -473,8 +514,6 @@ abstract contract CorePool is
      */
 
     function moveFundsFromWallet(address _to) public virtual {
-        // always sync the pool state vars before moving forward
-        _sync();
         // checks if the contract is in a paused state
         _requireNotPaused();
         // gets storage pointer to msg.sender user struct
@@ -483,18 +522,16 @@ abstract contract CorePool is
         User storage newUser = users[_to];
         // uses v1 weight values for rewards calculations
         uint256 v1WeightToAdd = _useV1Weight(msg.sender);
-
-        // We process all pending rewards before moving the user funds to a new wallet.
+        // We process update global and user's rewards
+        // before moving the user funds to a new wallet.
         // This way we can ensure that all v1 ids weight have been used before the v2
         // stakes to a new address.
         _updateReward(msg.sender, v1WeightToAdd);
 
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = this.moveFundsFromWallet.selector;
-
         // validate input is set
         fnSelector.verifyNonZeroInput(uint160(_to), 0);
-
         // verify new user records are empty
         fnSelector.verifyState(
             newUser.totalWeight == 0 &&
@@ -513,22 +550,19 @@ abstract contract CorePool is
 
         // It's expected to have all previous user values
         // migrated to the new user address (_to).
-        // We recalculate sub yield rewards and sub vault rewards values
+        // We recalculate yield and vault rewards values
         // to make sure new user pending yield and pending rev dis to be stored
         // at newUser.pendingYield and newUser.pendingRevDis is 0, since we just processed
-        // all pending rewards calling _processRewards.
+        // all pending rewards calling _updateReward.
         newUser.totalWeight = previousTotalWeight;
         newUser.pendingYield = previousYield;
         newUser.pendingRevDis = previousRevDis;
-        newUser.subYieldRewards = uint256(previousUser.totalWeight).earned(yieldRewardsPerWeight);
-        newUser.subVaultRewards = uint256(previousUser.totalWeight).earned(vaultRewardsPerWeight);
+        newUser.yieldRewardsPerWeightPaid = yieldRewardsPerWeight;
+        newUser.vaultRewardsPerWeight = vaultRewardsPerWeight;
         delete previousUser.totalWeight;
         delete previousUser.pendingYield;
         delete previousUser.pendingRevDis;
         delete previousUser.stakes;
-
-        previousUser.subYieldRewards = v1WeightToAdd.earned(yieldRewardsPerWeight);
-        previousUser.subVaultRewards = v1WeightToAdd.earned(vaultRewardsPerWeight);
 
         // emits an event
         emit LogMoveFundsFromWallet(
@@ -565,8 +599,6 @@ abstract contract CorePool is
      * @notice Pool state is updated before calling the internal function.
      */
     function claimYieldRewards(bool _useSILV) external virtual {
-        // always sync the pool state vars before moving forward
-        _sync();
         // checks if the contract is in a paused state
         _requireNotPaused();
         // calls internal function
@@ -579,8 +611,6 @@ abstract contract CorePool is
      * @notice Pool state is updated before calling the internal function.
      */
     function claimVaultRewards() external virtual {
-        // always sync the pool state vars before moving forward
-        _sync();
         // checks if the contract is in a paused state
         _requireNotPaused();
         // calls internal function
@@ -604,7 +634,6 @@ abstract contract CorePool is
         _requireIsVault();
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = this.receiveVaultRewards.selector;
-
         // return silently if there is no reward to receive
         if (_value == 0) {
             return;
@@ -634,69 +663,13 @@ abstract contract CorePool is
      * @param _weight new weight to set for the pool
      */
     function setWeight(uint32 _weight) external virtual {
+        // update pool state using current weight value
+        _sync();
         // verify function is executed by the factory
         this.setWeight.selector.verifyAccess(msg.sender == address(_factory));
 
         // set the new weight value
         weight = _weight;
-    }
-
-    /**
-     * @dev Used internally, mostly by children implementations, see `stake()`.
-     *
-     * @param _staker an address which stakes tokens and which will receive them back
-     * @param _value value of tokens to stake
-     * @param _lockDuration stake period as unix timestamp; zero means no locking
-     */
-    function _stake(
-        address _staker,
-        uint256 _value,
-        uint64 _lockDuration
-    ) internal virtual {
-        // we're using selector to simplify input and state validation
-        // internal function simulated selector is `bytes4(keccak256("_stake(address,uint256,uint64)"))`
-        bytes4 fnSelector = 0x06151334;
-        // validate the inputs
-        fnSelector.verifyNonZeroInput(uint160(_staker), 0);
-        fnSelector.verifyNonZeroInput(_value, 1);
-        fnSelector.verifyInput(_lockDuration >= Stake.MIN_STAKE_PERIOD && _lockDuration <= Stake.MAX_STAKE_PERIOD, 2);
-
-        // get a link to user data struct, we will write to it later
-        User storage user = users[_staker];
-        // uses v1 weight values for rewards calculations
-        uint256 v1WeightToAdd = _useV1Weight(_staker);
-
-        // update user state
-        _updateReward(_staker, v1WeightToAdd);
-
-        // calculates until when a stake is going to be locked
-        uint64 lockUntil = (_now256()).toUint64() + _lockDuration;
-        // stake weight formula rewards for locking
-        uint256 stakeWeight = (((lockUntil - _now256()) * Stake.WEIGHT_MULTIPLIER) /
-            Stake.MAX_STAKE_PERIOD +
-            Stake.WEIGHT_MULTIPLIER) * _value;
-        // makes sure stakeWeight is valid
-        assert(stakeWeight > 0);
-        // create and save the stake (append it to stakes array)
-        Stake.Data memory stake = Stake.Data({
-            value: (_value).toUint120(),
-            lockedFrom: (_now256()).toUint64(),
-            lockedUntil: lockUntil,
-            isYield: false
-        });
-        // pushes new stake to `stakes` array
-        user.stakes.push(stake);
-        // update user weight
-        user.totalWeight += (stakeWeight).toUint248();
-        // update global weight value
-        globalWeight += stakeWeight;
-        // update reserve count
-        poolTokenReserve += _value;
-        // transfer `_value`
-        IERC20Upgradeable(poolToken).safeTransferFrom(address(msg.sender), address(this), _value);
-
-        // emit an event
-        emit LogStake(msg.sender, msg.sender, (user.stakes.length - 1), _value, lockUntil);
     }
 
     /**
@@ -709,11 +682,8 @@ abstract contract CorePool is
      * @param _value value of tokens to unstake
      */
     function unstake(uint256 _stakeId, uint256 _value) external virtual {
-        // always sync the pool state vars before moving forward
-        _sync();
         // checks if the contract is in a paused state
         _requireNotPaused();
-
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = this.unstake.selector;
 
@@ -730,12 +700,10 @@ abstract contract CorePool is
         (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
         // verify available balance
         fnSelector.verifyInput(stakeValue >= _value, 1);
-
         // uses v1 weight values for rewards calculations
         uint256 v1WeightToAdd = _useV1Weight(msg.sender);
         // and process current pending rewards if any
         _updateReward(msg.sender, v1WeightToAdd);
-
         // store stake weight
         uint256 previousWeight = stake.weight();
         // value used to save new weight after updates in storage
@@ -750,20 +718,11 @@ abstract contract CorePool is
             // saves new weight to memory
             newWeight = stake.weight();
         }
-
         // update user record
         user.totalWeight = uint248(user.totalWeight - previousWeight + newWeight);
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-
-        // resets all rewards after moving funds from the user wallet
-        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
-
-        // update global variable
+        // update global weight variable
         globalWeight = globalWeight - previousWeight + newWeight;
-        // update reserve count
+        // update global pool token count
         poolTokenReserve -= _value;
 
         // if the stake was created by the pool itself as a yield reward
@@ -775,7 +734,7 @@ abstract contract CorePool is
             IERC20Upgradeable(poolToken).safeTransfer(msg.sender, _value);
         }
 
-        // emit an event
+        // emits an event
         emit LogUnstakeLocked(msg.sender, _stakeId, _value, isYield);
     }
 
@@ -793,18 +752,14 @@ abstract contract CorePool is
      *                        i.e if we're minting ILV or transferring pool tokens
      */
     function unstakeMultiple(UnstakeParameter[] calldata _stakes, bool _unstakingYield) external virtual {
-        // always sync the pool state vars before moving forward
-        _sync();
         // checks if the contract is in a paused state
         _requireNotPaused();
-
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = this.unstakeMultiple.selector;
         // verifies if user has passed any value to be unstaked
         fnSelector.verifyNonZeroInput(_stakes.length, 0);
         // gets storage pointer to the user
         User storage user = users[msg.sender];
-
         // uses v1 weight values for rewards calculations
         uint256 v1WeightToAdd = _useV1Weight(msg.sender);
         _updateReward(msg.sender, v1WeightToAdd);
@@ -856,17 +811,9 @@ abstract contract CorePool is
         }
         // subtracts weight
         user.totalWeight -= (weightToRemove).toUint248();
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-
-        // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
-
         // update global variable
         globalWeight -= weightToRemove;
-        // update reserve count
+        // update pool token count
         poolTokenReserve -= valueToUnstake;
 
         // if the stake was created by the pool itself as a yield reward
@@ -945,13 +892,10 @@ abstract contract CorePool is
         uint256 v1WeightToAdd = _useV1Weight(_staker);
         // update user state
         _updateReward(_staker, v1WeightToAdd);
-
         // check pending yield rewards to claim and save to memory
         uint256 pendingYieldToClaim = uint256(user.pendingYield);
-
         // if pending yield is zero - just return silently
         if (pendingYieldToClaim == 0) return;
-
         // clears user pending yield
         user.pendingYield = 0;
 
@@ -986,13 +930,6 @@ abstract contract CorePool is
             address ilvPool = _factory.getPoolAddress(_ilv);
             IILVPool(ilvPool).stakeAsPool(_staker, pendingYieldToClaim);
         }
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-
-        // subYieldRewards and subVaultRewards needs to be updated on every `_processRewards` call
-        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
 
         // emits an event
         emit LogClaimYieldRewards(msg.sender, _staker, _useSILV, (user.stakes.length - 1), pendingYieldToClaim);
