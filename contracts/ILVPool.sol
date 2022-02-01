@@ -147,19 +147,8 @@ contract ILVPool is Initializable, V2Migrator {
         user.totalWeight += (stakeWeight).toUint248();
         // add the new yield stake to storage
         user.stakes.push(newStake);
-
-        // update the pool global users weight with the new yield stake weight
+        // update global weight and global pool token count
         globalWeight += stakeWeight;
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-
-        // resets all rewards by having a subtract value == the value returned
-        // when multiplying the user weight by the rewards per weight rate
-        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
-
-        // update `poolTokenReserve` only if this is a LP Core Pool (stakeAsPool can be executed only for LP pool)
         poolTokenReserve += _value;
 
         // emits an event
@@ -188,8 +177,6 @@ contract ILVPool is Initializable, V2Migrator {
     ) external {
         // verifies that user isn't a v1 blacklisted user
         _requireNotBlacklisted(msg.sender);
-        // update pool contract state
-        _sync();
         // gets user storage pointer
         User storage user = users[msg.sender];
         // checks if contract is paused
@@ -197,10 +184,8 @@ contract ILVPool is Initializable, V2Migrator {
 
         // uses v1 weight values for rewards calculations
         uint256 v1WeightToAdd = _useV1Weight(msg.sender);
-
         // update user state
         _updateReward(msg.sender, v1WeightToAdd);
-
         // call internal migrate locked stake function
         // which does the loop to store each v1 stake
         // reference in v2 and all required data
@@ -213,13 +198,6 @@ contract ILVPool is Initializable, V2Migrator {
             // internal function
             _migrateYieldWeights(_proof, _index, _yieldWeight, _pendingV1Rewards, _useSILV);
         }
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-
-        // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
     }
 
     /**
@@ -234,8 +212,6 @@ contract ILVPool is Initializable, V2Migrator {
      *                 as ILV or sILV
      */
     function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external {
-        // updates pool contract state variables
-        _sync();
         // checks if contract is paused
         _requireNotPaused();
 
@@ -274,8 +250,6 @@ contract ILVPool is Initializable, V2Migrator {
      * @param _pools array of pool addresses
      */
     function claimVaultRewardsMultiple(address[] calldata _pools) external {
-        // update pool contract state variables
-        _sync();
         // checks if contract is paused
         _requireNotPaused();
         // loops over each pool passed to execute the necessary checks, and call
@@ -283,7 +257,6 @@ contract ILVPool is Initializable, V2Migrator {
         for (uint256 i = 0; i < _pools.length; i++) {
             // gets current pool in the loop
             address pool = _pools[i];
-
             // we're using selector to simplify input and state validation
             // checks if the given pool is a valid one registred by the pool
             // factory contract
@@ -319,8 +292,6 @@ contract ILVPool is Initializable, V2Migrator {
         _requireNotBlacklisted(msg.sender);
         // checks if contract is paused
         _requireNotPaused();
-        // updates pool contract state variables
-        _sync();
         // gets storage pointer to the user
         User storage user = users[msg.sender];
         // initialize variables that will be used inside the loop
@@ -371,13 +342,6 @@ contract ILVPool is Initializable, V2Migrator {
         }
         // subtracts value accumulated during the loop
         user.totalWeight -= (weightToRemove).toUint248();
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-
-        // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
         // expects the factory to mint ILV yield to the msg.sender user
         // after all checks and calculations have been successfully
         // executed
@@ -410,12 +374,10 @@ contract ILVPool is Initializable, V2Migrator {
         User storage user = users[msg.sender];
         // bytes4(keccak256("_migrateYieldWeights(bytes32[],uint256,uint256)")))
         bytes4 fnSelector = 0x660e5908;
-
         // requires that the user hasn't migrated the yield yet
         fnSelector.verifyAccess(!hasMigratedYield(_index));
         // compute leaf and verify merkle proof
         bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight, _pendingV1Rewards));
-
         // verifies the merkle proof and requires the return value to be true
         fnSelector.verifyInput(MerkleProof.verify(_proof, merkleRoot, leaf), 0);
         // gets the value compounded into v2 as ILV yield to be added into v2 user.totalWeight
@@ -471,7 +433,6 @@ contract ILVPool is Initializable, V2Migrator {
             // notice that further values will be updated later in execution
             // (user.totalWeight, user.subYieldRewards, user.subVaultRewards, ...)
             user.stakes.push(stake);
-
             // updates function's return value
             pendingRewardsCompounded = _pendingV1Rewards;
         }

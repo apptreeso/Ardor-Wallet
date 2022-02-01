@@ -41,8 +41,6 @@ contract SushiLPPool is Initializable, V2Migrator {
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
     function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external virtual {
-        // update pool contract state
-        _sync();
         // checks if contract is paused
         _requireNotPaused();
         // checks if caller is the ILV pool
@@ -62,8 +60,6 @@ contract SushiLPPool is Initializable, V2Migrator {
      * @param _staker user address
      */
     function claimVaultRewardsFromRouter(address _staker) external virtual {
-        // update pool contract state
-        _sync();
         // checks if contract is paused
         _requireNotPaused();
         // checks if caller is the ILV pool
