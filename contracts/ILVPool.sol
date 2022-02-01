@@ -131,10 +131,10 @@ contract ILVPool is Initializable, V2Migrator {
         // gets storage pointer to user
         User storage user = users[_staker];
         // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+        uint256 v1WeightToAdd = _useV1Weight(_staker);
         // if user has any weight in v2 or v1, claim rewards
         if (user.totalWeight > 0 || v1WeightToAdd > 0) {
-            _processRewards(_staker, v1WeightToAdd, subYieldRewards, subVaultRewards);
+            _updateReward(_staker, v1WeightToAdd);
         }
         // calculates take weight based on how much yield has been generated
         // (by checking _value) and multiplies by the 2e6 constant, since
@@ -200,10 +200,10 @@ contract ILVPool is Initializable, V2Migrator {
         _requireNotPaused();
 
         // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+        uint256 v1WeightToAdd = _useV1Weight(msg.sender);
         if (user.totalWeight > 0 || v1WeightToAdd > 0) {
             // update user state
-            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+            _updateReward(msg.sender, v1WeightToAdd);
         }
         // call internal migrate locked stake function
         // which does the loop to store each v1 stake
@@ -339,11 +339,11 @@ contract ILVPool is Initializable, V2Migrator {
         // avoids stack too deep error
         {
             // uses v1 weight values for rewards calculations
-            (uint256 _v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+            uint256 _v1WeightToAdd = _useV1Weight(msg.sender);
             // if user has weight in v2 or v2, process the rewards
             if (user.totalWeight > 0 || _v1WeightToAdd > 0) {
                 // calls internal function
-                _processRewards(msg.sender, _v1WeightToAdd, subYieldRewards, subVaultRewards);
+                _updateReward(msg.sender, _v1WeightToAdd);
             }
 
             v1WeightToAdd = _v1WeightToAdd;

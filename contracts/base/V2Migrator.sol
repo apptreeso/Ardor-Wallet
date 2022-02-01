@@ -109,10 +109,10 @@ abstract contract V2Migrator is Initializable, CorePool {
         // gets storage pointer to user
         User storage user = users[msg.sender];
         // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
+        uint256 v1WeightToAdd = _useV1Weight(msg.sender);
         if (user.totalWeight > 0 || v1WeightToAdd > 0) {
             // update user state
-            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+            _updateReward(msg.sender, v1WeightToAdd);
         }
         // call internal migrate locked stake function
         // which does the loop to store each v1 stake

@@ -47,7 +47,7 @@ async function main(): Promise<void> {
       config.ILV_POOL_WEIGHT,
       config.ilvPoolV1,
       // (new Date().getTime() / 1000).toFixed(0),
-      ethers.constants.MaxUint256
+      ethers.constants.MaxUint256,
     ],
     { kind: "uups" },
   )) as ILVPool;
@@ -67,7 +67,7 @@ async function main(): Promise<void> {
       config.LP_POOL_WEIGHT,
       config.lpPoolV1,
       // (new Date().getTime() / 1000).toFixed(0),
-      ethers.constants.MaxUint256
+      ethers.constants.MaxUint256,
     ],
     { kind: "uups" },
   )) as SushiLPPool;
