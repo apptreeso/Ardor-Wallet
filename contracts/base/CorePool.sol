@@ -209,7 +209,7 @@ abstract contract CorePool is
     event LogClaimVaultRewards(address indexed by, address indexed from, uint256 value);
 
     /**
-     * @dev Fired in `_processRewards()`.
+     * @dev Fired in `_updateRewards()`.
      *
      * @param by an address which processed the rewards (staker or ilv pool contract
      *            in case of a multiple claim call)
@@ -217,7 +217,7 @@ abstract contract CorePool is
      * @param yieldValue value of yield processed
      * @param revDisValue value of revenue distribution processed
      */
-    event LogProcessRewards(address indexed by, address indexed from, uint256 yieldValue, uint256 revDisValue);
+    event LogUpdateRewards(address indexed by, address indexed from, uint256 yieldValue, uint256 revDisValue);
 
     /**
      * @dev fired in `moveFundsFromWallet()`.
@@ -518,12 +518,12 @@ abstract contract CorePool is
         User storage newUser = users[_to];
         // uses v1 weight values for rewards calculations
         uint256 v1WeightToAdd = _useV1Weight(msg.sender);
-        if (previousUser.totalWeight > 0 || v1WeightToAdd > 0) {
-            // We process all pending rewards before moving the user funds to a new wallet.
-            // This way we can ensure that all v1 ids weight have been used before the v2
-            // stakes to a new address.
-            _updateReward(msg.sender, v1WeightToAdd);
-        }
+
+        // We process all pending rewards before moving the user funds to a new wallet.
+        // This way we can ensure that all v1 ids weight have been used before the v2
+        // stakes to a new address.
+        _updateReward(msg.sender, v1WeightToAdd);
+
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = this.moveFundsFromWallet.selector;
 
@@ -700,10 +700,10 @@ abstract contract CorePool is
         User storage user = users[_staker];
         // uses v1 weight values for rewards calculations
         uint256 v1WeightToAdd = _useV1Weight(_staker);
-        // process current pending rewards if any and syncs pool state
-        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
-            _updateReward(_staker, v1WeightToAdd);
-        }
+
+        // update user state
+        _updateReward(_staker, v1WeightToAdd);
+
         // calculates until when a stake is going to be locked
         uint64 lockUntil = (_now256()).toUint64() + _lockDuration;
         // stake weight formula rewards for locking
@@ -965,47 +965,6 @@ abstract contract CorePool is
     }
 
     /**
-     * @dev Used internally, mostly by children implementations.
-     * @dev Executed before staking, unstaking and claiming the rewards.
-     * @dev updates user.pendingYield and user.pendingRevDis.
-     * @dev When timing conditions are not met (executed too frequently, or after factory
-     *      end block), function doesn't throw and exits silently.
-     *
-     * @param _staker an address which receives the reward (which has staked some tokens earlier)
-     * @param _v1WeightToAdd weight value in v1 protocol to add to calculations
-     * @param _subYieldRewards parameter passed down to `_pendingRewards()`
-     * @param _subVaultRewards parameter passed down to `_pendingRewards()`
-     *
-     * @return pendingYield the yield rewards calculated and saved to the user struct
-     * @return pendingRevDis the revenue distribution reward calculated and
-     *         saved to the user struct
-     */
-    function _processRewards(address _staker, uint256 _v1WeightToAdd)
-        internal
-        virtual
-        returns (uint256 pendingYield, uint256 pendingRevDis)
-    {
-        // links to _staker user struct in storage
-        User storage user = users[_staker];
-
-        // gas savings
-        uint256 userTotalWeight = uint256(user.totalWeight) + _v1WeightToAdd;
-
-        uint256 pendingYield = userTotalWeight.earned(yieldRewardsPerWeight, user.yieldRewardsPerWeightPaid);
-        uint256 pendingRevDis = userTotalWeight.earned(vaultRewardsPerWeight, user.vaultRewardsPerWeightPaid);
-
-        // get link to a user data structure, we will write into it later
-        User storage user = users[_staker];
-        // increases stored user.pendingYield with value returned
-        user.pendingYield += pendingYield.toUint128();
-        // increases stored user.pendingRevDis with value returned
-        user.pendingRevDis += pendingRevDis.toUint128();
-
-        // emit an event
-        emit LogProcessRewards(msg.sender, _staker, pendingYield, pendingRevDis);
-    }
-
-    /**
      * @dev claims all pendingYield from _staker using ILV or sILV.
      *
      * @notice sILV is minted straight away to _staker wallet, ILV is created as
@@ -1019,10 +978,8 @@ abstract contract CorePool is
         User storage user = users[_staker];
         // uses v1 weight values for rewards calculations
         uint256 v1WeightToAdd = _useV1Weight(_staker);
-        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
-            // update user state
-            _updateReward(_staker, v1WeightToAdd);
-        }
+        // update user state
+        _updateReward(_staker, v1WeightToAdd);
 
         // check pending yield rewards to claim and save to memory
         uint256 pendingYieldToClaim = uint256(user.pendingYield);
@@ -1087,10 +1044,9 @@ abstract contract CorePool is
         User storage user = users[_staker];
         // uses v1 weight values for rewards calculations
         uint256 v1WeightToAdd = _useV1Weight(_staker);
-        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
-            // update user state
-            _updateReward(_staker, v1WeightToAdd);
-        }
+
+        // update user state
+        _updateReward(_staker, v1WeightToAdd);
 
         // check pending yield rewards to claim and save to memory
         uint256 pendingRevDis = uint256(user.pendingRevDis);
@@ -1189,13 +1145,27 @@ abstract contract CorePool is
     function _updateReward(address _staker, uint256 _v1WeightToAdd) internal virtual {
         // update pool state
         _sync();
-        // processes all rewards with current rewardsPerWeight values
-        _processRewards(_staker, _v1WeightToAdd);
+        // gas savings
+        uint256 userTotalWeight = uint256(user.totalWeight) + _v1WeightToAdd;
+        // gets storage reference to the user
         User storage user = users[_staker];
+        if (userTotalWeight > 0) {
+            // calculates pending yield to be added
+            uint256 pendingYield = userTotalWeight.earned(yieldRewardsPerWeight, user.yieldRewardsPerWeightPaid);
+            // calculates pending reenue distribution to be added
+            uint256 pendingRevDis = userTotalWeight.earned(vaultRewardsPerWeight, user.vaultRewardsPerWeightPaid);
+            // increases stored user.pendingYield with value returned
+            user.pendingYield += pendingYield.toUint128();
+            // increases stored user.pendingRevDis with value returned
+            user.pendingRevDis += pendingRevDis.toUint128();
+        }
 
         // updates user checkpoint values for future calculations
         user.yieldRewardsPerWeightPaid = yieldRewardsPerWeight;
         user.vaultRewardsPerWeightPaid = vaultRewardsPerWeight;
+
+        // emit an event
+        emit LogUpdateRewards(msg.sender, _staker, pendingYield, pendingRevDis);
     }
 
     /**

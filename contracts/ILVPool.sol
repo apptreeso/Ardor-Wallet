@@ -122,8 +122,6 @@ contract ILVPool is Initializable, V2Migrator {
      * @param _value amount to be staked (yield reward amount)
      */
     function stakeAsPool(address _staker, uint256 _value) external nonReentrant {
-        // update pool contract state variables
-        _sync();
         // checks if contract is paused
         _requireNotPaused();
         // expects caller to be a valid contract registered by the pool factory
@@ -132,10 +130,8 @@ contract ILVPool is Initializable, V2Migrator {
         User storage user = users[_staker];
         // uses v1 weight values for rewards calculations
         uint256 v1WeightToAdd = _useV1Weight(_staker);
-        // if user has any weight in v2 or v1, claim rewards
-        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
-            _updateReward(_staker, v1WeightToAdd);
-        }
+        // update user state
+        _updateReward(_staker, v1WeightToAdd);
         // calculates take weight based on how much yield has been generated
         // (by checking _value) and multiplies by the 2e6 constant, since
         // yield is always locked for a year.
@@ -201,10 +197,10 @@ contract ILVPool is Initializable, V2Migrator {
 
         // uses v1 weight values for rewards calculations
         uint256 v1WeightToAdd = _useV1Weight(msg.sender);
-        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
-            // update user state
-            _updateReward(msg.sender, v1WeightToAdd);
-        }
+
+        // update user state
+        _updateReward(msg.sender, v1WeightToAdd);
+
         // call internal migrate locked stake function
         // which does the loop to store each v1 stake
         // reference in v2 and all required data
@@ -340,11 +336,8 @@ contract ILVPool is Initializable, V2Migrator {
         {
             // uses v1 weight values for rewards calculations
             uint256 _v1WeightToAdd = _useV1Weight(msg.sender);
-            // if user has weight in v2 or v2, process the rewards
-            if (user.totalWeight > 0 || _v1WeightToAdd > 0) {
-                // calls internal function
-                _updateReward(msg.sender, _v1WeightToAdd);
-            }
+            // update user state
+            _updateReward(msg.sender, _v1WeightToAdd);
 
             v1WeightToAdd = _v1WeightToAdd;
         }
