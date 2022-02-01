@@ -1149,16 +1149,15 @@ abstract contract CorePool is
         uint256 userTotalWeight = uint256(user.totalWeight) + _v1WeightToAdd;
         // gets storage reference to the user
         User storage user = users[_staker];
-        if (userTotalWeight > 0) {
-            // calculates pending yield to be added
-            uint256 pendingYield = userTotalWeight.earned(yieldRewardsPerWeight, user.yieldRewardsPerWeightPaid);
-            // calculates pending reenue distribution to be added
-            uint256 pendingRevDis = userTotalWeight.earned(vaultRewardsPerWeight, user.vaultRewardsPerWeightPaid);
-            // increases stored user.pendingYield with value returned
-            user.pendingYield += pendingYield.toUint128();
-            // increases stored user.pendingRevDis with value returned
-            user.pendingRevDis += pendingRevDis.toUint128();
-        }
+
+        // calculates pending yield to be added
+        uint256 pendingYield = userTotalWeight.earned(yieldRewardsPerWeight, user.yieldRewardsPerWeightPaid);
+        // calculates pending reenue distribution to be added
+        uint256 pendingRevDis = userTotalWeight.earned(vaultRewardsPerWeight, user.vaultRewardsPerWeightPaid);
+        // increases stored user.pendingYield with value returned
+        user.pendingYield += pendingYield.toUint128();
+        // increases stored user.pendingRevDis with value returned
+        user.pendingRevDis += pendingRevDis.toUint128();
 
         // updates user checkpoint values for future calculations
         user.yieldRewardsPerWeightPaid = yieldRewardsPerWeight;
