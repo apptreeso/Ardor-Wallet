@@ -129,6 +129,10 @@ abstract contract CorePool is
     /// @dev Used to calculate rewards, keeps track of the tokens weight locked in staking.
     uint256 public globalWeight;
 
+    /// @dev Used to calculate rewards, keeps track of the correct token weight in the v1
+    ///      core pool.
+    uint256 public v1GlobalWeight;
+
     /// @dev Pool tokens value available in the pool;
     ///      pool token examples are ILV (ILV core pool) or ILV/ETH pair (LP core pool).
     /// @dev For LP core pool this value doesnt' count for ILV tokens received as Vault rewards
@@ -326,7 +330,6 @@ abstract contract CorePool is
                 ? endTime - _lastYieldDistribution
                 : _now256() - _lastYieldDistribution;
             uint256 ilvRewards = (multiplier * weight * _factory.ilvPerSecond()) / _factory.totalWeight();
-            uint256 v1GlobalWeight = ICorePoolV1(corePoolV1).usersLockingWeight();
 
             // recalculated value for `yieldRewardsPerWeight`
             newYieldRewardsPerWeight =
@@ -642,8 +645,6 @@ abstract contract CorePool is
         if (_value == 0) {
             return;
         }
-        // reads total weight staked in v1
-        uint256 v1GlobalWeight = ICorePoolV1(corePoolV1).usersLockingWeight();
         // verify weight is not zero
         fnSelector.verifyState(globalWeight > 0 || v1GlobalWeight > 0, 0);
         // we update vaultRewardsPerWeight value using v1 and v2 global weight,
@@ -656,6 +657,18 @@ abstract contract CorePool is
 
         // emits an event
         emit LogReceiveVaultRewards(msg.sender, _value);
+    }
+    /**
+     * @dev Updates value that keeps track of v1 global locked tokens weight.
+     *
+     * @param _v1GlobalWeight new value to be stored
+     */
+    function setV1GlobalWeight(uint256 _v1GlobalWeight) external {
+        // only factory controller can update the _v1GlobalWeight
+        _requireIsFactoryController();
+
+        // update v1GlobalWeight state variable
+        v1GlobalWeight = _v1GlobalWeight;
     }
 
     /**
@@ -856,8 +869,6 @@ abstract contract CorePool is
         if (_now256() <= lastYieldDistribution) {
             return;
         }
-        // reads total weight staked in v1
-        uint256 v1GlobalWeight = ICorePoolV1(corePoolV1).usersLockingWeight();
         // if locking weight is zero - update only `lastYieldDistribution` and exit
         if (globalWeight == 0 && v1GlobalWeight == 0) {
             lastYieldDistribution = (_now256()).toUint64();
