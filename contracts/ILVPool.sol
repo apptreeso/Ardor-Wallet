@@ -177,8 +177,6 @@ contract ILVPool is Initializable, V2Migrator {
     ) external {
         // verifies that user isn't a v1 blacklisted user
         _requireNotBlacklisted(msg.sender);
-        // gets user storage pointer
-        User storage user = users[msg.sender];
         // checks if contract is paused
         _requireNotPaused();
 

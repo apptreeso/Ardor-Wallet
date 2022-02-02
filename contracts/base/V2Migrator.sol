@@ -102,29 +102,16 @@ abstract contract V2Migrator is Initializable, CorePool {
     function migrateLockedStakes(uint256[] calldata _stakeIds) external virtual {
         // verifies that user isn't a v1 blacklisted user
         _requireNotBlacklisted(msg.sender);
-        // update pool contract state variables
-        _sync();
         // checks if contract is paused
         _requireNotPaused();
-        // gets storage pointer to user
-        User storage user = users[msg.sender];
         // uses v1 weight values for rewards calculations
         uint256 v1WeightToAdd = _useV1Weight(msg.sender);
-
         // update user state
         _updateReward(msg.sender, v1WeightToAdd);
-
         // call internal migrate locked stake function
         // which does the loop to store each v1 stake
         // reference in v2 and all required data
         _migrateLockedStakes(_stakeIds);
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-
-        // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.earned(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.earned(vaultRewardsPerWeight);
     }
 
     /**
@@ -137,11 +124,9 @@ abstract contract V2Migrator is Initializable, CorePool {
      */
     function _migrateLockedStakes(uint256[] calldata _stakeIds) internal {
         User storage user = users[msg.sender];
-
         // we're using selector to simplify input and state validation
         // internal function simulated selector is `keccak256("_migrateLockedStakes(uint256[])")`
         bytes4 fnSelector = 0x80812525;
-
         // initializes variable which will tell how much
         // weight in v1 the user is bringing to v2
         uint256 totalV1WeightAdded;

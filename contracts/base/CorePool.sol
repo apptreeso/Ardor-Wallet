@@ -357,8 +357,12 @@ abstract contract CorePool is
             }
         }
 
-        pendingYield = (userWeight + totalV1Weight).earned(newYieldRewardsPerWeight) + user.pendingYield;
-        pendingRevDis = (userWeight + totalV1Weight).earned(vaultRewardsPerWeight) + user.pendingRevDis;
+        pendingYield =
+            (userWeight + totalV1Weight).earned(newYieldRewardsPerWeight, user.yieldRewardsPerWeightPaid) +
+            user.pendingYield;
+        pendingRevDis =
+            (userWeight + totalV1Weight).earned(vaultRewardsPerWeight, user.vaultRewardsPerWeightPaid) +
+            user.pendingRevDis;
     }
 
     /**
@@ -482,14 +486,14 @@ abstract contract CorePool is
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
         // create and save the stake (append it to stakes array)
-        Stake.Data memory stake = Stake.Data({
+        Stake.Data memory userStake = Stake.Data({
             value: (_value).toUint120(),
             lockedFrom: (_now256()).toUint64(),
             lockedUntil: lockUntil,
             isYield: false
         });
         // pushes new stake to `stakes` array
-        user.stakes.push(stake);
+        user.stakes.push(userStake);
         // update user weight
         user.totalWeight += (stakeWeight).toUint248();
         // update global weight value and global pool token count
@@ -537,8 +541,8 @@ abstract contract CorePool is
             newUser.totalWeight == 0 &&
                 newUser.v1IdsLength == 0 &&
                 newUser.stakes.length == 0 &&
-                newUser.subYieldRewards == 0 &&
-                newUser.subVaultRewards == 0,
+                newUser.yieldRewardsPerWeightPaid == 0 &&
+                newUser.vaultRewardsPerWeightPaid == 0,
             0
         );
         // saves previous user total weight
@@ -558,7 +562,7 @@ abstract contract CorePool is
         newUser.pendingYield = previousYield;
         newUser.pendingRevDis = previousRevDis;
         newUser.yieldRewardsPerWeightPaid = yieldRewardsPerWeight;
-        newUser.vaultRewardsPerWeight = vaultRewardsPerWeight;
+        newUser.vaultRewardsPerWeightPaid = vaultRewardsPerWeight;
         delete previousUser.totalWeight;
         delete previousUser.pendingYield;
         delete previousUser.pendingRevDis;
@@ -692,12 +696,12 @@ abstract contract CorePool is
         // get a link to user data struct, we will write to it later
         User storage user = users[msg.sender];
         // get a link to the corresponding stake, we may write to it later
-        Stake.Data storage stake = user.stakes[_stakeId];
+        Stake.Data storage userStake = user.stakes[_stakeId];
         // checks if stake is unlocked already
-        fnSelector.verifyState(_now256() > stake.lockedUntil, 0);
+        fnSelector.verifyState(_now256() > userStake.lockedUntil, 0);
         // stake structure may get deleted, so we save isYield flag to be able to use it
         // we also save stakeValue for gasSavings
-        (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
+        (uint120 stakeValue, bool isYield) = (userStake.value, userStake.isYield);
         // verify available balance
         fnSelector.verifyInput(stakeValue >= _value, 1);
         // uses v1 weight values for rewards calculations
@@ -705,7 +709,7 @@ abstract contract CorePool is
         // and process current pending rewards if any
         _updateReward(msg.sender, v1WeightToAdd);
         // store stake weight
-        uint256 previousWeight = stake.weight();
+        uint256 previousWeight = userStake.weight();
         // value used to save new weight after updates in storage
         uint256 newWeight;
 
@@ -714,9 +718,9 @@ abstract contract CorePool is
             // deletes stake struct, no need to save new weight because it stays 0
             delete user.stakes[_stakeId];
         } else {
-            stake.value -= (_value).toUint120();
+            userStake.value -= (_value).toUint120();
             // saves new weight to memory
-            newWeight = stake.weight();
+            newWeight = userStake.weight();
         }
         // update user record
         user.totalWeight = uint248(user.totalWeight - previousWeight + newWeight);
@@ -773,14 +777,14 @@ abstract contract CorePool is
         for (uint256 i = 0; i < _stakes.length; i++) {
             // destructure calldata parameters
             (uint256 _stakeId, uint256 _value) = (_stakes[i].stakeId, _stakes[i].value);
-            Stake.Data storage stake = user.stakes[_stakeId];
+            Stake.Data storage userStake = user.stakes[_stakeId];
             // checks if stake is unlocked already
-            fnSelector.verifyState(_now256() > stake.lockedUntil, i * 3);
+            fnSelector.verifyState(_now256() > userStake.lockedUntil, i * 3);
             // checks if unstaking value is valid
             fnSelector.verifyNonZeroInput(_value, 1);
             // stake structure may get deleted, so we save isYield flag to be able to use it
             // we also save stakeValue for gas savings
-            (uint120 stakeValue, bool isYield) = (stake.value, stake.isYield);
+            (uint120 stakeValue, bool isYield) = (userStake.value, userStake.isYield);
             // verifies if the selected stake is yield (i.e ILV to be minted)
             // or not, the function needs to either mint yield or transfer tokens
             // and can't do both operations at the same time.
@@ -789,7 +793,7 @@ abstract contract CorePool is
             fnSelector.verifyState(stakeValue >= _value, i * 3 + 2);
 
             // store stake weight
-            uint256 previousWeight = stake.weight();
+            uint256 previousWeight = userStake.weight();
             // value used to save new weight after updates in storage
             uint256 newWeight;
 
@@ -799,9 +803,9 @@ abstract contract CorePool is
                 delete user.stakes[_stakeId];
             } else {
                 // removes _value from the stake with safe cast
-                stake.value -= (_value).toUint120();
+                userStake.value -= (_value).toUint120();
                 // saves new weight to memory
-                newWeight = stake.weight();
+                newWeight = userStake.weight();
             }
 
             // updates the values initialized earlier with the amounts that
@@ -973,10 +977,6 @@ abstract contract CorePool is
      * @param _staker user address passed
      *
      * @return totalV1Weight uint256 value of v1StakesIds weights
-     * @return subYieldRewards uint256 value to use in yield calculations accounting
-     *          v1 weights and its possible changes
-     * @return subVaultRewards uint256 value to use in revenue distribution
-     *          calculations accounting v1 weights and its possible changes
      */
     function _useV1Weight(address _staker) internal virtual returns (uint256 totalV1Weight) {
         // gets user storage pointer
@@ -1039,10 +1039,10 @@ abstract contract CorePool is
     function _updateReward(address _staker, uint256 _v1WeightToAdd) internal virtual {
         // update pool state
         _sync();
-        // gas savings
-        uint256 userTotalWeight = uint256(user.totalWeight) + _v1WeightToAdd;
         // gets storage reference to the user
         User storage user = users[_staker];
+        // gas savings
+        uint256 userTotalWeight = uint256(user.totalWeight) + _v1WeightToAdd;
 
         // calculates pending yield to be added
         uint256 pendingYield = userTotalWeight.earned(yieldRewardsPerWeight, user.yieldRewardsPerWeightPaid);
