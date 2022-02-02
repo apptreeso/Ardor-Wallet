@@ -421,6 +421,9 @@ export function claimVaultRewards(): () => void {
       await this.ilvPoolV1.setUsers(users);
       await this.lpPoolV1.setUsers(users);
 
+      await this.ilvPool.connect(this.signers.deployer).setV1GlobalWeight(await this.ilvPoolV1.usersLockingWeight());
+      await this.lpPool.connect(this.signers.deployer).setV1GlobalWeight(await this.lpPoolV1.usersLockingWeight());
+
       await this.ilvPool.connect(this.signers.bob).migrateLockedStakes([0, 1]);
       await this.lpPool.connect(this.signers.bob).migrateLockedStakes([0, 1]);
 
@@ -447,7 +450,6 @@ export function claimVaultRewards(): () => void {
 
       const { pendingRevDis: alicePendingRevDisILVPool } = await this.ilvPool.pendingRewards(this.signers.bob.address);
       const { pendingRevDis: alicePendingRevDisLPPool } = await this.lpPool.pendingRewards(this.signers.bob.address);
-
       await this.ilvPool.connect(this.signers.bob).claimVaultRewards();
 
       const ilvBalance1 = await this.ilv.balanceOf(this.signers.bob.address);

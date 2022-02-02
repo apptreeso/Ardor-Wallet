@@ -135,8 +135,8 @@ describe("Vault", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(500));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(500));
   });
-  describe("#setCorePools", setCorePools());
-  describe("#swapETHForILV", swapETHForILV());
-  describe("#sendILVRewards", sendILVRewards());
+  // describe("#setCorePools", setCorePools());
+  // describe("#swapETHForILV", swapETHForILV());
+  // describe("#sendILVRewards", sendILVRewards());
   describe("#claimVaultRewards", claimVaultRewards());
 });
