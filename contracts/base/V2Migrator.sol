@@ -22,17 +22,11 @@ abstract contract V2Migrator is Initializable, CorePool {
     using ErrorHandler for bytes4;
     using Stake for uint256;
 
-    /// @dev Stores maximum timestamp of a v1 stake accepted in v2.
-    uint256 private _v1StakeMaxPeriod;
+    /// @dev Maps v1 addresses that are black listed for v2 migration.
+    mapping(address => bool) public isBlacklisted;
 
-    /**
-     * @dev logs `_migrateYieldWeights()`
-     *
-     * @param from user address
-     * @param yieldWeightMigrated total amount of weight coming from yield in v1
-     *
-     */
-    event LogMigrateYieldWeight(address indexed from, uint256 yieldWeightMigrated);
+    /// @dev Stores maximum timestamp of a v1 stake (yield or deposit) accepted in v2.
+    uint256 internal _v1StakeMaxPeriod;
 
     /**
      * @dev logs `_migrateLockedStakes()`
@@ -66,6 +60,30 @@ abstract contract V2Migrator is Initializable, CorePool {
     }
 
     /**
+     * @notice Blacklists a list of v1 user addresses by setting the
+     *         _isBlacklisted flag to true.
+     *
+     * @dev The intention is to prevent addresses that exploited v1 to be able to move
+     *      stake ids to the v2 contracts and to be able to mint any yield from a v1
+     *      stake id with the isYield flag set to true.
+     *
+     * @param _users v1 users address array
+     */
+    function blacklistUsers(address[] calldata _users) external virtual {
+        // only the factory controller can blacklist users
+        _requireIsFactoryController();
+        // we're using selector to simplify validation
+        bytes4 fnSelector = this.blacklistUsers.selector;
+        // gets each user in the array to be blacklisted
+        for (uint256 i = 0; i < _users.length; i++) {
+            // makes sure user passed isn't the address 0
+            fnSelector.verifyInput(_users[i] != address(0), 0);
+            // updates mapping
+            isBlacklisted[_users[i]] = true;
+        }
+    }
+
+    /**
      * @dev External migrateLockedStakes call, used in the Sushi LP pool contract.
      * @dev The function is used by users that want to migrate locked stakes in v1,
      *      but have no yield in the pool. This happens in two scenarios:
@@ -82,29 +100,18 @@ abstract contract V2Migrator is Initializable, CorePool {
      * @param _stakeIds array of v1 stake ids
      */
     function migrateLockedStakes(uint256[] calldata _stakeIds) external virtual {
-        // update pool contract state variables
-        _sync();
+        // verifies that user isn't a v1 blacklisted user
+        _requireNotBlacklisted(msg.sender);
         // checks if contract is paused
         _requireNotPaused();
-        // gets storage pointer to user
-        User storage user = users[msg.sender];
         // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
-            // update user state
-            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
-        }
+        uint256 v1WeightToAdd = _useV1Weight(msg.sender);
+        // update user state
+        _updateReward(msg.sender, v1WeightToAdd);
         // call internal migrate locked stake function
         // which does the loop to store each v1 stake
         // reference in v2 and all required data
         _migrateLockedStakes(_stakeIds);
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-
-        // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
     }
 
     /**
@@ -117,11 +124,9 @@ abstract contract V2Migrator is Initializable, CorePool {
      */
     function _migrateLockedStakes(uint256[] calldata _stakeIds) internal {
         User storage user = users[msg.sender];
-
         // we're using selector to simplify input and state validation
         // internal function simulated selector is `keccak256("_migrateLockedStakes(uint256[])")`
         bytes4 fnSelector = 0x80812525;
-
         // initializes variable which will tell how much
         // weight in v1 the user is bringing to v2
         uint256 totalV1WeightAdded;
@@ -146,19 +151,28 @@ abstract contract V2Migrator is Initializable, CorePool {
 
             // adds v1 weight to the dynamic mapping which will be used in calculations
             v1StakesWeights[msg.sender][_stakeIds[i]] = _weight;
-            // adds v1 weight to the mapping which will be used for filling a v1 stake
-            // id in the future through `CorePool.fillV1StakeId()`;
-            v1StakesWeightsOriginal[msg.sender][_stakeIds[i]] = _weight;
             // updates the variable keeping track of the total weight migrated
             totalV1WeightAdded += _weight;
             // update value keeping track of v1 stakes ids mapping length
             user.v1IdsLength++;
             // adds stake id to mapping keeping track of each v1 stake id
             user.v1StakesIds[i] = _stakeIds[i];
-
-            // emits an event
-            emit LogMigrateLockedStakes(msg.sender, totalV1WeightAdded);
         }
+
+        // emits an event
+        emit LogMigrateLockedStakes(msg.sender, totalV1WeightAdded);
+    }
+
+    /**
+     * @dev Utility used by functions that can't allow blacklisted users to call.
+     * @dev Blocks user addresses stored in the _isBlacklisted mapping to call actions like
+     *      minting v1 yield stake ids and migrating locked stakes.
+     */
+    function _requireNotBlacklisted(address _user) internal view virtual {
+        // we're using selector to simplify input and access validation
+        bytes4 fnSelector = this.migrateLockedStakes.selector;
+        // makes sure that msg.sender isn't a blacklisted address
+        fnSelector.verifyAccess(!isBlacklisted[_user]);
     }
 
     /**
@@ -166,5 +180,5 @@ abstract contract V2Migrator is Initializable, CorePool {
      *      the amount of storage used by a contract always adds up to the 50.
      *      See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[49] private __gap;
+    uint256[48] private __gap;
 }

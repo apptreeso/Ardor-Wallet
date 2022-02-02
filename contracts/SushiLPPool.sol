@@ -3,7 +3,9 @@ pragma solidity 0.8.4;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { V2Migrator } from "./base/V2Migrator.sol";
+import { CorePool } from "./base/CorePool.sol";
 import { ErrorHandler } from "./libraries/ErrorHandler.sol";
+import { ICorePoolV1 } from "./interfaces/ICorePoolV1.sol";
 
 /**
  * @title The Sushi LP Pool.
@@ -30,6 +32,11 @@ contract SushiLPPool is Initializable, V2Migrator {
         __V2Migrator_init(ilv_, silv_, _poolToken, _corePoolV1, _factory, _initTime, _weight, v1StakeMaxPeriod_);
     }
 
+    /// @inheritdoc CorePool
+    function getTotalReserves() external view virtual override returns (uint256 totalReserves) {
+        totalReserves = poolTokenReserve + ICorePoolV1(corePoolV1).usersLockingWeight();
+    }
+
     /**
      * @notice This function can be called only by ILV core pool.
      *
@@ -41,8 +48,6 @@ contract SushiLPPool is Initializable, V2Migrator {
      * @param _useSILV whether it should claim pendingYield as ILV or sILV
      */
     function claimYieldRewardsFromRouter(address _staker, bool _useSILV) external virtual {
-        // update pool contract state
-        _sync();
         // checks if contract is paused
         _requireNotPaused();
         // checks if caller is the ILV pool
@@ -62,8 +67,6 @@ contract SushiLPPool is Initializable, V2Migrator {
      * @param _staker user address
      */
     function claimVaultRewardsFromRouter(address _staker) external virtual {
-        // update pool contract state
-        _sync();
         // checks if contract is paused
         _requireNotPaused();
         // checks if caller is the ILV pool

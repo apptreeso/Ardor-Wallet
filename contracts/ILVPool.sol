@@ -8,6 +8,7 @@ import { SafeCast } from "./libraries/SafeCast.sol";
 import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { V2Migrator } from "./base/V2Migrator.sol";
+import { CorePool } from "./base/CorePool.sol";
 import { ErrorHandler } from "./libraries/ErrorHandler.sol";
 import { Stake } from "./libraries/Stake.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
@@ -42,8 +43,30 @@ contract ILVPool is Initializable, V2Migrator {
     ///      if a v1 yield has already been minted by v2 contract.
     mapping(address => mapping(uint256 => bool)) private _v1YieldMinted;
 
+    /// @dev Used to calculate vault (revenue distribution) rewards, keeps track
+    ///      of the correct ILV balance in the v1 core pool.
+    uint256 public v1PoolTokenReserve;
+
     /**
-     * @dev logs `mintV1Yield()`.
+     * @dev logs `_migratePendingRewards()`
+     *
+     * @param from user address
+     * @param pendingRewardsMigrated value of pending rewards migrated
+     * @param useSILV whether user claimed v1 pending rewards as ILV or sILV
+     */
+    event LogMigratePendingRewards(address indexed from, uint256 pendingRewardsMigrated, bool useSILV);
+
+    /**
+     * @dev logs `_migrateYieldWeights()`
+     *
+     * @param from user address
+     * @param yieldWeightMigrated total amount of weight coming from yield in v1
+     *
+     */
+    event LogMigrateYieldWeight(address indexed from, uint256 yieldWeightMigrated);
+
+    /**
+     * @dev logs `mintV1YieldMultiple()`.
      *
      * @param from user address
      * @param value number of ILV tokens minted
@@ -67,6 +90,24 @@ contract ILVPool is Initializable, V2Migrator {
     }
 
     /**
+     * @dev Updates value that keeps track of v1 global locked tokens weight.
+     *
+     * @param _v1PoolTokenReserve new value to be stored
+     */
+    function setV1PoolTokenReserve(uint256 _v1PoolTokenReserve) external virtual {
+        // only factory controller can update the _v1GlobalWeight
+        _requireIsFactoryController();
+
+        // update v1PoolTokenReserve state variable
+        v1PoolTokenReserve = _v1PoolTokenReserve;
+    }
+
+    /// @inheritdoc CorePool
+    function getTotalReserves() external view virtual override returns (uint256 totalReserves) {
+        totalReserves = poolTokenReserve + v1PoolTokenReserve;
+    }
+
+    /**
      * @dev Sets the yield weight tree root.
      * @notice Can only be called by the eDAO.
      *
@@ -75,7 +116,7 @@ contract ILVPool is Initializable, V2Migrator {
     function setMerkleRoot(bytes32 _merkleRoot) external {
         // checks if function is being called by PoolFactory.owner()
         _requireIsFactoryController();
-        // stores the new merkle root
+        // stores the merkle root
         merkleRoot = _merkleRoot;
     }
 
@@ -103,8 +144,6 @@ contract ILVPool is Initializable, V2Migrator {
      * @param _value amount to be staked (yield reward amount)
      */
     function stakeAsPool(address _staker, uint256 _value) external nonReentrant {
-        // update pool contract state variables
-        _sync();
         // checks if contract is paused
         _requireNotPaused();
         // expects caller to be a valid contract registered by the pool factory
@@ -112,11 +151,9 @@ contract ILVPool is Initializable, V2Migrator {
         // gets storage pointer to user
         User storage user = users[_staker];
         // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        // if user has any weight in v2 or v1, claim rewards
-        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
-            _processRewards(_staker, v1WeightToAdd, subYieldRewards, subVaultRewards);
-        }
+        uint256 v1WeightToAdd = _useV1Weight(_staker);
+        // update user state
+        _updateReward(_staker, v1WeightToAdd);
         // calculates take weight based on how much yield has been generated
         // (by checking _value) and multiplies by the 2e6 constant, since
         // yield is always locked for a year.
@@ -132,19 +169,8 @@ contract ILVPool is Initializable, V2Migrator {
         user.totalWeight += (stakeWeight).toUint248();
         // add the new yield stake to storage
         user.stakes.push(newStake);
-
-        // update the pool global users weight with the new yield stake weight
+        // update global weight and global pool token count
         globalWeight += stakeWeight;
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-
-        // resets all rewards by having a subtract value == the value returned
-        // when multiplying the user weight by the rewards per weight rate
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
-
-        // update `poolTokenReserve` only if this is a LP Core Pool (stakeAsPool can be executed only for LP pool)
         poolTokenReserve += _value;
 
         // emits an event
@@ -158,29 +184,28 @@ contract ILVPool is Initializable, V2Migrator {
     }
 
     /**
-     * @dev Calls internal `_migrateLockedStakes` and _`migrateYieldWeights`
-     *      functions for a complete migration of a v1 user to v2.
+     * @dev Calls internal `_migrateLockedStakes`,  `_migrateYieldWeights`
+     *      and `_migratePendingRewards` functions for a complete migration
+     *      of a v1 user to v2.
      * @dev See `_migrateLockedStakes` and _`migrateYieldWeights`.
      */
     function executeMigration(
         bytes32[] calldata _proof,
         uint256 _index,
         uint248 _yieldWeight,
+        uint256 _pendingV1Rewards,
+        bool _useSILV,
         uint256[] calldata _stakeIds
     ) external {
-        // update pool contract state
-        _sync();
-        // gets user storage pointer
-        User storage user = users[msg.sender];
+        // verifies that user isn't a v1 blacklisted user
+        _requireNotBlacklisted(msg.sender);
         // checks if contract is paused
         _requireNotPaused();
 
         // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
-            // update user state
-            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
-        }
+        uint256 v1WeightToAdd = _useV1Weight(msg.sender);
+        // update user state
+        _updateReward(msg.sender, v1WeightToAdd);
         // call internal migrate locked stake function
         // which does the loop to store each v1 stake
         // reference in v2 and all required data
@@ -191,15 +216,8 @@ contract ILVPool is Initializable, V2Migrator {
             // in the merkle tree, and the yield weight being migrated
             // which will be verified, and then update user state values by the
             // internal function
-            _migrateYieldWeights(_proof, _index, _yieldWeight);
+            _migrateYieldWeights(_proof, _index, _yieldWeight, _pendingV1Rewards, _useSILV);
         }
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-
-        // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
     }
 
     /**
@@ -214,8 +232,6 @@ contract ILVPool is Initializable, V2Migrator {
      *                 as ILV or sILV
      */
     function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external {
-        // updates pool contract state variables
-        _sync();
         // checks if contract is paused
         _requireNotPaused();
 
@@ -254,8 +270,6 @@ contract ILVPool is Initializable, V2Migrator {
      * @param _pools array of pool addresses
      */
     function claimVaultRewardsMultiple(address[] calldata _pools) external {
-        // update pool contract state variables
-        _sync();
         // checks if contract is paused
         _requireNotPaused();
         // loops over each pool passed to execute the necessary checks, and call
@@ -263,7 +277,6 @@ contract ILVPool is Initializable, V2Migrator {
         for (uint256 i = 0; i < _pools.length; i++) {
             // gets current pool in the loop
             address pool = _pools[i];
-
             // we're using selector to simplify input and state validation
             // checks if the given pool is a valid one registred by the pool
             // factory contract
@@ -293,8 +306,12 @@ contract ILVPool is Initializable, V2Migrator {
      * @param _stakeIds array of yield ids in v1 from msg.sender user
      */
     function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
-        // updates pool contract state variables
-        _sync();
+        // we're using function selector to simplify validation
+        bytes4 fnSelector = this.mintV1YieldMultiple.selector;
+        // verifies that user isn't a v1 blacklisted user
+        _requireNotBlacklisted(msg.sender);
+        // checks if contract is paused
+        _requireNotPaused();
         // gets storage pointer to the user
         User storage user = users[msg.sender];
         // initialize variables that will be used inside the loop
@@ -303,15 +320,17 @@ contract ILVPool is Initializable, V2Migrator {
         uint256 amountToMint;
         uint256 weightToRemove;
 
-        // we're using selector to simplify input and state validation
-        bytes4 fnSelector = this.mintV1YieldMultiple.selector;
+        // initializes variable that will store how much v1 weight the user has
+        uint256 v1WeightToAdd;
 
-        // uses v1 weight values for rewards calculations
-        (uint256 v1WeightToAdd, uint256 subYieldRewards, uint256 subVaultRewards) = _useV1Weight(msg.sender);
-        // if user has weight in v2 or v2, process the rewards
-        if (user.totalWeight > 0 || v1WeightToAdd > 0) {
-            // calls internal function
-            _processRewards(msg.sender, v1WeightToAdd, subYieldRewards, subVaultRewards);
+        // avoids stack too deep error
+        {
+            // uses v1 weight values for rewards calculations
+            uint256 _v1WeightToAdd = _useV1Weight(msg.sender);
+            // update user state
+            _updateReward(msg.sender, _v1WeightToAdd);
+
+            v1WeightToAdd = _v1WeightToAdd;
         }
 
         // loops over each stake id, doing the necessary checks and
@@ -321,8 +340,9 @@ contract ILVPool is Initializable, V2Migrator {
             uint256 _stakeId = _stakeIds[i];
             // call v1 core pool to get all required data associated with
             // the passed v1 stake id
-            (uint256 tokenAmount, uint256 _weight, , uint64 lockedUntil, bool isYield) = ICorePoolV1(corePoolV1)
-                .getDeposit(msg.sender, _stakeId);
+            (uint256 tokenAmount, uint256 _weight, uint64 lockedFrom, uint64 lockedUntil, bool isYield) = ICorePoolV1(
+                corePoolV1
+            ).getDeposit(msg.sender, _stakeId);
             // checks if the obtained v1 stake (through getDeposit)
             // is indeed yield
             fnSelector.verifyState(isYield, i * 3);
@@ -330,6 +350,8 @@ contract ILVPool is Initializable, V2Migrator {
             fnSelector.verifyState(_now256() > lockedUntil, i * 3 + 1);
             // expects that the v1 stake hasn't been minted yet
             fnSelector.verifyState(!_v1YieldMinted[msg.sender][_stakeId], i * 3 + 2);
+            // verifies if the yield has been created before v2 launches
+            fnSelector.verifyState(lockedFrom < _v1StakeMaxPeriod, i * 3 + 3);
 
             // marks v1 yield as minted
             _v1YieldMinted[msg.sender][_stakeId] = true;
@@ -340,13 +362,10 @@ contract ILVPool is Initializable, V2Migrator {
         }
         // subtracts value accumulated during the loop
         user.totalWeight -= (weightToRemove).toUint248();
-
-        // gas savings
-        uint256 userTotalWeight = (user.totalWeight + v1WeightToAdd);
-
-        // resets all rewards after migration
-        user.subYieldRewards = userTotalWeight.weightToReward(yieldRewardsPerWeight);
-        user.subVaultRewards = userTotalWeight.weightToReward(vaultRewardsPerWeight);
+        // subtracts weight and token value from global variables
+        globalWeight -= weightToRemove;
+        // gets token value by dividing by yield weight multiplier
+        poolTokenReserve -= (weightToRemove) / Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
         // expects the factory to mint ILV yield to the msg.sender user
         // after all checks and calculations have been successfully
         // executed
@@ -365,31 +384,104 @@ contract ILVPool is Initializable, V2Migrator {
      * @param _proof bytes32 array with the proof generated off-chain
      * @param _index user index in the merkle tree
      * @param _yieldWeight user yield weight in v1 stored by the merkle tree
+     * @param _pendingV1Rewards user pending rewards in v1 stored by the merkle tree
+     * @param _useSILV whether the user wants rewards in sILV token or in a v2 ILV yield stake
      */
     function _migrateYieldWeights(
         bytes32[] calldata _proof,
         uint256 _index,
-        uint256 _yieldWeight
+        uint256 _yieldWeight,
+        uint256 _pendingV1Rewards,
+        bool _useSILV
     ) private {
         // gets storage pointer to the user
         User storage user = users[msg.sender];
         // bytes4(keccak256("_migrateYieldWeights(bytes32[],uint256,uint256)")))
         bytes4 fnSelector = 0x660e5908;
-
         // requires that the user hasn't migrated the yield yet
         fnSelector.verifyAccess(!hasMigratedYield(_index));
         // compute leaf and verify merkle proof
-        bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight));
+        bytes32 leaf = keccak256(abi.encodePacked(_index, msg.sender, _yieldWeight, _pendingV1Rewards));
         // verifies the merkle proof and requires the return value to be true
         fnSelector.verifyInput(MerkleProof.verify(_proof, merkleRoot, leaf), 0);
-
+        // gets the value compounded into v2 as ILV yield to be added into v2 user.totalWeight
+        uint256 pendingRewardsCompounded = _migratePendingRewards(_pendingV1Rewards, _useSILV);
+        uint256 weightCompounded = pendingRewardsCompounded * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
+        uint256 ilvYieldMigrated = _yieldWeight / Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
         // add v1 yield weight to the v2 user
-        user.totalWeight += (_yieldWeight).toUint248();
+        user.totalWeight += (_yieldWeight + weightCompounded).toUint248();
+        // adds v1 pending yield compounded + v1 total yield to global weight
+        // and poolTokenReserve in the v2 contract.
+        globalWeight += (weightCompounded + _yieldWeight);
+        poolTokenReserve += (pendingRewardsCompounded + ilvYieldMigrated);
         // set user as claimed in bitmap
         _usersMigrated.set(_index);
 
         // emits an event
         emit LogMigrateYieldWeight(msg.sender, _yieldWeight);
+    }
+
+    /**
+     * @dev Gets pending rewards in the v1 ilv pool and v1 lp pool stored in the merkle tree,
+     *      and allows the v1 users of those pools to claim them as ILV compounded in the v2 pool or
+     *      sILV minted to their wallet.
+     * @dev Eligible users are filtered and stored in the merkle tree.
+     *
+     * @param _pendingV1Rewards user pending rewards in v1 stored by the merkle tree
+     * @param _useSILV whether the user wants rewards in sILV token or in a v2 ILV yield stake
+     *
+     * @return pendingRewardsCompounded returns the value compounded into the v2 pool (if the user selects ILV)
+     */
+    function _migratePendingRewards(uint256 _pendingV1Rewards, bool _useSILV)
+        internal
+        virtual
+        returns (uint256 pendingRewardsCompounded)
+    {
+        // gets pointer to user
+        User storage user = users[msg.sender];
+
+        // if the user (msg.sender) wants to mint pending rewards as sILV, simply mint
+        if (_useSILV) {
+            // calls the factory to mint sILV
+            _factory.mintYieldTo(msg.sender, _pendingV1Rewards, _useSILV);
+        } else {
+            // otherwise we create a new v2 yield stake (ILV)
+            Stake.Data memory stake = Stake.Data({
+                value: (_pendingV1Rewards).toUint120(),
+                lockedFrom: (_now256()).toUint64(),
+                lockedUntil: (_now256() + Stake.MAX_STAKE_PERIOD).toUint64(),
+                isYield: true
+            });
+            // adds new ILV yield stake to user array
+            // notice that further values will be updated later in execution
+            // (user.totalWeight, user.subYieldRewards, user.subVaultRewards, ...)
+            user.stakes.push(stake);
+            // updates function's return value
+            pendingRewardsCompounded = _pendingV1Rewards;
+        }
+
+        // emits an event
+        emit LogMigratePendingRewards(msg.sender, _pendingV1Rewards, _useSILV);
+    }
+
+    /**
+     * @inheritdoc CorePool
+     * @dev In the ILV Pool we verify that the user isn't coming from v1.
+     * @dev If user has weight in v1, we can't allow them to call this
+     *      function, otherwise it would throw an error in the new address when calling
+     *      mintV1YieldMultiple if the user migrates.
+     */
+
+    function moveFundsFromWallet(address _to) public virtual override {
+        // we're using function selector to simplify validation
+        bytes4 fnSelector = this.moveFundsFromWallet.selector;
+        // we query v1 ilv pool contract
+        (, uint256 totalWeight, , ) = ICorePoolV1(corePoolV1).users(msg.sender);
+        // we check that the v1 total weight is 0 i.e the user can't have any yield
+        fnSelector.verifyState(totalWeight == 0, 0);
+        // call parent moveFundsFromWalet which contains further checks and the actual
+        // execution
+        super.moveFundsFromWallet(_to);
     }
 
     /**

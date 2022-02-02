@@ -33,6 +33,7 @@ import {
   setWeight,
   setEndTime,
   getPoolData,
+  blacklistUsers,
   migrationTests,
   mintV1Yield,
   stake,
@@ -44,7 +45,6 @@ import {
   unstakeLockedMultiple,
   moveFundsFromWallet,
   merkleTree,
-  fillV1StakeId,
 } from "./CorePool.behavior";
 
 chai.use(solidity);
@@ -129,11 +129,15 @@ describe("CorePools", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
-  describe("Upgrades", upgradePools());
-  describe("#setEndTime", setEndTime());
-  describe("#getPoolData", function () {
-    context("ILV Pool", getPoolData("ILV"));
-    context("Sushi LP Pool", getPoolData("LP"));
+  // describe("Upgrades", upgradePools());
+  // describe("#setEndTime", setEndTime());
+  // describe("#getPoolData", function () {
+  //   context("ILV Pool", getPoolData("ILV"));
+  //   context("Sushi LP Pool", getPoolData("LP"));
+  // });
+  describe("#blacklistUser", function () {
+    context("ILV Pool", blacklistUsers("ILV"));
+    context("Sushi LP Pool", blacklistUsers("LP"));
   });
   describe("#stake", function () {
     context("ILV Pool", stake("ILV"));
@@ -175,9 +179,5 @@ describe("CorePools", function () {
   });
   describe("Merkle tree tests", function () {
     context("ILV Pool", merkleTree());
-  });
-  describe("Fill V1 stakeIds", function () {
-    context("ILV Pool", fillV1StakeId("ILV"));
-    context("Sushi LP Pool", fillV1StakeId("LP"));
   });
 });

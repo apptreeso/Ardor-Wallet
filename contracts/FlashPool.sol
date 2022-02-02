@@ -14,8 +14,6 @@ import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC
 import { IILVPool } from "./interfaces/IILVPool.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title Flash Pool.
  *
@@ -413,7 +411,7 @@ contract FlashPool is
         // links to _staker user struct in storage
         User storage user = users[_staker];
 
-        pending = _tokensToReward(user.balance, yieldRewardsPerToken);
+        pending = _tokensToReward(user.balance, yieldRewardsPerToken) - user.subYieldRewards;
     }
 
     function unstake(uint256 _value) external virtual updatePool nonReentrant {
@@ -429,6 +427,8 @@ contract FlashPool is
 
         // updates user data in storage
         user.balance -= (_value).toUint128();
+        // subYieldRewards needs to be updated on every `_processRewards` call
+        user.subYieldRewards = _tokensToReward(user.balance, yieldRewardsPerToken);
 
         // finally, transfers `_value` poolTokens
         IERC20Upgradeable(poolToken).safeTransfer(msg.sender, _value);
