@@ -410,12 +410,10 @@ contract ILVPool is Initializable, V2Migrator {
         uint256 ilvYieldMigrated = _yieldWeight / Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
         // add v1 yield weight to the v2 user
         user.totalWeight += (_yieldWeight + weightCompounded).toUint248();
-        if (pendingRewardsCompounded > 0) {
-            // adds v1 pending yield compounded + v1 total yield to global weight
-            // and poolTokenReserve in the v2 contract.
-            globalWeight += (weightCompounded + _yieldWeight);
-            poolTokenReserve += (pendingRewardsCompounded + ilvYieldMigrated);
-        }
+        // adds v1 pending yield compounded + v1 total yield to global weight
+        // and poolTokenReserve in the v2 contract.
+        globalWeight += (weightCompounded + _yieldWeight);
+        poolTokenReserve += (pendingRewardsCompounded + ilvYieldMigrated);
         // set user as claimed in bitmap
         _usersMigrated.set(_index);
 
