@@ -383,6 +383,13 @@ abstract contract CorePool is
     }
 
     /**
+     * @dev Returns the sum of poolTokenReserve with the deposit reserves in v1.
+     * @dev In ILV Pool contract the eDAO stores the v1 reserve value, and
+     *      in the SLP pool we're able to query it from the v1 lp pool contract.
+     */
+    function getTotalReserves() external view virtual returns (uint256 totalReserves);
+
+    /**
      * @notice Returns information on the given stake for the given address.
      *
      * @dev See getStakesLength.

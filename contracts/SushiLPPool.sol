@@ -3,7 +3,9 @@ pragma solidity 0.8.4;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { V2Migrator } from "./base/V2Migrator.sol";
+import { CorePool } from "./base/CorePool.sol";
 import { ErrorHandler } from "./libraries/ErrorHandler.sol";
+import { ICorePoolV1 } from "./interfaces/ICorePoolV1.sol";
 
 /**
  * @title The Sushi LP Pool.
@@ -28,6 +30,11 @@ contract SushiLPPool is Initializable, V2Migrator {
         uint256 v1StakeMaxPeriod_
     ) external initializer {
         __V2Migrator_init(ilv_, silv_, _poolToken, _corePoolV1, _factory, _initTime, _weight, v1StakeMaxPeriod_);
+    }
+
+    /// @inheritdoc CorePool
+    function getTotalReserves() external view virtual override returns (uint256 totalReserves) {
+        totalReserves = poolTokenReserve + ICorePoolV1(corePoolV1).usersLockingWeight();
     }
 
     /**

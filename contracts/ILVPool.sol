@@ -43,6 +43,10 @@ contract ILVPool is Initializable, V2Migrator {
     ///      if a v1 yield has already been minted by v2 contract.
     mapping(address => mapping(uint256 => bool)) private _v1YieldMinted;
 
+    /// @dev Used to calculate vault (revenue distribution) rewards, keeps track
+    ///      of the correct ILV balance in the v1 core pool.
+    uint256 public v1PoolTokenReserve;
+
     /**
      * @dev logs `_migratePendingRewards()`
      *
@@ -83,6 +87,24 @@ contract ILVPool is Initializable, V2Migrator {
     ) external initializer {
         // calls internal v2 migrator initializer
         __V2Migrator_init(ilv_, silv_, _poolToken, _corePoolV1, factory_, _initTime, _weight, v1StakeMaxPeriod_);
+    }
+
+    /**
+     * @dev Updates value that keeps track of v1 global locked tokens weight.
+     *
+     * @param _v1PoolTokenReserve new value to be stored
+     */
+    function setV1PoolTokenReserve(uint256 _v1PoolTokenReserve) external virtual {
+        // only factory controller can update the _v1GlobalWeight
+        _requireIsFactoryController();
+
+        // update v1PoolTokenReserve state variable
+        v1PoolTokenReserve = _v1PoolTokenReserve;
+    }
+
+    /// @inheritdoc CorePool
+    function getTotalReserves() external view virtual override returns (uint256 totalReserves) {
+        totalReserves = poolTokenReserve + v1PoolTokenReserve;
     }
 
     /**
@@ -340,6 +362,10 @@ contract ILVPool is Initializable, V2Migrator {
         }
         // subtracts value accumulated during the loop
         user.totalWeight -= (weightToRemove).toUint248();
+        // subtracts weight and token value from global variables
+        globalWeight -= weightToRemove;
+        // gets token value by dividing by yield weight multiplier
+        poolTokenReserve -= (weightToRemove) / Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
         // expects the factory to mint ILV yield to the msg.sender user
         // after all checks and calculations have been successfully
         // executed
@@ -381,13 +407,14 @@ contract ILVPool is Initializable, V2Migrator {
         // gets the value compounded into v2 as ILV yield to be added into v2 user.totalWeight
         uint256 pendingRewardsCompounded = _migratePendingRewards(_pendingV1Rewards, _useSILV);
         uint256 weightCompounded = pendingRewardsCompounded * Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
+        uint256 ilvYieldMigrated = _yieldWeight / Stake.YIELD_STAKE_WEIGHT_MULTIPLIER;
         // add v1 yield weight to the v2 user
         user.totalWeight += (_yieldWeight + weightCompounded).toUint248();
         if (pendingRewardsCompounded > 0) {
-            // adds v1 pending rewards compounded into this v2 contract to global weight
-            // and poolTokenReserve
-            globalWeight += weightCompounded;
-            poolTokenReserve += pendingRewardsCompounded;
+            // adds v1 pending yield compounded + v1 total yield to global weight
+            // and poolTokenReserve in the v2 contract.
+            globalWeight += (weightCompounded + _yieldWeight);
+            poolTokenReserve += (pendingRewardsCompounded + ilvYieldMigrated);
         }
         // set user as claimed in bitmap
         _usersMigrated.set(_index);

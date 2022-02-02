@@ -35,8 +35,6 @@ contract Vault is Ownable {
      *      linked to this smart contract and receiving vault rewards
      */
     struct Pools {
-        ICorePoolV1 ilvPoolV1;
-        ICorePoolV1 pairPoolV1;
         ICorePool ilvPool;
         ICorePool pairPool;
         ICorePool lockedPoolV1;
@@ -100,8 +98,6 @@ contract Vault is Ownable {
      */
     event LogSetCorePools(
         address indexed by,
-        address ilvPoolV1,
-        address pairPoolV1,
         address ilvPool,
         address pairPool,
         address lockedPoolV1,
@@ -138,8 +134,6 @@ contract Vault is Ownable {
      * @param _lockedPoolV2 deployed locked pool V2 address
      */
     function setCorePools(
-        ICorePoolV1 _ilvPoolV1,
-        ICorePoolV1 _pairPoolV1,
         ICorePool _ilvPool,
         ICorePool _pairPool,
         ICorePool _lockedPoolV1,
@@ -148,16 +142,12 @@ contract Vault is Ownable {
         bytes4 fnSelector = this.setCorePools.selector;
 
         // verify all the pools are set/supplied
-        fnSelector.verifyNonZeroInput(uint160(address(_ilvPoolV1)), 0);
-        fnSelector.verifyNonZeroInput(uint160(address(_pairPoolV1)), 1);
         fnSelector.verifyNonZeroInput(uint160(address(_ilvPool)), 2);
         fnSelector.verifyNonZeroInput(uint160(address(_pairPool)), 3);
         fnSelector.verifyNonZeroInput(uint160(address(_lockedPoolV1)), 4);
         fnSelector.verifyNonZeroInput(uint160(address(_lockedPoolV2)), 5);
 
         // set up
-        pools.ilvPoolV1 = _ilvPoolV1;
-        pools.pairPoolV1 = _pairPoolV1;
         pools.ilvPool = _ilvPool;
         pools.pairPool = _pairPool;
         pools.lockedPoolV1 = _lockedPoolV1;
@@ -166,8 +156,6 @@ contract Vault is Ownable {
         // emit an event
         emit LogSetCorePools(
             msg.sender,
-            address(_ilvPoolV1),
-            address(_pairPoolV1),
             address(_ilvPool),
             address(_pairPool),
             address(_lockedPoolV1),
@@ -217,14 +205,12 @@ contract Vault is Ownable {
         }
 
         // reads core pools
-        (
-            ICorePoolV1 ilvPoolV1,
-            ICorePoolV1 pairPoolV1,
-            ICorePool ilvPool,
-            ICorePool pairPool,
-            ICorePool lockedPoolV1,
-            ICorePool lockedPoolV2
-        ) = (pools.ilvPoolV1, pools.pairPoolV1, pools.ilvPool, pools.pairPool, pools.lockedPoolV1, pools.lockedPoolV2);
+        (ICorePool ilvPool, ICorePool pairPool, ICorePool lockedPoolV1, ICorePool lockedPoolV2) = (
+            pools.ilvPool,
+            pools.pairPool,
+            pools.lockedPoolV1,
+            pools.lockedPoolV2
+        );
 
         // read contract's ILV balance
         uint256 ilvBalance = _ilv.balanceOf(address(this));
@@ -243,8 +229,8 @@ contract Vault is Ownable {
         }
 
         // gets poolToken reserves in each pool
-        uint256 reserve0 = ilvPool.poolTokenReserve() + ilvPoolV1.poolTokenReserve();
-        uint256 reserve1 = estimatePairPoolReserve(address(pairPool)) + estimatePairPoolReserve(address(pairPoolV1));
+        uint256 reserve0 = ilvPool.getTotalReserves();
+        uint256 reserve1 = estimatePairPoolReserve(address(pairPool));
         uint256 reserve2 = lockedPoolV1.poolTokenReserve();
         uint256 reserve3 = lockedPoolV2.poolTokenReserve();
 
@@ -255,9 +241,9 @@ contract Vault is Ownable {
         uint256 amountToSend0 = _getAmountToSend(ilvBalance, reserve0, totalReserve);
         // amount of ILV to send to ILV/ETH core pool
         uint256 amountToSend1 = _getAmountToSend(ilvBalance, reserve1, totalReserve);
-        // amount of ILV to send to locked ILV core pool V1
+        // amount of ILV to send to locked ILV pool V1
         uint256 amountToSend2 = _getAmountToSend(ilvBalance, reserve2, totalReserve);
-        // amount of ILV to send to locked ILV core pool V2
+        // amount of ILV to send to locked ILV pool V2
         uint256 amountToSend3 = _getAmountToSend(ilvBalance, reserve3, totalReserve);
 
         // makes sure we are sending a valid amount
@@ -288,7 +274,7 @@ contract Vault is Ownable {
         //    and the LP token total supply (total amount of LP tokens in circulation).
         //    With these two values we will be able to estimate how much ILV each LP token
         //    is worth.
-        uint256 lpAmount = ICorePool(_pairPool).poolTokenReserve();
+        uint256 lpAmount = ICorePool(_pairPool).getTotalReserves();
         uint256 lpTotal = IERC20Upgradeable(ICorePool(_pairPool).poolToken()).totalSupply();
 
         // 2. We check how much ILV the LP token contract holds, that way
