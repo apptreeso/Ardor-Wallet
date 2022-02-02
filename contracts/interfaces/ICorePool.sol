@@ -35,6 +35,8 @@ interface ICorePool {
 
     function balanceOf(address _user) external view returns (uint256);
 
+    function getTotalReserves() external view returns (uint256);
+
     function getStake(address _user, uint256 _stakeId) external view returns (Stake.Data memory);
 
     function getStakesLength(address _user) external view returns (uint256);

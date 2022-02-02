@@ -40,7 +40,6 @@ abstract contract VaultRecipient is Initializable, FactoryControlled {
 
         // saves current vault to memory
         address previousVault = vault_;
-
         // update vault address
         _vault = vault_;
 

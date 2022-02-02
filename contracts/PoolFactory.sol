@@ -10,8 +10,6 @@ import { ICorePool } from "./interfaces/ICorePool.sol";
 import { IERC20Mintable } from "./interfaces/IERC20Mintable.sol";
 import { ErrorHandler } from "./libraries/ErrorHandler.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title Pool Factory V2
  *

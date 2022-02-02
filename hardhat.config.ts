@@ -68,8 +68,12 @@ const config: HardhatUserConfig = {
     },
     goerli: getChainConfig("goerli"),
     kovan: getChainConfig("kovan"),
-    rinkeby: getChainConfig("rinkeby"),
     ropsten: getChainConfig("ropsten"),
+    rinkeby: {
+      url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts: [`0x${process.env.PRIVATE_KEY}`],
+      gasPrice: 10000000000,
+    },
   },
   paths: {
     artifacts: "./artifacts",

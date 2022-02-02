@@ -16,8 +16,6 @@ const { expect } = chai;
 export function setCorePools(): () => void {
   return function () {
     it("should set core pools correctly", async function () {
-      const ilvPoolV1Address = this.ilvPoolV1.address;
-      const lpPoolV1Address = this.lpPoolV1.address;
       const ilvPoolAddress = this.ilvPool.address;
       const lpPoolAddress = this.lpPool.address;
       const lockedPoolV1MockedAddress = this.ilvPool.address;
@@ -25,69 +23,16 @@ export function setCorePools(): () => void {
 
       await this.vault
         .connect(this.signers.deployer)
-        .setCorePools(
-          ilvPoolV1Address,
-          lpPoolV1Address,
-          ilvPoolAddress,
-          lpPoolAddress,
-          lockedPoolV1MockedAddress,
-          lockedPoolV2MockedAddress,
-        );
+        .setCorePools(ilvPoolAddress, lpPoolAddress, lockedPoolV1MockedAddress, lockedPoolV2MockedAddress);
 
-      const { ilvPoolV1, pairPoolV1, ilvPool, pairPool, lockedPoolV1, lockedPoolV2 } = await this.vault.pools();
+      const { ilvPool, pairPool, lockedPoolV1, lockedPoolV2 } = await this.vault.pools();
 
-      expect(ilvPoolV1).to.be.equal(ilvPoolV1Address);
-      expect(pairPoolV1).to.be.equal(lpPoolV1Address);
       expect(ilvPool).to.be.equal(ilvPoolAddress);
       expect(pairPool).to.be.equal(lpPoolAddress);
       expect(lockedPoolV1).to.be.equal(lockedPoolV1MockedAddress);
       expect(lockedPoolV2).to.be.equal(lockedPoolV2MockedAddress);
     });
-    it("should revert if ilvPoolV1 = address(0)", async function () {
-      const lpPoolV1Address = this.lpPoolV1.address;
-      const ilvPoolAddress = this.ilvPool.address;
-      const lpPoolAddress = this.lpPool.address;
-      const lockedPoolV1MockedAddress = this.ilvPool.address;
-      const lockedPoolV2MockedAddress = this.ilvPool.address;
-
-      await expect(
-        this.vault
-          .connect(this.signers.deployer)
-          .setCorePools(
-            AddressZero,
-            lpPoolV1Address,
-            ilvPoolAddress,
-            lpPoolAddress,
-            lockedPoolV1MockedAddress,
-            lockedPoolV2MockedAddress,
-          ),
-      ).reverted;
-    });
-    it("should revert if pairPoolV1 = address(0)", async function () {
-      const ilvPoolV1Address = this.ilvPoolV1.address;
-
-      const ilvPoolAddress = this.ilvPool.address;
-      const lpPoolAddress = this.lpPool.address;
-      const lockedPoolV1MockedAddress = this.ilvPool.address;
-      const lockedPoolV2MockedAddress = this.ilvPool.address;
-
-      await expect(
-        this.vault
-          .connect(this.signers.deployer)
-          .setCorePools(
-            ilvPoolV1Address,
-            AddressZero,
-            ilvPoolAddress,
-            lpPoolAddress,
-            lockedPoolV1MockedAddress,
-            lockedPoolV2MockedAddress,
-          ),
-      ).reverted;
-    });
     it("should revert if ilvPool = address(0)", async function () {
-      const ilvPoolV1Address = this.ilvPoolV1.address;
-      const lpPoolV1Address = this.lpPoolV1.address;
-
       const lpPoolAddress = this.lpPool.address;
       const lockedPoolV1MockedAddress = this.ilvPool.address;
       const lockedPoolV2MockedAddress = this.ilvPool.address;
@@ -95,20 +40,11 @@ export function setCorePools(): () => void {
       await expect(
         this.vault
           .connect(this.signers.deployer)
-          .setCorePools(
-            ilvPoolV1Address,
-            lpPoolV1Address,
-            AddressZero,
-            lpPoolAddress,
-            lockedPoolV1MockedAddress,
-            lockedPoolV2MockedAddress,
-          ),
+          .setCorePools(AddressZero, lpPoolAddress, lockedPoolV1MockedAddress, lockedPoolV2MockedAddress),
       ).reverted;
     });
 
     it("should revert if pairPool = address(0)", async function () {
-      const ilvPoolV1Address = this.ilvPoolV1.address;
-      const lpPoolV1Address = this.lpPoolV1.address;
       const ilvPoolAddress = this.ilvPool.address;
 
       const lockedPoolV1MockedAddress = this.ilvPool.address;
@@ -117,20 +53,11 @@ export function setCorePools(): () => void {
       await expect(
         this.vault
           .connect(this.signers.deployer)
-          .setCorePools(
-            ilvPoolV1Address,
-            lpPoolV1Address,
-            ilvPoolAddress,
-            AddressZero,
-            lockedPoolV1MockedAddress,
-            lockedPoolV2MockedAddress,
-          ),
+          .setCorePools(ilvPoolAddress, AddressZero, lockedPoolV1MockedAddress, lockedPoolV2MockedAddress),
       ).reverted;
     });
 
     it("should revert if lockedPoolV1 = address(0)", async function () {
-      const ilvPoolV1Address = this.ilvPoolV1.address;
-      const lpPoolV1Address = this.lpPoolV1.address;
       const ilvPoolAddress = this.ilvPool.address;
       const lpPoolAddress = this.lpPool.address;
       const lockedPoolV2MockedAddress = this.ilvPool.address;
@@ -138,20 +65,11 @@ export function setCorePools(): () => void {
       await expect(
         this.vault
           .connect(this.signers.deployer)
-          .setCorePools(
-            ilvPoolV1Address,
-            lpPoolV1Address,
-            ilvPoolAddress,
-            lpPoolAddress,
-            AddressZero,
-            lockedPoolV2MockedAddress,
-          ),
+          .setCorePools(ilvPoolAddress, lpPoolAddress, AddressZero, lockedPoolV2MockedAddress),
       ).reverted;
     });
 
     it("should revert if lockedPoolV2 = address(0)", async function () {
-      const ilvPoolV1Address = this.ilvPoolV1.address;
-      const lpPoolV1Address = this.lpPoolV1.address;
       const ilvPoolAddress = this.ilvPool.address;
       const lpPoolAddress = this.lpPool.address;
       const lockedPoolV1MockedAddress = this.ilvPool.address;
@@ -159,14 +77,7 @@ export function setCorePools(): () => void {
       await expect(
         this.vault
           .connect(this.signers.deployer)
-          .setCorePools(
-            ilvPoolV1Address,
-            lpPoolV1Address,
-            ilvPoolAddress,
-            lpPoolAddress,
-            lockedPoolV1MockedAddress,
-            AddressZero,
-          ),
+          .setCorePools(ilvPoolAddress, lpPoolAddress, lockedPoolV1MockedAddress, AddressZero),
       ).reverted;
     });
     it("should receive ether", async function () {
@@ -238,8 +149,6 @@ export function swapETHForILV(): () => void {
 export function sendILVRewards(): () => void {
   return function () {
     beforeEach(async function () {
-      const ilvPoolV1Address = this.ilvPoolV1.address;
-      const lpPoolV1Address = this.lpPoolV1.address;
       const ilvPoolAddress = this.ilvPool.address;
       const lpPoolAddress = this.lpPool.address;
       const lockedPoolV1MockedAddress = this.ilvPool.address;
@@ -247,14 +156,7 @@ export function sendILVRewards(): () => void {
 
       await this.vault
         .connect(this.signers.deployer)
-        .setCorePools(
-          ilvPoolV1Address,
-          lpPoolV1Address,
-          ilvPoolAddress,
-          lpPoolAddress,
-          lockedPoolV1MockedAddress,
-          lockedPoolV2MockedAddress,
-        );
+        .setCorePools(ilvPoolAddress, lpPoolAddress, lockedPoolV1MockedAddress, lockedPoolV2MockedAddress);
 
       await this.ilvPool.connect(this.signers.deployer).setVault(this.vault.address);
       await this.lpPool.connect(this.signers.deployer).setVault(this.vault.address);
@@ -265,11 +167,15 @@ export function sendILVRewards(): () => void {
       await this.ilvPoolV1.setUsers(users);
       await this.lpPoolV1.setUsers(users);
 
+      const ilvPoolV1Reserve = await this.ilvPoolV1.usersLockingWeight();
+
+      await this.ilvPool.setV1PoolTokenReserve(ilvPoolV1Reserve);
+
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
-      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(120) });
       const ethIn = toWei(50);
@@ -282,12 +188,8 @@ export function sendILVRewards(): () => void {
 
       const lockedPoolsMockedBalance = (await this.ilvPool.poolTokenReserve()).mul(2);
 
-      const ilvPoolILVBalance0 = (await this.ilvPool.poolTokenReserve())
-        .add(await this.ilvPoolV1.poolTokenReserve())
-        .add(lockedPoolsMockedBalance);
-      const lpPoolILVBalance0 = (await this.vault.estimatePairPoolReserve(this.lpPool.address)).add(
-        await this.vault.estimatePairPoolReserve(this.lpPoolV1.address),
-      );
+      const ilvPoolILVBalance0 = (await this.ilvPool.getTotalReserves()).add(lockedPoolsMockedBalance);
+      const lpPoolILVBalance0 = await this.vault.estimatePairPoolReserve(this.lpPool.address);
 
       const ilvPoolILVReceived0 = await this.ilv.balanceOf(this.ilvPool.address);
       const lpPoolILVReceived0 = await this.ilv.balanceOf(this.lpPool.address);
@@ -315,11 +217,14 @@ export function sendILVRewards(): () => void {
       await this.ilvPoolV1.setUsers(users);
       await this.lpPoolV1.setUsers(users);
 
+      const ilvPoolV1Reserve = await this.ilvPoolV1.usersLockingWeight();
+      await this.ilvPool.setV1PoolTokenReserve(ilvPoolV1Reserve);
+
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
-      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
       const ethIn = toWei(50);
@@ -330,7 +235,7 @@ export function sendILVRewards(): () => void {
 
       const lockedPoolsMockedBalance = (await this.ilvPool.poolTokenReserve()).mul(2);
 
-      const ilvPoolILVBalance0 = (await this.ilvPool.poolTokenReserve())
+      const ilvPoolILVBalance0 = (await this.ilvPool.getTotalReserves())
         .add(await this.ilvPoolV1.poolTokenReserve())
         .add(lockedPoolsMockedBalance);
 
@@ -339,9 +244,7 @@ export function sendILVRewards(): () => void {
 
       await this.vault.sendILVRewards(ethIn, ilvOut, MaxUint256);
 
-      const lpPoolILVBalance = (await this.vault.estimatePairPoolReserve(this.lpPool.address)).add(
-        await this.vault.estimatePairPoolReserve(this.lpPoolV1.address),
-      );
+      const lpPoolILVBalance = await this.vault.estimatePairPoolReserve(this.lpPool.address);
       const totalILVInPools = ilvPoolILVBalance0.add(lpPoolILVBalance);
 
       const ilvPoolShare = ilvPoolILVBalance0.mul(toWei(100)).div(totalILVInPools);
@@ -366,8 +269,8 @@ export function sendILVRewards(): () => void {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
-      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(120) });
       const ethIn = toWei(50);
@@ -394,8 +297,6 @@ export function sendILVRewards(): () => void {
 export function claimVaultRewards(): () => void {
   return function () {
     beforeEach(async function () {
-      const ilvPoolV1Address = this.ilvPoolV1.address;
-      const lpPoolV1Address = this.lpPoolV1.address;
       const ilvPoolAddress = this.ilvPool.address;
       const lpPoolAddress = this.lpPool.address;
       const lockedPoolV1MockedAddress = this.ilvPool.address;
@@ -403,14 +304,7 @@ export function claimVaultRewards(): () => void {
 
       await this.vault
         .connect(this.signers.deployer)
-        .setCorePools(
-          ilvPoolV1Address,
-          lpPoolV1Address,
-          ilvPoolAddress,
-          lpPoolAddress,
-          lockedPoolV1MockedAddress,
-          lockedPoolV2MockedAddress,
-        );
+        .setCorePools(ilvPoolAddress, lpPoolAddress, lockedPoolV1MockedAddress, lockedPoolV2MockedAddress);
 
       await this.ilvPool.connect(this.signers.deployer).setVault(this.vault.address);
       await this.lpPool.connect(this.signers.deployer).setVault(this.vault.address);
@@ -421,14 +315,17 @@ export function claimVaultRewards(): () => void {
       await this.ilvPoolV1.setUsers(users);
       await this.lpPoolV1.setUsers(users);
 
+      await this.ilvPool.connect(this.signers.deployer).setV1GlobalWeight(await this.ilvPoolV1.usersLockingWeight());
+      await this.lpPool.connect(this.signers.deployer).setV1GlobalWeight(await this.lpPoolV1.usersLockingWeight());
+
       await this.ilvPool.connect(this.signers.bob).migrateLockedStakes([0, 1]);
       await this.lpPool.connect(this.signers.bob).migrateLockedStakes([0, 1]);
 
       await this.ilv.connect(this.signers.bob).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.bob).approve(this.lpPool.address, MaxUint256);
 
-      await this.ilvPool.connect(this.signers.bob).stakePoolToken(toWei(50), ONE_YEAR);
-      await this.lpPool.connect(this.signers.bob).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.bob).stake(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.bob).stake(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
       const ethIn = toWei(50);
@@ -447,7 +344,6 @@ export function claimVaultRewards(): () => void {
 
       const { pendingRevDis: alicePendingRevDisILVPool } = await this.ilvPool.pendingRewards(this.signers.bob.address);
       const { pendingRevDis: alicePendingRevDisLPPool } = await this.lpPool.pendingRewards(this.signers.bob.address);
-
       await this.ilvPool.connect(this.signers.bob).claimVaultRewards();
 
       const ilvBalance1 = await this.ilv.balanceOf(this.signers.bob.address);
@@ -469,8 +365,8 @@ export function claimVaultRewards(): () => void {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
-      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
 
@@ -510,8 +406,8 @@ export function claimVaultRewards(): () => void {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
       await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
 
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
-      await this.lpPool.connect(this.signers.alice).stakePoolToken(toWei(50), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
 
       await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
       const ethIn = toWei(80);

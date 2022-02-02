@@ -426,7 +426,7 @@ describe("FlashPool", function () {
   describe("#claimYieldRewardsMultiple", function () {
     it("should correctly claim multiple pools as ILV", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
@@ -449,7 +449,7 @@ describe("FlashPool", function () {
     });
     it("should correctly claim multiple pools as sILV", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
@@ -471,7 +471,7 @@ describe("FlashPool", function () {
     });
     it("should correctly claim multiple pools as ILV and sILV", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
@@ -494,7 +494,7 @@ describe("FlashPool", function () {
     });
     it("should revert if claiming invalid pool", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
@@ -510,7 +510,7 @@ describe("FlashPool", function () {
     });
     it("should revert if claiming from invalid address", async function () {
       await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
-      await this.ilvPool.connect(this.signers.alice).stakePoolToken(toWei(100), ONE_YEAR);
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
 
       await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
       await this.flashPool.connect(this.signers.alice).stake(toWei(100));
@@ -552,14 +552,17 @@ describe("FlashPool", function () {
 
       await this.flashPool.setNow256(FLASH_INIT_TIME + 1);
       await this.flashPool.connect(this.signers.alice).unstake(toWei(1));
-      const { pendingYield } = await this.flashPool.users(this.signers.alice.address);
+      const { pendingYield: pendingYield0 } = await this.flashPool.users(this.signers.alice.address);
+      await this.flashPool.connect(this.signers.alice).unstake(toWei(1));
+      const { pendingYield: pendingYield1 } = await this.flashPool.users(this.signers.alice.address);
 
       const poolWeight = await this.flashPool.weight();
       const totalWeight = await this.factory.totalWeight();
 
-      expect(ethers.utils.formatEther(pendingYield).slice(0, 6)).to.be.equal(
+      expect(ethers.utils.formatEther(pendingYield0).slice(0, 6)).to.be.equal(
         ethers.utils.formatEther(ILV_PER_SECOND.mul(poolWeight).div(totalWeight)).slice(0, 6),
       );
+      expect(pendingYield1).to.be.equal(pendingYield0);
     });
   });
   describe("#setWeight", function () {
