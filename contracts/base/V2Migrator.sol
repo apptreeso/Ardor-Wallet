@@ -23,7 +23,7 @@ abstract contract V2Migrator is Initializable, CorePool {
     using Stake for uint256;
 
     /// @dev Maps v1 addresses that are black listed for v2 migration.
-    mapping(address => bool) internal _isBlacklisted;
+    mapping(address => bool) public isBlacklisted;
 
     /// @dev Stores maximum timestamp of a v1 stake (yield or deposit) accepted in v2.
     uint256 internal _v1StakeMaxPeriod;
@@ -79,7 +79,7 @@ abstract contract V2Migrator is Initializable, CorePool {
             // makes sure user passed isn't the address 0
             fnSelector.verifyInput(_users[i] != address(0), 0);
             // updates mapping
-            _isBlacklisted[_users[i]] = true;
+            isBlacklisted[_users[i]] = true;
         }
     }
 
@@ -172,7 +172,7 @@ abstract contract V2Migrator is Initializable, CorePool {
         // we're using selector to simplify input and access validation
         bytes4 fnSelector = this.migrateLockedStakes.selector;
         // makes sure that msg.sender isn't a blacklisted address
-        fnSelector.verifyAccess(!_isBlacklisted[_user]);
+        fnSelector.verifyAccess(!isBlacklisted[_user]);
     }
 
     /**

@@ -259,6 +259,31 @@ export function getPoolData(usingPool: string): () => void {
   };
 }
 
+export function blacklistUsers(usingPool: string): () => void {
+  return function () {
+    it("should blacklist a list of users", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await pool.connect(this.signers.deployer).blacklistUsers([this.signers.alice.address, this.signers.bob.address]);
+
+      const isAliceBlacklisted = await pool.isBlacklisted(this.signers.alice.address);
+      const isBobBlacklisted = await pool.isBlacklisted(this.signers.bob.address);
+      const isCarolBlacklisted = await pool.isBlacklisted(this.signers.carol.address);
+
+      expect(isAliceBlacklisted).to.be.true;
+      expect(isBobBlacklisted).to.be.true;
+      expect(isCarolBlacklisted).to.be.false;
+    });
+    it("should revert if caller is not factory controller", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await expect(
+        pool.connect(this.signers.carol).blacklistUsers([this.signers.alice.address, this.signers.bob.address]),
+      ).reverted;
+    });
+  };
+}
+
 export function moveFundsFromWallet(usingPool: string): () => void {
   return function () {
     it("should migrate a user stake", async function () {
