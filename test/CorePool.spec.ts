@@ -129,12 +129,12 @@ describe("CorePools", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
-  // describe("Upgrades", upgradePools());
-  // describe("#setEndTime", setEndTime());
-  // describe("#getPoolData", function () {
-  //   context("ILV Pool", getPoolData("ILV"));
-  //   context("Sushi LP Pool", getPoolData("LP"));
-  // });
+  describe("Upgrades", upgradePools());
+  describe("#setEndTime", setEndTime());
+  describe("#getPoolData", function () {
+    context("ILV Pool", getPoolData("ILV"));
+    context("Sushi LP Pool", getPoolData("LP"));
+  });
   describe("#blacklistUser", function () {
     context("ILV Pool", blacklistUsers("ILV"));
     context("Sushi LP Pool", blacklistUsers("LP"));
