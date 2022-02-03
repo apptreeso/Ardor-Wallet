@@ -122,7 +122,7 @@ abstract contract V2Migrator is Initializable, CorePool {
      *
      * @param _stakeIds array of v1 stake ids
      */
-    function _migrateLockedStakes(uint256[] calldata _stakeIds) internal {
+    function _migrateLockedStakes(uint256[] calldata _stakeIds) internal virtual {
         User storage user = users[msg.sender];
         // we're using selector to simplify input and state validation
         // internal function simulated selector is `keccak256("_migrateLockedStakes(uint256[])")`

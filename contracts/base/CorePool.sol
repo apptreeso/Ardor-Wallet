@@ -666,7 +666,7 @@ abstract contract CorePool is
      *
      * @param _v1GlobalWeight new value to be stored
      */
-    function setV1GlobalWeight(uint256 _v1GlobalWeight) external {
+    function setV1GlobalWeight(uint256 _v1GlobalWeight) external virtual {
         // only factory controller can update the _v1GlobalWeight
         _requireIsFactoryController();
 

@@ -113,7 +113,7 @@ contract ILVPool is Initializable, V2Migrator {
      *
      * @param _merkleRoot 32 bytes tree root.
      */
-    function setMerkleRoot(bytes32 _merkleRoot) external {
+    function setMerkleRoot(bytes32 _merkleRoot) external virtual {
         // checks if function is being called by PoolFactory.owner()
         _requireIsFactoryController();
         // stores the merkle root
@@ -196,7 +196,7 @@ contract ILVPool is Initializable, V2Migrator {
         uint256 _pendingV1Rewards,
         bool _useSILV,
         uint256[] calldata _stakeIds
-    ) external {
+    ) external virtual {
         // verifies that user isn't a v1 blacklisted user
         _requireNotBlacklisted(msg.sender);
         // checks if contract is paused
@@ -231,7 +231,7 @@ contract ILVPool is Initializable, V2Migrator {
      * @param _useSILV array of bool values telling if the pool should claim reward
      *                 as ILV or sILV
      */
-    function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external {
+    function claimYieldRewardsMultiple(address[] calldata _pools, bool[] calldata _useSILV) external virtual {
         // checks if contract is paused
         _requireNotPaused();
 
@@ -269,7 +269,7 @@ contract ILVPool is Initializable, V2Migrator {
      *
      * @param _pools array of pool addresses
      */
-    function claimVaultRewardsMultiple(address[] calldata _pools) external {
+    function claimVaultRewardsMultiple(address[] calldata _pools) external virtual {
         // checks if contract is paused
         _requireNotPaused();
         // loops over each pool passed to execute the necessary checks, and call
@@ -305,7 +305,7 @@ contract ILVPool is Initializable, V2Migrator {
      *
      * @param _stakeIds array of yield ids in v1 from msg.sender user
      */
-    function mintV1YieldMultiple(uint256[] calldata _stakeIds) external {
+    function mintV1YieldMultiple(uint256[] calldata _stakeIds) external virtual {
         // we're using function selector to simplify validation
         bytes4 fnSelector = this.mintV1YieldMultiple.selector;
         // verifies that user isn't a v1 blacklisted user
@@ -393,7 +393,7 @@ contract ILVPool is Initializable, V2Migrator {
         uint256 _yieldWeight,
         uint256 _pendingV1Rewards,
         bool _useSILV
-    ) private {
+    ) private virtual {
         // gets storage pointer to the user
         User storage user = users[msg.sender];
         // bytes4(keccak256("_migrateYieldWeights(bytes32[],uint256,uint256)")))
