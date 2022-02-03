@@ -37,11 +37,11 @@ contract ILVPool is Initializable, V2Migrator {
 
     /// @dev bitmap mapping merkle tree user indexes to a bit that tells
     ///      whether a user has already migrated yield or not.
-    BitMaps.BitMap private _usersMigrated;
+    BitMaps.BitMap internal _usersMigrated;
 
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     ///      if a v1 yield has already been minted by v2 contract.
-    mapping(address => mapping(uint256 => bool)) private _v1YieldMinted;
+    mapping(address => mapping(uint256 => bool)) internal _v1YieldMinted;
 
     /// @dev Used to calculate vault (revenue distribution) rewards, keeps track
     ///      of the correct ILV balance in the v1 core pool.
@@ -393,7 +393,7 @@ contract ILVPool is Initializable, V2Migrator {
         uint256 _yieldWeight,
         uint256 _pendingV1Rewards,
         bool _useSILV
-    ) private virtual {
+    ) internal virtual {
         // gets storage pointer to the user
         User storage user = users[msg.sender];
         // bytes4(keccak256("_migrateYieldWeights(bytes32[],uint256,uint256)")))
