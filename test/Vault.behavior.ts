@@ -4,7 +4,7 @@ import chai from "chai";
 import chaiSubset from "chai-subset";
 import { solidity } from "ethereum-waffle";
 
-import { ONE_YEAR, toWei, getUsers0, getUsers3 } from "./utils";
+import { ONE_YEAR, toWei, getUsers0, getUsers3, INIT_TIME } from "./utils";
 
 const { MaxUint256, AddressZero } = ethers.constants;
 
@@ -446,6 +446,71 @@ export function claimVaultRewards(): () => void {
     it("should revert if calling receiveVaultRewards from non-vault address", async function () {
       await expect(this.ilvPool.connect(this.signers.deployer).receiveVaultRewards(toWei(10))).reverted;
       await expect(this.lpPool.connect(this.signers.deployer).receiveVaultRewards(toWei(10))).reverted;
+    });
+  };
+}
+
+export function claimAllRewards(): () => void {
+  return function () {
+    beforeEach(async function () {
+      const ilvPoolAddress = this.ilvPool.address;
+      const lpPoolAddress = this.lpPool.address;
+      const lockedPoolV1MockedAddress = this.ilvPool.address;
+      const lockedPoolV2MockedAddress = this.ilvPool.address;
+
+      await this.vault
+        .connect(this.signers.deployer)
+        .setCorePools(ilvPoolAddress, lpPoolAddress, lockedPoolV1MockedAddress, lockedPoolV2MockedAddress);
+
+      await this.ilvPool.connect(this.signers.deployer).setVault(this.vault.address);
+      await this.lpPool.connect(this.signers.deployer).setVault(this.vault.address);
+    });
+    it("should claim yield and vault rewards in one transaction", async function () {
+      await this.ilv.connect(this.signers.alice).approve(this.ilvPool.address, MaxUint256);
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+
+      await this.ilvPool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(50), ONE_YEAR);
+
+      await this.signers.deployer.sendTransaction({ to: this.vault.address, value: toWei(100) });
+      const ethIn = toWei(80);
+
+      const [, ilvOut] = await this.sushiRouter.getAmountsOut(ethIn, [this.weth.address, this.ilv.address]);
+
+      const ilvPoolILVReceived0 = await this.ilv.balanceOf(this.ilvPool.address);
+      const lpPoolILVReceived0 = await this.ilv.balanceOf(this.lpPool.address);
+
+      await this.vault.sendILVRewards(ethIn, ilvOut, MaxUint256);
+
+      const ilvPoolILVReceived1 = await this.ilv.balanceOf(this.ilvPool.address);
+      const lpPoolILVReceived1 = await this.ilv.balanceOf(this.lpPool.address);
+
+      const ilvBalance0 = await this.ilv.balanceOf(this.signers.alice.address);
+
+      await this.ilvPool.setNow256(INIT_TIME + ONE_YEAR);
+      await this.lpPool.setNow256(INIT_TIME + ONE_YEAR);
+
+      const { pendingRevDis: alicePendingRevDisILVPool, pendingYield: alicePendingYieldILVPool } =
+        await this.ilvPool.pendingRewards(this.signers.alice.address);
+      const { pendingRevDis: alicePendingRevDisLPPool, pendingYield: alicePendingYieldLPPool } =
+        await this.lpPool.pendingRewards(this.signers.alice.address);
+
+      await this.ilvPool.connect(this.signers.alice).claimAllRewards(true);
+      await this.lpPool.connect(this.signers.alice).claimAllRewards(false);
+
+      const ilvBalance1 = await this.ilv.balanceOf(this.signers.alice.address);
+      const silvBalance = await this.silv.balanceOf(this.signers.alice.address);
+      const { value: ilvYieldStake } = await this.ilvPool.getStake(this.signers.alice.address, 1);
+
+      expect(ethers.utils.formatEther(alicePendingRevDisILVPool).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(ilvPoolILVReceived1.sub(ilvPoolILVReceived0)).slice(0, 6),
+      );
+      expect(ethers.utils.formatEther(alicePendingRevDisLPPool).slice(0, 6)).to.be.equal(
+        ethers.utils.formatEther(lpPoolILVReceived1.sub(lpPoolILVReceived0)).slice(0, 6),
+      );
+      expect(ilvBalance1.sub(ilvBalance0)).to.be.equal(alicePendingRevDisILVPool.add(alicePendingRevDisLPPool));
+      expect(silvBalance).to.be.equal(alicePendingYieldILVPool);
+      expect(ilvYieldStake).to.be.equal(alicePendingYieldLPPool);
     });
   };
 }

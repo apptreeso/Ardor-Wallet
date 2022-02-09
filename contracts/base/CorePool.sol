@@ -627,6 +627,18 @@ abstract contract CorePool is
     }
 
     /**
+     * @dev Claims both revenue distribution and yield rewards in one call.
+     *
+     */
+    function claimAllRewards(bool _useSILV) external virtual {
+        // checks if the contract is in a paused state
+        _requireNotPaused();
+        // calls internal yield and vault rewards functions
+        _claimVaultRewards(msg.sender);
+        _claimYieldRewards(msg.sender, _useSILV);
+    }
+
+    /**
      * @dev Executed by the vault to transfer vault rewards ILV from the vault
      *      into the pool.
      *

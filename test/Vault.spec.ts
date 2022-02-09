@@ -29,7 +29,7 @@ import {
   toWei,
   toAddress,
 } from "./utils";
-import { setCorePools, swapETHForILV, sendILVRewards, claimVaultRewards } from "./Vault.behavior";
+import { setCorePools, swapETHForILV, sendILVRewards, claimVaultRewards, claimAllRewards } from "./Vault.behavior";
 
 const { MaxUint256 } = ethers.constants;
 
@@ -135,6 +135,7 @@ describe("Vault", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(500));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(500));
   });
+  describe("#claimAllRewards", claimAllRewards());
   describe("#setCorePools", setCorePools());
   describe("#swapETHForILV", swapETHForILV());
   describe("#sendILVRewards", sendILVRewards());
