@@ -151,16 +151,6 @@ abstract contract CorePool is
     event LogStake(address indexed by, address indexed from, uint256 stakeId, uint256 value, uint64 lockUntil);
 
     /**
-     * @dev Fired in updateStakeLock().
-     *
-     * @param from stake holder
-     * @param stakeId stake id to be updated
-     * @param lockedFrom stake locked from timestamp value
-     * @param lockedUntil updated stake locked until timestamp value
-     */
-    event LogUpdateStakeLock(address indexed from, uint256 stakeId, uint64 lockedFrom, uint64 lockedUntil);
-
-    /**
      * @dev Fired in `unstakeLocked()`.
      *
      * @param to address receiving the tokens (user)
