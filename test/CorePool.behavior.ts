@@ -16,8 +16,6 @@ import {
   getV1Pool,
   getUsers0,
   getUsers1,
-  getUsers2,
-  getTotalV1WeightMocked,
 } from "./utils";
 import YieldTree from "./utils/yield-tree";
 import { ILVPoolUpgrade, SushiLPPoolUpgrade, PoolFactoryUpgrade } from "../types";

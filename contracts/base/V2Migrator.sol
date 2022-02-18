@@ -156,7 +156,7 @@ abstract contract V2Migrator is Initializable, CorePool {
             // update value keeping track of v1 stakes ids mapping length
             user.v1IdsLength++;
             // adds stake id to mapping keeping track of each v1 stake id
-            user.v1StakesIds[i] = _stakeIds[i];
+            user.v1StakesIds[user.v1IdsLength - 1] = _stakeIds[i];
         }
 
         // emits an event
