@@ -29,6 +29,7 @@ import {
   toAddress,
 } from "./utils";
 import {
+  pause,
   upgradePools,
   setWeight,
   setEndTime,
@@ -171,6 +172,10 @@ describe("CorePools", function () {
   describe("#unstakeLockedMultiple", function () {
     context("ILV Pool", unstakeLockedMultiple("ILV"));
     context("Sushi LP Pool", unstakeLockedMultiple("LP"));
+  });
+  describe("#pause", function () {
+    context("ILV Pool", pause("ILV"));
+    context("Sushi LP Pool", pause("LP"));
   });
   describe("Migration tests", function () {
     context("ILV Pool", migrationTests("ILV"));

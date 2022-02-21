@@ -27,6 +27,42 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
+export function pause(usingPool: string): () => void {
+  return function () {
+    it("should pause the pools", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await pool.connect(this.signers.deployer).pause(true);
+      const isPaused = await pool.paused();
+
+      expect(isPaused).to.be.true;
+    });
+    it("should pause and unpause the pools", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await pool.connect(this.signers.deployer).pause(true);
+      await pool.connect(this.signers.deployer).pause(false);
+      const isPaused = await pool.paused();
+
+      expect(isPaused).to.be.false;
+    });
+    it("shouldn't allow to stake when paused", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const token = getToken(this.ilv, this.lp, usingPool);
+      await token.connect(this.signers.alice).approve(pool.address, MaxUint256);
+      await pool.connect(this.signers.deployer).pause(true);
+
+      await expect(pool.connect(this.signers.alice).stake(toWei(1), ONE_YEAR)).reverted;
+    });
+    it("should only allow the factory controller to pause/unpause", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+
+      await expect(pool.connect(this.signers.alice).pause(true)).reverted;
+      await expect(pool.connect(this.signers.alice).pause(false)).reverted;
+    });
+  };
+}
+
 export function merkleTree(): () => void {
   return function () {
     beforeEach(async function () {
