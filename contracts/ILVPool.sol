@@ -347,11 +347,11 @@ contract ILVPool is Initializable, V2Migrator {
             // is indeed yield
             fnSelector.verifyState(isYield, i * 3);
             // expects the yield v1 stake to be unlocked
-            fnSelector.verifyState(_now256() > lockedUntil, i * 3 + 1);
+            fnSelector.verifyState(_now256() > lockedUntil, i * 4 + 1);
             // expects that the v1 stake hasn't been minted yet
-            fnSelector.verifyState(!_v1YieldMinted[msg.sender][_stakeId], i * 3 + 2);
+            fnSelector.verifyState(!_v1YieldMinted[msg.sender][_stakeId], i * 5 + 2);
             // verifies if the yield has been created before v2 launches
-            fnSelector.verifyState(lockedFrom < _v1StakeMaxPeriod, i * 3 + 3);
+            fnSelector.verifyState(lockedFrom < _v1StakeMaxPeriod, i * 6 + 3);
 
             // marks v1 yield as minted
             _v1YieldMinted[msg.sender][_stakeId] = true;

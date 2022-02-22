@@ -266,7 +266,8 @@ abstract contract CorePool is
         uint32 _weight
     ) internal initializer {
         // we're using selector to simplify input and state validation
-        // internal function simulated selector is `keccak256("__CorePool_init(address,address,address,address,address,uint64,uint32)")`
+        // internal function simulated selector is
+        // `bytes4(keccak256("__CorePool_init(address,address,address,address,address,uint64,uint32)"))`
         bytes4 fnSelector = 0x1512be06;
         // verify the inputs
         fnSelector.verifyNonZeroInput(uint160(_poolToken), 2);
@@ -1053,7 +1054,7 @@ abstract contract CorePool is
      */
     function _requireNotPaused() internal view virtual {
         // we're using selector to simplify input and state validation
-        // internal function simulated selector is `keccak256("_requirePoolIsValid()")`
+        // internal function simulated selector is `bytes4(keccak256("_requirePoolIsValid()"))`
         bytes4 fnSelector = 0xabb87a6f;
         // checks paused variable value from Pausable Open Zeppelin
         fnSelector.verifyState(!paused(), 0);
