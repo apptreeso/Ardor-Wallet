@@ -338,6 +338,8 @@ contract Vault is Ownable {
             address(this),
             _deadline
         );
+        // asserts that ILV amount bought wasn't invalid
+        assert(amounts[1] > 0);
 
         // emit an event logging the operation
         emit LogSwapEthForILV(msg.sender, amounts[0], amounts[1]);
