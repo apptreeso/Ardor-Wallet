@@ -41,7 +41,7 @@ contract ILVPool is Initializable, V2Migrator {
 
     /// @dev maps `keccak256(userAddress,stakeId)` to a bool value that tells
     ///      if a v1 yield has already been minted by v2 contract.
-    mapping(address => mapping(uint256 => bool)) internal _v1YieldMinted;
+    mapping(address => mapping(uint256 => bool)) public v1YieldMinted;
 
     /// @dev Used to calculate vault (revenue distribution) rewards, keeps track
     ///      of the correct ILV balance in the v1 core pool.
@@ -349,12 +349,12 @@ contract ILVPool is Initializable, V2Migrator {
             // expects the yield v1 stake to be unlocked
             fnSelector.verifyState(_now256() > lockedUntil, i * 4 + 1);
             // expects that the v1 stake hasn't been minted yet
-            fnSelector.verifyState(!_v1YieldMinted[msg.sender][_stakeId], i * 5 + 2);
+            fnSelector.verifyState(!v1YieldMinted[msg.sender][_stakeId], i * 5 + 2);
             // verifies if the yield has been created before v2 launches
             fnSelector.verifyState(lockedFrom < _v1StakeMaxPeriod, i * 6 + 3);
 
             // marks v1 yield as minted
-            _v1YieldMinted[msg.sender][_stakeId] = true;
+            v1YieldMinted[msg.sender][_stakeId] = true;
             // updates variables that will be used for minting yield and updating
             // user struct later
             amountToMint += tokenAmount;
