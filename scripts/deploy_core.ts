@@ -97,7 +97,7 @@ async function main(): Promise<void> {
   // console.log(lpPool.address);
   // console.log(factory.address);
 
-  const ilvPool = await ethers.getContractAt("ILVPool", "0xc4F1a430cD2E8B2e35fbeE16b9C8867970F6944b");
+  const ilvPool = await ethers.getContractAt("ILVPool", "0x9EDf843E0deBCA2C916E9B7e0DaF0e1AEF482A29");
   const usersData = [
     {
       account: "0x0d5880bA57De46d6e00CA5d7A5d25A7eb9b573e7",
