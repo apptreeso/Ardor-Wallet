@@ -479,7 +479,6 @@ abstract contract CorePool is
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = this.stake.selector;
         // validate the inputs
-        fnSelector.verifyNonZeroInput(uint160(msg.sender), 0);
         fnSelector.verifyNonZeroInput(_value, 1);
         fnSelector.verifyInput(_lockDuration >= Stake.MIN_STAKE_PERIOD && _lockDuration <= Stake.MAX_STAKE_PERIOD, 2);
 
