@@ -373,7 +373,7 @@ contract FlashPool is
      *
      * @param _weight new weight to set for the pool
      */
-    function setWeight(uint32 _weight) external virtual {
+    function setWeight(uint32 _weight) external virtual updatePool {
         bytes4 fnSelector = this.setWeight.selector;
         // verify function is executed by the factory
         fnSelector.verifyState(msg.sender == address(_factory), 0);
