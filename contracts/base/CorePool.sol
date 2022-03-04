@@ -495,7 +495,7 @@ abstract contract CorePool is
         // stake weight formula rewards for locking
         uint256 stakeWeight = (((lockUntil - _now256()) * Stake.WEIGHT_MULTIPLIER) /
             Stake.MAX_STAKE_PERIOD +
-            Stake.WEIGHT_MULTIPLIER) * _value;
+            Stake.BASE_WEIGHT) * _value;
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
         // create and save the stake (append it to stakes array)
