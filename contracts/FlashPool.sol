@@ -251,6 +251,23 @@ contract FlashPool is
     }
 
     /**
+     * @dev Set paused/unpaused state in the pool contract.
+     *
+     * @param _shouldPause whether the contract should be paused/unpausd
+     */
+    function pause(bool _shouldPause) external {
+        // checks if caller is authorized to pause
+        _requireIsFactoryController();
+        // checks bool input and pause/unpause the contract depending on
+        // msg.sender's request
+        if (_shouldPause) {
+            _pause();
+        } else {
+            _unpause();
+        }
+    }
+
+    /**
      * @dev stakes poolTokens without lock
      *
      *

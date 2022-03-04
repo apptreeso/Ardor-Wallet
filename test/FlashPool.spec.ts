@@ -750,4 +750,29 @@ describe("FlashPool", function () {
       await expect(this.flashPool.connect(this.signers.alice).moveFundsFromWallet(this.signers.bob.address)).reverted;
     });
   });
+  describe("#pause", function () {
+    it("should pause the pools", async function () {
+      await this.flashPool.connect(this.signers.deployer).pause(true);
+      const isPaused = await this.flashPool.paused();
+
+      expect(isPaused).to.be.true;
+    });
+    it("should pause and unpause the pools", async function () {
+      await this.flashPool.connect(this.signers.deployer).pause(true);
+      await this.flashPool.connect(this.signers.deployer).pause(false);
+      const isPaused = await this.flashPool.paused();
+
+      expect(isPaused).to.be.false;
+    });
+    it("shouldn't allow to stake when paused", async function () {
+      await this.flashToken.connect(this.signers.alice).approve(this.flashPool.address, MaxUint256);
+      await this.flashPool.connect(this.signers.deployer).pause(true);
+
+      await expect(this.flashPool.connect(this.signers.alice).stake(toWei(1))).reverted;
+    });
+    it("should only allow the factory controller to pause/unpause", async function () {
+      await expect(this.flashPool.connect(this.signers.alice).pause(true)).reverted;
+      await expect(this.flashPool.connect(this.signers.alice).pause(false)).reverted;
+    });
+  });
 });
