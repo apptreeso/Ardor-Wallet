@@ -576,6 +576,7 @@ abstract contract CorePool is
         newUser.pendingRevDis = previousRevDis;
         newUser.yieldRewardsPerWeightPaid = yieldRewardsPerWeight;
         newUser.vaultRewardsPerWeightPaid = vaultRewardsPerWeight;
+        newUser.stakes = previousUser.stakes;
         delete previousUser.totalWeight;
         delete previousUser.pendingYield;
         delete previousUser.pendingRevDis;
