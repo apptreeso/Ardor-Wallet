@@ -479,7 +479,6 @@ abstract contract CorePool is
         // we're using selector to simplify input and state validation
         bytes4 fnSelector = this.stake.selector;
         // validate the inputs
-        fnSelector.verifyNonZeroInput(uint160(msg.sender), 0);
         fnSelector.verifyNonZeroInput(_value, 1);
         fnSelector.verifyInput(_lockDuration >= Stake.MIN_STAKE_PERIOD && _lockDuration <= Stake.MAX_STAKE_PERIOD, 2);
 
@@ -495,7 +494,7 @@ abstract contract CorePool is
         // stake weight formula rewards for locking
         uint256 stakeWeight = (((lockUntil - _now256()) * Stake.WEIGHT_MULTIPLIER) /
             Stake.MAX_STAKE_PERIOD +
-            Stake.WEIGHT_MULTIPLIER) * _value;
+            Stake.BASE_WEIGHT) * _value;
         // makes sure stakeWeight is valid
         assert(stakeWeight > 0);
         // create and save the stake (append it to stakes array)
@@ -576,6 +575,7 @@ abstract contract CorePool is
         newUser.pendingRevDis = previousRevDis;
         newUser.yieldRewardsPerWeightPaid = yieldRewardsPerWeight;
         newUser.vaultRewardsPerWeightPaid = vaultRewardsPerWeight;
+        newUser.stakes = previousUser.stakes;
         delete previousUser.totalWeight;
         delete previousUser.pendingYield;
         delete previousUser.pendingRevDis;

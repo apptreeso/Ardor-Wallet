@@ -251,6 +251,23 @@ contract FlashPool is
     }
 
     /**
+     * @dev Set paused/unpaused state in the pool contract.
+     *
+     * @param _shouldPause whether the contract should be paused/unpausd
+     */
+    function pause(bool _shouldPause) external {
+        // checks if caller is authorized to pause
+        _requireIsFactoryController();
+        // checks bool input and pause/unpause the contract depending on
+        // msg.sender's request
+        if (_shouldPause) {
+            _pause();
+        } else {
+            _unpause();
+        }
+    }
+
+    /**
      * @dev stakes poolTokens without lock
      *
      *
@@ -373,7 +390,7 @@ contract FlashPool is
      *
      * @param _weight new weight to set for the pool
      */
-    function setWeight(uint32 _weight) external virtual {
+    function setWeight(uint32 _weight) external virtual updatePool {
         bytes4 fnSelector = this.setWeight.selector;
         // verify function is executed by the factory
         fnSelector.verifyState(msg.sender == address(_factory), 0);
