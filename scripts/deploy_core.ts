@@ -14,90 +14,109 @@ import { toWei } from "../test/utils";
 
 import { config } from "./config/index";
 
+import rinkebyData from "./data/yield_data_rinkeby.json";
+
 const parseEther = ethers.utils.parseEther;
 
 async function main(): Promise<void> {
-  const ILVPool = <ILVPool__factory>await ethers.getContractFactory("ILVPoolMock");
-  const SushiLPPool = <SushiLPPool__factory>await ethers.getContractFactory("SushiLPPoolMock");
-  const PoolFactory = <PoolFactory__factory>await ethers.getContractFactory("PoolFactoryMock");
+  const ILVPool = <ILVPool__factory>await ethers.getContractFactory("ILVPool");
+  const SushiLPPool = <SushiLPPool__factory>await ethers.getContractFactory("SushiLPPool");
+  const PoolFactory = <PoolFactory__factory>await ethers.getContractFactory("PoolFactory");
 
   console.log("deploying pool factory...");
 
-  const factoryPending = (await upgrades.deployProxy(
-    PoolFactory,
-    [
-      config.ilv,
-      config.silv,
-      config.ILV_PER_SECOND.div(20),
-      config.SECONDS_PER_UPDATE,
-      // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
-      (new Date().getTime() / 1000).toFixed(0),
-      // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 192).toFixed(0),
-      (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
-    ],
-    { kind: "uups" },
-  )) as PoolFactory;
+  const parsedData = JSON.parse(JSON.stringify(rinkebyData));
+  let treeData = [];
 
-  const factory = await factoryPending.deployed();
+  for (let i = 0; i < 63; i++) {
+    treeData[i] = {
+      account: parsedData[i].Address as string,
+      pendingV1Rewards: ethers.BigNumber.from(parsedData[i].PendingYield.toLocaleString("aa", { useGrouping: false })),
+      weight: ethers.BigNumber.from(parsedData[i].ClaimedYield.toLocaleString("aa", { useGrouping: false })).mul(2e6),
+    };
+  }
 
-  console.log(`Pool factory deployed at ${factory.address}`);
-  console.log("deploying ILV pool...");
+  // const factoryPending = (await upgrades.deployProxy(
+  //   PoolFactory,
+  //   [
+  //     config.ilv,
+  //     config.silv,
+  //     config.ILV_PER_SECOND.div(20),
+  //     config.SECONDS_PER_UPDATE,
+  //     // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+  //     // (new Date().getTime() / 1000).toFixed(0),
+  //     1647018000,
+  //     // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 192).toFixed(0),
+  //     // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+  //     (1647018000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+  //   ],
+  //   { kind: "uups" },
+  // )) as PoolFactory;
 
-  const ilvPoolPending = (await upgrades.deployProxy(
-    ILVPool,
-    [
-      config.ilv,
-      config.silv,
-      config.ilv,
-      factory.address,
-      (new Date().getTime() / 1000).toFixed(0),
-      // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
-      config.ILV_POOL_WEIGHT,
-      config.ilvPoolV1,
-      (new Date().getTime() / 1000).toFixed(0),
-      // ethers.constants.MaxUint256,
-    ],
-    { kind: "uups" },
-  )) as ILVPool;
+  // const factory = await factoryPending.deployed();
 
-  const ilvPool = await ilvPoolPending.deployed();
-  console.log(`ILV Pool deployed at ${ilvPool.address}`);
+  // console.log(`Pool factory deployed at ${factory.address}`);
+  // console.log("deploying ILV pool...");
 
-  console.log("deploying Sushi LP pool...");
-  const lpPoolPending = (await upgrades.deployProxy(
-    SushiLPPool,
-    [
-      config.ilv,
-      config.silv,
-      config.lp,
-      factory.address,
-      (new Date().getTime() / 1000).toFixed(0),
-      // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
-      config.LP_POOL_WEIGHT,
-      config.lpPoolV1,
-      (new Date().getTime() / 1000).toFixed(0),
-      // ethers.constants.MaxUint256,
-    ],
-    { kind: "uups" },
-  )) as SushiLPPool;
+  // const ilvPoolPending = (await upgrades.deployProxy(
+  //   ILVPool,
+  //   [
+  //     config.ilv,
+  //     config.silv,
+  //     config.ilv,
+  //     factory.address,
+  //     1647018000,
+  //     // (new Date().getTime() / 1000).toFixed(0),
+  //     // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+  //     config.ILV_POOL_WEIGHT,
+  //     config.ilvPoolV1,
+  //     1647018000,
+  //     // (new Date().getTime() / 1000).toFixed(0),
+  //     // ethers.constants.MaxUint256,
+  //   ],
+  //   { kind: "uups" },
+  // )) as ILVPool;
 
-  const lpPool = await lpPoolPending.deployed();
-  console.log(`LP Pool deployed at ${lpPool.address}`);
+  // const ilvPool = await ilvPoolPending.deployed();
+  // console.log(`ILV Pool deployed at ${ilvPool.address}`);
 
-  console.log("registering deployed core pools in the factory..");
+  // console.log("deploying Sushi LP pool...");
+  // const lpPoolPending = (await upgrades.deployProxy(
+  //   SushiLPPool,
+  //   [
+  //     config.ilv,
+  //     config.silv,
+  //     config.lp,
+  //     factory.address,
+  //     1647018000,
+  //     // (new Date().getTime() / 1000).toFixed(0),
+  //     // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+  //     config.LP_POOL_WEIGHT,
+  //     config.lpPoolV1,
+  //     1647018000,
+  //     // (new Date().getTime() / 1000).toFixed(0),
+  //     // ethers.constants.MaxUint256,
+  //   ],
+  //   { kind: "uups" },
+  // )) as SushiLPPool;
 
-  const tx0 = await factory.registerPool(ilvPool.address);
-  await tx0.wait();
-  console.log("ILV pool registered successfully!");
-  const tx1 = await factory.registerPool(lpPool.address);
-  await tx1.wait();
-  console.log("Sushi LP pool registered successfully!");
+  // const lpPool = await lpPoolPending.deployed();
+  // console.log(`LP Pool deployed at ${lpPool.address}`);
 
-  console.log(ilvPool.address);
-  console.log(lpPool.address);
-  console.log(factory.address);
+  // console.log("registering deployed core pools in the factory..");
 
-  // const ilvPool = await ethers.getContractAt("ILVPool", "0x9EDf843E0deBCA2C916E9B7e0DaF0e1AEF482A29");
+  // const tx0 = await factory.registerPool(ilvPool.address);
+  // await tx0.wait();
+  // console.log("ILV pool registered successfully!");
+  // const tx1 = await factory.registerPool(lpPool.address);
+  // await tx1.wait();
+  // console.log("Sushi LP pool registered successfully!");
+
+  // console.log(ilvPool.address);
+  // console.log(lpPool.address);
+  // console.log(factory.address);
+
+  const ilvPool = await ethers.getContractAt("ILVPool", "0x9EDf843E0deBCA2C916E9B7e0DaF0e1AEF482A29");
   // const usersData = [
   //   {
   //     account: "0x0d5880bA57De46d6e00CA5d7A5d25A7eb9b573e7",
@@ -469,18 +488,18 @@ async function main(): Promise<void> {
   //   },
   // ];
 
-  // const merkleTree = new YieldTree(usersData);
+  const merkleTree = new YieldTree(treeData);
 
-  // console.log(merkleTree.getHexRoot());
-  // // console.log(usersData.length);
+  console.log(merkleTree.getHexRoot());
+  // console.log(usersData.length);
 
-  // const tx = await ilvPool.setMerkleRoot(merkleTree.getHexRoot());
+  const tx = await ilvPool.setMerkleRoot(merkleTree.getHexRoot());
 
   // // // const proof = merkleTree.getProof(18, "0x5B5193FF152F064e747451b1D0A25024bE3c389E" , toWei(4000), toWei(500));
   // console.log("sent..");
   // // console.log(await ilvPool.estimateGas.executeMigration(proof, 18, toWei(4000), toWei(500), false, []));
-  // await tx.wait();
-  // console.log("mined!");
+  await tx.wait();
+  console.log("mined!");
 
   // console.log(await ilvPool.merkleRoot());
 }
