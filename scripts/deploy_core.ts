@@ -20,9 +20,9 @@ import rinkebyData from "./data/yield_data_rinkeby.json";
 const parseEther = ethers.utils.parseEther;
 
 async function main(): Promise<void> {
-  // const ILVPool = <ILVPool__factory>await ethers.getContractFactory("ILVPoolMock");
-  // const SushiLPPool = <SushiLPPool__factory>await ethers.getContractFactory("SushiLPPoolMock");
-  // const PoolFactory = <PoolFactory__factory>await ethers.getContractFactory("PoolFactoryMock");
+  const ILVPool = <ILVPool__factory>await ethers.getContractFactory("ILVPool");
+  const SushiLPPool = <SushiLPPool__factory>await ethers.getContractFactory("SushiLPPool");
+  const PoolFactory = <PoolFactory__factory>await ethers.getContractFactory("PoolFactory");
 
   console.log("generating merkle tree...");
 
@@ -32,7 +32,7 @@ async function main(): Promise<void> {
   for (let i = 0; i < 63; i++) {
     treeData[i] = {
       account: parsedData[i].Address as string,
-      pendingV1Rewards: ethers.BigNumber.from(parsedData[i].PendingYield),
+      pendingV1Rewards: ethers.BigNumber.from(parsedData[i].PendingYield).add(ethers.BigNumber.from(parsedData[i].Emissions_Total)),
       weight: ethers.BigNumber.from(parsedData[i].ClaimedYield),
     };
   }
@@ -45,92 +45,92 @@ async function main(): Promise<void> {
     };
   }
 
-  fs.writeFileSync("./scripts/data/treeC.json", JSON.stringify(treeData));
+  fs.writeFileSync("./scripts/data/treeA.json", JSON.stringify(treeData));
 
   console.log("merkle tree generated!");
   console.log("deploying pool factory...");
 
-  // const factoryPending = (await upgrades.deployProxy(
-  //   PoolFactory,
-  //   [
-  //     config.ilv,
-  //     config.silv,
-  //     config.ILV_PER_SECOND.div(20),
-  //     config.SECONDS_PER_UPDATE,
-  //     // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
-  //     (new Date().getTime() / 1000).toFixed(0),
-  //     // 1647115182,
-  //     // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 192).toFixed(0),
-  //     (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
-  //     // (1647115182 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
-  //   ],
-  //   { kind: "uups" },
-  // )) as PoolFactory;
+  const factoryPending = (await upgrades.deployProxy(
+    PoolFactory,
+    [
+      config.ilv,
+      config.silv,
+      config.ILV_PER_SECOND.div(20),
+      config.SECONDS_PER_UPDATE,
+      // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+      // (new Date().getTime() / 1000).toFixed(0),
+      1647413377,
+      // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 192).toFixed(0),
+      // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+      (1647413377 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+    ],
+    { kind: "uups" },
+  )) as PoolFactory;
 
-  // const factory = await factoryPending.deployed();
+  const factory = await factoryPending.deployed();
 
-  // console.log(`Pool factory deployed at ${factory.address}`);
-  // console.log("deploying ILV pool...");
+  console.log(`Pool factory deployed at ${factory.address}`);
+  console.log("deploying ILV pool...");
 
-  // const ilvPoolPending = (await upgrades.deployProxy(
-  //   ILVPool,
-  //   [
-  //     config.ilv,
-  //     config.silv,
-  //     config.ilv,
-  //     factory.address,
-  //     // 1647115182,
-  //     (new Date().getTime() / 1000).toFixed(0),
-  //     // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
-  //     config.ILV_POOL_WEIGHT,
-  //     config.ilvPoolV1,
-  //     // 1647115182,
-  //     (new Date().getTime() / 1000).toFixed(0),
-  //     // ethers.constants.MaxUint256,
-  //   ],
-  //   { kind: "uups" },
-  // )) as ILVPool;
+  const ilvPoolPending = (await upgrades.deployProxy(
+    ILVPool,
+    [
+      config.ilv,
+      config.silv,
+      config.ilv,
+      factory.address,
+      1647413377,
+      // (new Date().getTime() / 1000).toFixed(0),
+      // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+      config.ILV_POOL_WEIGHT,
+      config.ilvPoolV1,
+      1647413377,
+      // (new Date().getTime() / 1000).toFixed(0),
+      // ethers.constants.MaxUint256,
+    ],
+    { kind: "uups" },
+  )) as ILVPool;
 
-  // const ilvPool = await ilvPoolPending.deployed();
-  // console.log(`ILV Pool deployed at ${ilvPool.address}`);
+  const ilvPool = await ilvPoolPending.deployed();
+  console.log(`ILV Pool deployed at ${ilvPool.address}`);
 
-  // console.log("deploying Sushi LP pool...");
-  // const lpPoolPending = (await upgrades.deployProxy(
-  //   SushiLPPool,
-  //   [
-  //     config.ilv,
-  //     config.silv,
-  //     config.lp,
-  //     factory.address,
-  //     // 1647115182,
-  //     (new Date().getTime() / 1000).toFixed(0),
-  //     // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
-  //     config.LP_POOL_WEIGHT,
-  //     config.lpPoolV1,
-  //     // 1647115182,
-  //     (new Date().getTime() / 1000).toFixed(0),
-  //     // ethers.constants.MaxUint256,
-  //   ],
-  //   { kind: "uups" },
-  // )) as SushiLPPool;
+  console.log("deploying Sushi LP pool...");
+  const lpPoolPending = (await upgrades.deployProxy(
+    SushiLPPool,
+    [
+      config.ilv,
+      config.silv,
+      config.lp,
+      factory.address,
+      1647413377,
+      // (new Date().getTime() / 1000).toFixed(0),
+      // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+      config.LP_POOL_WEIGHT,
+      config.lpPoolV1,
+      1647413377,
+      // (new Date().getTime() / 1000).toFixed(0),
+      // ethers.constants.MaxUint256,
+    ],
+    { kind: "uups" },
+  )) as SushiLPPool;
 
-  // const lpPool = await lpPoolPending.deployed();
-  // console.log(`LP Pool deployed at ${lpPool.address}`);
+  const lpPool = await lpPoolPending.deployed();
+  console.log(`LP Pool deployed at ${lpPool.address}`);
 
-  // console.log("registering deployed core pools in the factory..");
+  console.log("registering deployed core pools in the factory..");
 
-  // const tx0 = await factory.registerPool(ilvPool.address);
-  // await tx0.wait();
-  // console.log("ILV pool registered successfully!");
-  // const tx1 = await factory.registerPool(lpPool.address);
-  // await tx1.wait();
-  // console.log("Sushi LP pool registered successfully!");
+  const tx0 = await factory.registerPool(ilvPool.address);
+  await tx0.wait();
+  console.log("ILV pool registered successfully!");
+  const tx1 = await factory.registerPool(lpPool.address);
+  await tx1.wait();
+  console.log("Sushi LP pool registered successfully!");
 
-  // console.log(ilvPool.address);
-  // console.log(lpPool.address);
-  // console.log(factory.address);
+  console.log(ilvPool.address);
+  console.log(lpPool.address);
+  console.log(factory.address);
 
-  const ilvPool = await ethers.getContractAt("ILVPool", "0x0550148036093C3f75410D12d82909941B9aE7d7");
+  // const ilvPool = await ethers.getContractAt("ILVPool", "0x0550148036093C3f75410D12d82909941B9aE7d7");
   // // const usersData = [
   // //   {
   // //     account: "0x0d5880bA57De46d6e00CA5d7A5d25A7eb9b573e7",
