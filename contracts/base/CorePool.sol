@@ -1054,7 +1054,7 @@ abstract contract CorePool is
      */
     function _requireNotPaused() internal view virtual {
         // we're using selector to simplify input and state validation
-        // internal function simulated selector is `bytes4(keccak256("_requirePoolIsValid()"))`
+        // internal function simulated selector is `bytes4(keccak256("_requireNotPaused()"))`
         bytes4 fnSelector = 0xabb87a6f;
         // checks paused variable value from Pausable Open Zeppelin
         fnSelector.verifyState(!paused(), 0);
