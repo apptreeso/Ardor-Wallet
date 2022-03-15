@@ -1,5 +1,5 @@
 import { ethers, upgrades } from "hardhat";
-import fs from 'fs';
+import fs from "fs";
 
 import {
   ILVPool__factory,
@@ -24,7 +24,7 @@ async function main(): Promise<void> {
   // const SushiLPPool = <SushiLPPool__factory>await ethers.getContractFactory("SushiLPPoolMock");
   // const PoolFactory = <PoolFactory__factory>await ethers.getContractFactory("PoolFactoryMock");
 
-  console.log('generating merkle tree...');
+  console.log("generating merkle tree...");
 
   const parsedData = JSON.parse(JSON.stringify(rinkebyData));
   let treeData = [];
@@ -39,14 +39,13 @@ async function main(): Promise<void> {
 
   for (let i = 63; i < 20001; i++) {
     treeData[i] = {
-      account: '0xFE61c62Bb23FBEbBf1e1FDE999b95cCc7F416d17',
+      account: "0xFE61c62Bb23FBEbBf1e1FDE999b95cCc7F416d17",
       pendingV1Rewards: parseEther(String(Math.floor(Math.random() * 10))),
       weight: parseEther(String(Math.floor(Math.random() * 10))),
-
-    }
+    };
   }
 
-  fs.writeFileSync('./scripts/data/treeC.json', JSON.stringify(treeData));
+  fs.writeFileSync("./scripts/data/treeC.json", JSON.stringify(treeData));
 
   console.log("merkle tree generated!");
   console.log("deploying pool factory...");

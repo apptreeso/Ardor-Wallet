@@ -150,13 +150,13 @@ contract PoolFactory is Initializable, UUPSUpgradeable, OwnableUpgradeable, Time
         uint32 _endTime
     ) external initializer {
         bytes4 fnSelector = this.initialize.selector;
-        // verify the inputs are set
+        // verify the inputs are set correctly
         fnSelector.verifyNonZeroInput(uint160(ilv_), 0);
         fnSelector.verifyNonZeroInput(uint160(silv_), 1);
         fnSelector.verifyNonZeroInput(_ilvPerSecond, 2);
         fnSelector.verifyNonZeroInput(_secondsPerUpdate, 3);
         fnSelector.verifyNonZeroInput(_initTime, 4);
-        fnSelector.verifyNonZeroInput(_endTime, 5);
+        fnSelector.verifyInput(_endTime > _now256(), 5);
 
         __Ownable_init();
 

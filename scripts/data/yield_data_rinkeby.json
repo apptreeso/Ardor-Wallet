@@ -1,1 +1,632 @@
-{"21":{"Weight_Core":"11446179735289564974022656","Weight_LP":"0","Emissions_Core":"427910086737656938496","Emissions_LP":"0","Emissions_Total":"427910086737656938496","Address":"0x029aD119eE52EEBB710Ef3daBAa4Da21343f6863","ClaimedYield":"76230667644782800","PendingYield":"9619426680436027392"},"44":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0x0691f5804d4227925F19b031821b530b48FFf38f","ClaimedYield":"0","PendingYield":"0"},"0":{"Weight_Core":"100000000000000004764729344","Weight_LP":"0","Emissions_Core":"3738453323586847375360","Emissions_LP":"0","Emissions_Total":"3738453323586847375360","Address":"0x0d5880bA57De46d6e00CA5d7A5d25A7eb9b573e7","ClaimedYield":"0","PendingYield":"472332899999999983616"},"19":{"Weight_Core":"52100173369777959049625600","Weight_LP":"4500000000000000192937984","Emissions_Core":"1947740662936973606912","Emissions_LP":"47878369881962852646912","Emissions_Total":"49826110544899823632384","Address":"0x0eE0Cb844D8880f28FdB907A5aA396552Baa80b8","ClaimedYield":"70239060580136624128","PendingYield":"1699459717895247626240"},"22":{"Weight_Core":"21020330543240823623909376","Weight_LP":"0","Emissions_Core":"785835245822727684096","Emissions_LP":"0","Emissions_Total":"785835245822727684096","Address":"0x135A4DB6c6bf0D7529F121a9f8B3Fe8625186E87","ClaimedYield":"210165271620412608","PendingYield":"17038323206451456000"},"56":{"Weight_Core":"0","Weight_LP":"799999999999999932891136","Emissions_Core":"0","Emissions_LP":"8511710201237839282176","Emissions_Total":"8511710201237839282176","Address":"0x1A9bE656318440eb0c008f0B0b70F7553e5F378d","ClaimedYield":"2238175000000000000","PendingYield":"173384676042800005120"},"50":{"Weight_Core":"0","Weight_LP":"1979685179999999982829568","Emissions_Core":"0","Emissions_LP":"21063133177306712899584","Emissions_Total":"21063133177306712899584","Address":"0x1Db12d455FE8c57422C5d1447748576be1Dce3e1","ClaimedYield":"0","PendingYield":"1868792011957654781952"},"54":{"Weight_Core":"0","Weight_LP":"6776230800000000349700096","Emissions_Core":"0","Emissions_LP":"72096641032877571571712","Emissions_Total":"72096641032877571571712","Address":"0x1Ff079172a6Ed44320D225ca514D9af5D895754d","ClaimedYield":"18655414577597292544","PendingYield":"1982841936451817177088"},"31":{"Weight_Core":"7017823431316000133349376","Weight_LP":"0","Emissions_Core":"262358053311489540096","Emissions_LP":"0","Emissions_Total":"262358053311489540096","Address":"0x1d2B11d10339310E2738Dad6B73a1DDefcff791C","ClaimedYield":"1379965658000000","PendingYield":"4670733438182658048"},"18":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0x25DE374e906FcBA19c4228775973206369b593d6","ClaimedYield":"39427776688353755136","PendingYield":"36989113238157606912"},"58":{"Weight_Core":"0","Weight_LP":"235205200000000016252928","Emissions_Core":"0","Emissions_LP":"2502498125280233127936","Emissions_Total":"2502498125280233127936","Address":"0x26AEc623cb7a80238bA686a144Db98747a36ef3f","ClaimedYield":"0","PendingYield":"48783210561324802048"},"35":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0x27fD0d10A140D3F85BE71e4a3F0Be950A66666D9","ClaimedYield":"957442903429565440","PendingYield":"956207201269565440"},"60":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0x2Bb0301ef48a079Cc4401a41FA3f5cb402C95039","ClaimedYield":"40914186341391998976","PendingYield":"46563208049547993088"},"39":{"Weight_Core":"1699729700000000093716480","Weight_LP":"649999999999999962251264","Emissions_Core":"63543601461642747904","Emissions_LP":"6915764538505744613376","Emissions_Total":"6979308139967387009024","Address":"0x2df02411d040d14318749bA9d8729172879628c8","ClaimedYield":"0","PendingYield":"93950081942246096896"},"33":{"Weight_Core":"2211369436800000051904512","Weight_LP":"0","Emissions_Core":"82671014206833344512","Emissions_LP":"0","Emissions_Total":"82671014206833344512","Address":"0x3417DBa53002D349186bAb6E57a059931430B24B","ClaimedYield":"1105684718400000000","PendingYield":"1434917822889657600"},"4":{"Weight_Core":"59178040000000004062183424","Weight_LP":"0","Emissions_Core":"2212343403213553926144","Emissions_LP":"0","Emissions_Total":"2212343403213553926144","Address":"0x376E30F5BaDd3cEF83Efd9E39efA0ACC85e29DBA","ClaimedYield":"0","PendingYield":"79280228407600005120"},"17":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0x3E257E38FE3B0Af318b2015693050Db432F0FEbb","ClaimedYield":"756956835532301008896","PendingYield":"3886695865965198442496"},"28":{"Weight_Core":"999999999999999983222784","Weight_LP":"0","Emissions_Core":"37384533235868467200","Emissions_LP":"0","Emissions_Total":"37384533235868467200","Address":"0x40bE9547278EBAde75b39a547E1F0f3d8487b0bf","ClaimedYield":"0","PendingYield":"693339000000000000"},"51":{"Weight_Core":"0","Weight_LP":"827944760000000051642368","Emissions_Core":"0","Emissions_LP":"8809032324691769950208","Emissions_Total":"8809032324691769950208","Address":"0x452c1fD33b8e7fF0ea01daD3bfEDf1f4ffF9Df70","ClaimedYield":"153599638689800000","PendingYield":"749193746435211657216"},"37":{"Weight_Core":"74371631654507997080584192","Weight_LP":"0","Emissions_Core":"2780348735393722007552","Emissions_LP":"0","Emissions_Total":"2780348735393722007552","Address":"0x4AdD32A356eB4636A2f7AaE35610715d667D1d7E","ClaimedYield":"37185815827254001664","PendingYield":"36307040627624333312"},"30":{"Weight_Core":"2199650200000000010747904","Weight_LP":"0","Emissions_Core":"82232896009184739328","Emissions_LP":"0","Emissions_Total":"82232896009184739328","Address":"0x4c5e6067D9Be73CD8998af711183d218A90D199b","ClaimedYield":"0","PendingYield":"1475406573049200128"},"32":{"Weight_Core":"19780810000000000454557696","Weight_LP":"0","Emissions_Core":"739496348877399392256","Emissions_LP":"0","Emissions_Total":"739496348877399392256","Address":"0x5B9132843ebd2b3a484DeeF466589ac1A3De34ac","ClaimedYield":"0","PendingYield":"13084887130140000256"},"34":{"Weight_Core":"693479999999999955959808","Weight_LP":"0","Emissions_Core":"25925426108410064896","Emissions_LP":"0","Emissions_Total":"25925426108410064896","Address":"0x5dE4d10b49e182075E43D1A90b6a261865884840","ClaimedYield":"346740000000000000","PendingYield":"440682268200000000"},"45":{"Weight_Core":"4500000000000000192937984","Weight_LP":"0","Emissions_Core":"168230399561408118784","Emissions_LP":"0","Emissions_Total":"168230399561408118784","Address":"0x6450AcA1da1ffa37e00435C107278C54519c887B","ClaimedYield":"0","PendingYield":"0"},"41":{"Weight_Core":"2776936455125999955214336","Weight_LP":"904771753088696258134016","Emissions_Core":"103814473200552722432","Emissions_LP":"9626443700696126586880","Emissions_Total":"9730258173896679227392","Address":"0x660Db09E468A6Cd93Eb8AaC5D8A37192Ccc360B8","ClaimedYield":"354359427563000000","PendingYield":"121891379956472217600"},"36":{"Weight_Core":"509588499999999974703104","Weight_LP":"761423760000000047710208","Emissions_Core":"19050728214866358272","Emissions_LP":"8101272981821091479552","Emissions_Total":"8120323710035957907456","Address":"0x6f594de0278Ab06B04dD9F8E8af51D898FA77E8D","ClaimedYield":"0","PendingYield":"133181855468612780032"},"46":{"Weight_Core":"0","Weight_LP":"12888283090240451641344","Emissions_Core":"0","Emissions_LP":"137126663319551016960","Emissions_Total":"137126663319551016960","Address":"0x7058898880e0424D0ebFEb904267f17bB9fb9f2B","ClaimedYield":"0","PendingYield":"20247724246996897792"},"13":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0x73a6aFE00c76ee62578C3C30D717EF08a9e0aaE3","ClaimedYield":"1281097450995423744","PendingYield":"18894353511632994304"},"42":{"Weight_Core":"118343522233724093755031552","Weight_LP":"15739543009000000285835264","Emissions_Core":"4424217340196398039040","Emissions_LP":"167463035990658779185152","Emissions_Total":"171887253330855179845632","Address":"0x7FAaeC0891E6175bfe3838ecb120Bd29583093f5","ClaimedYield":"20733205882462048256","PendingYield":"2022791142206012391424"},"14":{"Weight_Core":"86564194018918577570054144","Weight_LP":"275417033739289610944512","Emissions_Core":"3236161988336428253184","Emissions_LP":"2930337469591722131456","Emissions_Total":"6166499457928150384640","Address":"0x814528A7eb374B74Ed899661296eE2Bb65707DEB","ClaimedYield":"395256260412177024","PendingYield":"303934564206847590400"},"29":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0x843E55ad92529B18A6223727d755B5A2F0204D14","ClaimedYield":"1161538767789919232","PendingYield":"1156906778109919232"},"20":{"Weight_Core":"10000000000000000905969664","Weight_LP":"0","Emissions_Core":"373845332358684737536","Emissions_LP":"0","Emissions_Total":"373845332358684737536","Address":"0x8784A5e74ae3dB73B6B51D745dd2b8d0EcC6d0c3","ClaimedYield":"0","PendingYield":"8898870000000000000"},"23":{"Weight_Core":"48659390000000003083337728","Weight_LP":"1299872800000000019922944","Emissions_Core":"1819108582692086087680","Emissions_LP":"13830175715089493000192","Emissions_Total":"15649284297781579612160","Address":"0x8A7BfF67ffd6134e2541aBeB54E583CbD7f0EeD1","ClaimedYield":"16220000000000000","PendingYield":"446764390219528404992"},"15":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0x924b4FE2873E7e4e2237e642415A019Cc058D9A7","ClaimedYield":"354209230319639986176","PendingYield":"354209230319639986176"},"25":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0x9E250483Dee891978C1FE1566c335b1283e071dc","ClaimedYield":"38902017799999995904","PendingYield":"38902017799999995904"},"8":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0x9FF48e4EeE75C97c205fC168652754De09b2d926","ClaimedYield":"212283319899999993856","PendingYield":"212283319899999993856"},"24":{"Weight_Core":"10000000000000000905969664","Weight_LP":"0","Emissions_Core":"373845332358684737536","Emissions_LP":"0","Emissions_Total":"373845332358684737536","Address":"0xAcCE497F3cC93CBF8453Ebf052980485cf32ba2f","ClaimedYield":"0","PendingYield":"8144650000000000000"},"7":{"Weight_Core":"739782160889704681129902080","Weight_LP":"0","Emissions_Core":"27656410781083762688000","Emissions_LP":"0","Emissions_Total":"27656410781083762688000","Address":"0xAf0964f1F5053615c0ad46976B8d726A42d99330","ClaimedYield":"1547942444852323072","PendingYield":"957756755249373511680"},"62":{"Weight_Core":"0","Weight_LP":"2684378799999999807586304","Emissions_Core":"0","Emissions_LP":"28560818019933236494336","Emissions_Total":"28560818019933236494336","Address":"0xB5bbD92E7120aA46acC29DFDB4b9008C60b5746c","ClaimedYield":"692103772279399936","PendingYield":"514340215713637138432"},"53":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0xB6909244AC295C70dfe98016b87d4059D2345A91","ClaimedYield":"13509353947846361088","PendingYield":"1941726250500782030848"},"40":{"Weight_Core":"1027267899999999949275136","Weight_LP":"589999999999999987417088","Emissions_Core":"38403930949690810368","Emissions_LP":"6277386273412906745856","Emissions_Total":"6315790204362597335040","Address":"0xC7dDDE236E33d07d100C84Cd63aD92B59C2B3940","ClaimedYield":"2127300000000000","PendingYield":"82463516680045592576"},"43":{"Weight_Core":"1499999999999999974834176","Weight_LP":"0","Emissions_Core":"56076799853802708992","Emissions_LP":"0","Emissions_Total":"56076799853802708992","Address":"0xCEC081C610F71f92aDd6bd1c353bA670fBC26879","ClaimedYield":"0","PendingYield":"588804000000000000"},"47":{"Weight_Core":"0","Weight_LP":"499999999999999991611392","Emissions_Core":"0","Emissions_LP":"5319818875773649944576","Emissions_Total":"5319818875773649944576","Address":"0xCbF05cA34c00D523bBB72416F284cd1D52d6F523","ClaimedYield":"609549876540785033216","PendingYield":"599613710290785009664"},"16":{"Weight_Core":"74298294849389826743992320","Weight_LP":"399936400000000014155776","Emissions_Core":"2777607073165369409536","Emissions_LP":"4255178419657922052096","Emissions_Total":"7032785492823290937344","Address":"0xE3B2E5CC27afc63f39250fd017cB6C88bb18eda8","ClaimedYield":"0","PendingYield":"368071190098544820224"},"11":{"Weight_Core":"60712280000000000027262976","Weight_LP":"153698500000000000393216","Emissions_Core":"2269700249485352632320","Emissions_LP":"1635296362956192743424","Emissions_Total":"3904996612441545637888","Address":"0xE494518E3E687c97F622f547fEe7367adb7370eD","ClaimedYield":"0","PendingYield":"196324296602015498240"},"2":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0xEA4192502Ce200676Fc73526aaAe8B0246797c2B","ClaimedYield":"3484102229147491762176","PendingYield":"2579311766622491377664"},"10":{"Weight_Core":"50958849999999998544052224","Weight_LP":"407670799999999993184256","Emissions_Core":"1905072821486635974656","Emissions_LP":"4337469633883489173504","Emissions_Total":"6242542455370125672448","Address":"0xFDFA447576E6B25c3F8aCb4ae799C459E157563B","ClaimedYield":"0","PendingYield":"395185132451069624320"},"5":{"Weight_Core":"79987279999999995314962432","Weight_LP":"0","Emissions_Core":"2990287127606717317120","Emissions_LP":"0","Emissions_Total":"2990287127606717317120","Address":"0xa18bCf84A4b7d6D117d2484A412FD94c0AcD25d9","ClaimedYield":"0","PendingYield":"106242544749039992832"},"1":{"Weight_Core":"1614786294745418010514685952","Weight_LP":"119248394562393222414336","Emissions_Core":"60368031904734981914624","Emissions_LP":"1268759720597446721536","Emissions_Total":"61636791625332425752576","Address":"0xa982BbDaf783Eb7C3914D988b7e2a0bE865ccB53","ClaimedYield":"806832600022709043200","PendingYield":"0"},"38":{"Weight_Core":"499999999999999991611392","Weight_LP":"169999999999999995805696","Emissions_Core":"18692266617934233600","Emissions_LP":"1808738417763041148928","Emissions_Total":"1827430684380975333376","Address":"0xb0F44B0a51FD310990fE1D343AfEAED770ea5DB5","ClaimedYield":"0","PendingYield":"27343894350000001024"},"48":{"Weight_Core":"0","Weight_LP":"407670799999999993184256","Emissions_Core":"0","Emissions_LP":"4337469633883489173504","Emissions_Total":"4337469633883489173504","Address":"0xb6CCed9C8262642ee00b37a3c8Ae491c6159EFD9","ClaimedYield":"0","PendingYield":"409293178130462408704"},"9":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0xb703D63f87062eF5e1DF206Af2fAd1005c38f762","ClaimedYield":"170120061910772514816","PendingYield":"232458568852556939264"},"49":{"Weight_Core":"0","Weight_LP":"1198903200000000040894464","Emissions_Core":"0","Emissions_LP":"12755895747170864726016","Emissions_Total":"12755895747170864726016","Address":"0xc7a070a66c7f2C61D65A3E17F5995650F4475D13","ClaimedYield":"0","PendingYield":"1145301996718994358272"},"57":{"Weight_Core":"0","Weight_LP":"234410709999999984336896","Emissions_Core":"0","Emissions_LP":"2494045039483005960192","Emissions_Total":"2494045039483005960192","Address":"0xca4173f5f808047807B14Dff03CB4Ba11D2CE1B8","ClaimedYield":"0","PendingYield":"48708702835408691200"},"59":{"Weight_Core":"0","Weight_LP":"399936400000000014155776","Emissions_Core":"0","Emissions_LP":"4255178419657922052096","Emissions_Total":"4255178419657922052096","Address":"0xe17DD95691F49F1A8f9f6895d0BF4751E869f8CA","ClaimedYield":"0","PendingYield":"82834616801453604864"},"12":{"Weight_Core":"79987279999999995314962432","Weight_LP":"399936400000000014155776","Emissions_Core":"2990287127606717317120","Emissions_LP":"4255178419657922052096","Emissions_Total":"7245465547264639369216","Address":"0xe39c201F5f16E46B91c8Ed4018a233b437612078","ClaimedYield":"0","PendingYield":"403927532509015179264"},"55":{"Weight_Core":"0","Weight_LP":"300000000000000008388608","Emissions_Core":"0","Emissions_LP":"3191891325464190386176","Emissions_Total":"3191891325464190386176","Address":"0xeE7d405278fE880F5d4b52096f076a520D509628","ClaimedYield":"0","PendingYield":"64626545699999997952"},"26":{"Weight_Core":"25174593608274061329170432","Weight_LP":"5160214499999999827378176","Emissions_Core":"941140431448003706880","Emissions_LP":"54902813000281773572096","Emissions_Total":"55843953431729775050752","Address":"0xeeACe61fD1EAb9090EF451B2b52b076dc046Fd62","ClaimedYield":"4787296804137031680","PendingYield":"1427540654571555127296"},"3":{"Weight_Core":"40767080000000002271215616","Weight_LP":"0","Emissions_Core":"1524058257189308989440","Emissions_LP":"0","Emissions_Total":"1524058257189308989440","Address":"0xefBAb868E9C7429D8C39531BaC62609A957AeFe7","ClaimedYield":"0","PendingYield":"55019618071720001536"},"27":{"Weight_Core":"12465768013623773288726528","Weight_LP":"3599999999999999832227840","Emissions_Core":"466026918615944069120","Emissions_LP":"38302695905570280439808","Emissions_Total":"38768722824186220773376","Address":"0xf1c1f3D490409c1133F220A4392DB46d2264f398","ClaimedYield":"2659784356811886592","PendingYield":"969093314997432090624"},"6":{"Weight_Core":"247421319895106939925823488","Weight_LP":"0","Emissions_Core":"9249730556881070456832","Emissions_LP":"0","Emissions_Total":"9249730556881070456832","Address":"0xf87e330B77C6154b84320c18184ca63bF501eb26","ClaimedYield":"0","PendingYield":"324661307539961413632"},"52":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0xfd4bd07eF95a8C53eb7192fA055909c716f01409","ClaimedYield":"453445110943420841984","PendingYield":"5846603648204232720384"},"61":{"Weight_Core":"0","Weight_LP":"0","Emissions_Core":"0","Emissions_LP":"0","Emissions_Total":"0","Address":"0xfdeb3959995e796d2eF57277cA3DEf7312704982","ClaimedYield":"13631922000000000000","PendingYield":"15429645345671999488"}}
+{
+  "21": {
+    "Weight_Core": "11446179735289564974022656",
+    "Weight_LP": "0",
+    "Emissions_Core": "427910086737656938496",
+    "Emissions_LP": "0",
+    "Emissions_Total": "427910086737656938496",
+    "Address": "0x029aD119eE52EEBB710Ef3daBAa4Da21343f6863",
+    "ClaimedYield": "76230667644782800",
+    "PendingYield": "9619426680436027392"
+  },
+  "44": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0x0691f5804d4227925F19b031821b530b48FFf38f",
+    "ClaimedYield": "0",
+    "PendingYield": "0"
+  },
+  "0": {
+    "Weight_Core": "100000000000000004764729344",
+    "Weight_LP": "0",
+    "Emissions_Core": "3738453323586847375360",
+    "Emissions_LP": "0",
+    "Emissions_Total": "3738453323586847375360",
+    "Address": "0x0d5880bA57De46d6e00CA5d7A5d25A7eb9b573e7",
+    "ClaimedYield": "0",
+    "PendingYield": "472332899999999983616"
+  },
+  "19": {
+    "Weight_Core": "52100173369777959049625600",
+    "Weight_LP": "4500000000000000192937984",
+    "Emissions_Core": "1947740662936973606912",
+    "Emissions_LP": "47878369881962852646912",
+    "Emissions_Total": "49826110544899823632384",
+    "Address": "0x0eE0Cb844D8880f28FdB907A5aA396552Baa80b8",
+    "ClaimedYield": "70239060580136624128",
+    "PendingYield": "1699459717895247626240"
+  },
+  "22": {
+    "Weight_Core": "21020330543240823623909376",
+    "Weight_LP": "0",
+    "Emissions_Core": "785835245822727684096",
+    "Emissions_LP": "0",
+    "Emissions_Total": "785835245822727684096",
+    "Address": "0x135A4DB6c6bf0D7529F121a9f8B3Fe8625186E87",
+    "ClaimedYield": "210165271620412608",
+    "PendingYield": "17038323206451456000"
+  },
+  "56": {
+    "Weight_Core": "0",
+    "Weight_LP": "799999999999999932891136",
+    "Emissions_Core": "0",
+    "Emissions_LP": "8511710201237839282176",
+    "Emissions_Total": "8511710201237839282176",
+    "Address": "0x1A9bE656318440eb0c008f0B0b70F7553e5F378d",
+    "ClaimedYield": "2238175000000000000",
+    "PendingYield": "173384676042800005120"
+  },
+  "50": {
+    "Weight_Core": "0",
+    "Weight_LP": "1979685179999999982829568",
+    "Emissions_Core": "0",
+    "Emissions_LP": "21063133177306712899584",
+    "Emissions_Total": "21063133177306712899584",
+    "Address": "0x1Db12d455FE8c57422C5d1447748576be1Dce3e1",
+    "ClaimedYield": "0",
+    "PendingYield": "1868792011957654781952"
+  },
+  "54": {
+    "Weight_Core": "0",
+    "Weight_LP": "6776230800000000349700096",
+    "Emissions_Core": "0",
+    "Emissions_LP": "72096641032877571571712",
+    "Emissions_Total": "72096641032877571571712",
+    "Address": "0x1Ff079172a6Ed44320D225ca514D9af5D895754d",
+    "ClaimedYield": "18655414577597292544",
+    "PendingYield": "1982841936451817177088"
+  },
+  "31": {
+    "Weight_Core": "7017823431316000133349376",
+    "Weight_LP": "0",
+    "Emissions_Core": "262358053311489540096",
+    "Emissions_LP": "0",
+    "Emissions_Total": "262358053311489540096",
+    "Address": "0x1d2B11d10339310E2738Dad6B73a1DDefcff791C",
+    "ClaimedYield": "1379965658000000",
+    "PendingYield": "4670733438182658048"
+  },
+  "18": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0x25DE374e906FcBA19c4228775973206369b593d6",
+    "ClaimedYield": "39427776688353755136",
+    "PendingYield": "36989113238157606912"
+  },
+  "58": {
+    "Weight_Core": "0",
+    "Weight_LP": "235205200000000016252928",
+    "Emissions_Core": "0",
+    "Emissions_LP": "2502498125280233127936",
+    "Emissions_Total": "2502498125280233127936",
+    "Address": "0x26AEc623cb7a80238bA686a144Db98747a36ef3f",
+    "ClaimedYield": "0",
+    "PendingYield": "48783210561324802048"
+  },
+  "35": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0x27fD0d10A140D3F85BE71e4a3F0Be950A66666D9",
+    "ClaimedYield": "957442903429565440",
+    "PendingYield": "956207201269565440"
+  },
+  "60": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0x2Bb0301ef48a079Cc4401a41FA3f5cb402C95039",
+    "ClaimedYield": "40914186341391998976",
+    "PendingYield": "46563208049547993088"
+  },
+  "39": {
+    "Weight_Core": "1699729700000000093716480",
+    "Weight_LP": "649999999999999962251264",
+    "Emissions_Core": "63543601461642747904",
+    "Emissions_LP": "6915764538505744613376",
+    "Emissions_Total": "6979308139967387009024",
+    "Address": "0x2df02411d040d14318749bA9d8729172879628c8",
+    "ClaimedYield": "0",
+    "PendingYield": "93950081942246096896"
+  },
+  "33": {
+    "Weight_Core": "2211369436800000051904512",
+    "Weight_LP": "0",
+    "Emissions_Core": "82671014206833344512",
+    "Emissions_LP": "0",
+    "Emissions_Total": "82671014206833344512",
+    "Address": "0x3417DBa53002D349186bAb6E57a059931430B24B",
+    "ClaimedYield": "1105684718400000000",
+    "PendingYield": "1434917822889657600"
+  },
+  "4": {
+    "Weight_Core": "59178040000000004062183424",
+    "Weight_LP": "0",
+    "Emissions_Core": "2212343403213553926144",
+    "Emissions_LP": "0",
+    "Emissions_Total": "2212343403213553926144",
+    "Address": "0x376E30F5BaDd3cEF83Efd9E39efA0ACC85e29DBA",
+    "ClaimedYield": "0",
+    "PendingYield": "79280228407600005120"
+  },
+  "17": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0x3E257E38FE3B0Af318b2015693050Db432F0FEbb",
+    "ClaimedYield": "756956835532301008896",
+    "PendingYield": "3886695865965198442496"
+  },
+  "28": {
+    "Weight_Core": "999999999999999983222784",
+    "Weight_LP": "0",
+    "Emissions_Core": "37384533235868467200",
+    "Emissions_LP": "0",
+    "Emissions_Total": "37384533235868467200",
+    "Address": "0x40bE9547278EBAde75b39a547E1F0f3d8487b0bf",
+    "ClaimedYield": "0",
+    "PendingYield": "693339000000000000"
+  },
+  "51": {
+    "Weight_Core": "0",
+    "Weight_LP": "827944760000000051642368",
+    "Emissions_Core": "0",
+    "Emissions_LP": "8809032324691769950208",
+    "Emissions_Total": "8809032324691769950208",
+    "Address": "0x452c1fD33b8e7fF0ea01daD3bfEDf1f4ffF9Df70",
+    "ClaimedYield": "153599638689800000",
+    "PendingYield": "749193746435211657216"
+  },
+  "37": {
+    "Weight_Core": "74371631654507997080584192",
+    "Weight_LP": "0",
+    "Emissions_Core": "2780348735393722007552",
+    "Emissions_LP": "0",
+    "Emissions_Total": "2780348735393722007552",
+    "Address": "0x4AdD32A356eB4636A2f7AaE35610715d667D1d7E",
+    "ClaimedYield": "37185815827254001664",
+    "PendingYield": "36307040627624333312"
+  },
+  "30": {
+    "Weight_Core": "2199650200000000010747904",
+    "Weight_LP": "0",
+    "Emissions_Core": "82232896009184739328",
+    "Emissions_LP": "0",
+    "Emissions_Total": "82232896009184739328",
+    "Address": "0x4c5e6067D9Be73CD8998af711183d218A90D199b",
+    "ClaimedYield": "0",
+    "PendingYield": "1475406573049200128"
+  },
+  "32": {
+    "Weight_Core": "19780810000000000454557696",
+    "Weight_LP": "0",
+    "Emissions_Core": "739496348877399392256",
+    "Emissions_LP": "0",
+    "Emissions_Total": "739496348877399392256",
+    "Address": "0x5B9132843ebd2b3a484DeeF466589ac1A3De34ac",
+    "ClaimedYield": "0",
+    "PendingYield": "13084887130140000256"
+  },
+  "34": {
+    "Weight_Core": "693479999999999955959808",
+    "Weight_LP": "0",
+    "Emissions_Core": "25925426108410064896",
+    "Emissions_LP": "0",
+    "Emissions_Total": "25925426108410064896",
+    "Address": "0x5dE4d10b49e182075E43D1A90b6a261865884840",
+    "ClaimedYield": "346740000000000000",
+    "PendingYield": "440682268200000000"
+  },
+  "45": {
+    "Weight_Core": "4500000000000000192937984",
+    "Weight_LP": "0",
+    "Emissions_Core": "168230399561408118784",
+    "Emissions_LP": "0",
+    "Emissions_Total": "168230399561408118784",
+    "Address": "0x6450AcA1da1ffa37e00435C107278C54519c887B",
+    "ClaimedYield": "0",
+    "PendingYield": "0"
+  },
+  "41": {
+    "Weight_Core": "2776936455125999955214336",
+    "Weight_LP": "904771753088696258134016",
+    "Emissions_Core": "103814473200552722432",
+    "Emissions_LP": "9626443700696126586880",
+    "Emissions_Total": "9730258173896679227392",
+    "Address": "0x660Db09E468A6Cd93Eb8AaC5D8A37192Ccc360B8",
+    "ClaimedYield": "354359427563000000",
+    "PendingYield": "121891379956472217600"
+  },
+  "36": {
+    "Weight_Core": "509588499999999974703104",
+    "Weight_LP": "761423760000000047710208",
+    "Emissions_Core": "19050728214866358272",
+    "Emissions_LP": "8101272981821091479552",
+    "Emissions_Total": "8120323710035957907456",
+    "Address": "0x6f594de0278Ab06B04dD9F8E8af51D898FA77E8D",
+    "ClaimedYield": "0",
+    "PendingYield": "133181855468612780032"
+  },
+  "46": {
+    "Weight_Core": "0",
+    "Weight_LP": "12888283090240451641344",
+    "Emissions_Core": "0",
+    "Emissions_LP": "137126663319551016960",
+    "Emissions_Total": "137126663319551016960",
+    "Address": "0x7058898880e0424D0ebFEb904267f17bB9fb9f2B",
+    "ClaimedYield": "0",
+    "PendingYield": "20247724246996897792"
+  },
+  "13": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0x73a6aFE00c76ee62578C3C30D717EF08a9e0aaE3",
+    "ClaimedYield": "1281097450995423744",
+    "PendingYield": "18894353511632994304"
+  },
+  "42": {
+    "Weight_Core": "118343522233724093755031552",
+    "Weight_LP": "15739543009000000285835264",
+    "Emissions_Core": "4424217340196398039040",
+    "Emissions_LP": "167463035990658779185152",
+    "Emissions_Total": "171887253330855179845632",
+    "Address": "0x7FAaeC0891E6175bfe3838ecb120Bd29583093f5",
+    "ClaimedYield": "20733205882462048256",
+    "PendingYield": "2022791142206012391424"
+  },
+  "14": {
+    "Weight_Core": "86564194018918577570054144",
+    "Weight_LP": "275417033739289610944512",
+    "Emissions_Core": "3236161988336428253184",
+    "Emissions_LP": "2930337469591722131456",
+    "Emissions_Total": "6166499457928150384640",
+    "Address": "0x814528A7eb374B74Ed899661296eE2Bb65707DEB",
+    "ClaimedYield": "395256260412177024",
+    "PendingYield": "303934564206847590400"
+  },
+  "29": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0x843E55ad92529B18A6223727d755B5A2F0204D14",
+    "ClaimedYield": "1161538767789919232",
+    "PendingYield": "1156906778109919232"
+  },
+  "20": {
+    "Weight_Core": "10000000000000000905969664",
+    "Weight_LP": "0",
+    "Emissions_Core": "373845332358684737536",
+    "Emissions_LP": "0",
+    "Emissions_Total": "373845332358684737536",
+    "Address": "0x8784A5e74ae3dB73B6B51D745dd2b8d0EcC6d0c3",
+    "ClaimedYield": "0",
+    "PendingYield": "8898870000000000000"
+  },
+  "23": {
+    "Weight_Core": "48659390000000003083337728",
+    "Weight_LP": "1299872800000000019922944",
+    "Emissions_Core": "1819108582692086087680",
+    "Emissions_LP": "13830175715089493000192",
+    "Emissions_Total": "15649284297781579612160",
+    "Address": "0x8A7BfF67ffd6134e2541aBeB54E583CbD7f0EeD1",
+    "ClaimedYield": "16220000000000000",
+    "PendingYield": "446764390219528404992"
+  },
+  "15": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0x924b4FE2873E7e4e2237e642415A019Cc058D9A7",
+    "ClaimedYield": "354209230319639986176",
+    "PendingYield": "354209230319639986176"
+  },
+  "25": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0x9E250483Dee891978C1FE1566c335b1283e071dc",
+    "ClaimedYield": "38902017799999995904",
+    "PendingYield": "38902017799999995904"
+  },
+  "8": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0x9FF48e4EeE75C97c205fC168652754De09b2d926",
+    "ClaimedYield": "212283319899999993856",
+    "PendingYield": "212283319899999993856"
+  },
+  "24": {
+    "Weight_Core": "10000000000000000905969664",
+    "Weight_LP": "0",
+    "Emissions_Core": "373845332358684737536",
+    "Emissions_LP": "0",
+    "Emissions_Total": "373845332358684737536",
+    "Address": "0xAcCE497F3cC93CBF8453Ebf052980485cf32ba2f",
+    "ClaimedYield": "0",
+    "PendingYield": "8144650000000000000"
+  },
+  "7": {
+    "Weight_Core": "739782160889704681129902080",
+    "Weight_LP": "0",
+    "Emissions_Core": "27656410781083762688000",
+    "Emissions_LP": "0",
+    "Emissions_Total": "27656410781083762688000",
+    "Address": "0xAf0964f1F5053615c0ad46976B8d726A42d99330",
+    "ClaimedYield": "1547942444852323072",
+    "PendingYield": "957756755249373511680"
+  },
+  "62": {
+    "Weight_Core": "0",
+    "Weight_LP": "2684378799999999807586304",
+    "Emissions_Core": "0",
+    "Emissions_LP": "28560818019933236494336",
+    "Emissions_Total": "28560818019933236494336",
+    "Address": "0xB5bbD92E7120aA46acC29DFDB4b9008C60b5746c",
+    "ClaimedYield": "692103772279399936",
+    "PendingYield": "514340215713637138432"
+  },
+  "53": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0xB6909244AC295C70dfe98016b87d4059D2345A91",
+    "ClaimedYield": "13509353947846361088",
+    "PendingYield": "1941726250500782030848"
+  },
+  "40": {
+    "Weight_Core": "1027267899999999949275136",
+    "Weight_LP": "589999999999999987417088",
+    "Emissions_Core": "38403930949690810368",
+    "Emissions_LP": "6277386273412906745856",
+    "Emissions_Total": "6315790204362597335040",
+    "Address": "0xC7dDDE236E33d07d100C84Cd63aD92B59C2B3940",
+    "ClaimedYield": "2127300000000000",
+    "PendingYield": "82463516680045592576"
+  },
+  "43": {
+    "Weight_Core": "1499999999999999974834176",
+    "Weight_LP": "0",
+    "Emissions_Core": "56076799853802708992",
+    "Emissions_LP": "0",
+    "Emissions_Total": "56076799853802708992",
+    "Address": "0xCEC081C610F71f92aDd6bd1c353bA670fBC26879",
+    "ClaimedYield": "0",
+    "PendingYield": "588804000000000000"
+  },
+  "47": {
+    "Weight_Core": "0",
+    "Weight_LP": "499999999999999991611392",
+    "Emissions_Core": "0",
+    "Emissions_LP": "5319818875773649944576",
+    "Emissions_Total": "5319818875773649944576",
+    "Address": "0xCbF05cA34c00D523bBB72416F284cd1D52d6F523",
+    "ClaimedYield": "609549876540785033216",
+    "PendingYield": "599613710290785009664"
+  },
+  "16": {
+    "Weight_Core": "74298294849389826743992320",
+    "Weight_LP": "399936400000000014155776",
+    "Emissions_Core": "2777607073165369409536",
+    "Emissions_LP": "4255178419657922052096",
+    "Emissions_Total": "7032785492823290937344",
+    "Address": "0xE3B2E5CC27afc63f39250fd017cB6C88bb18eda8",
+    "ClaimedYield": "0",
+    "PendingYield": "368071190098544820224"
+  },
+  "11": {
+    "Weight_Core": "60712280000000000027262976",
+    "Weight_LP": "153698500000000000393216",
+    "Emissions_Core": "2269700249485352632320",
+    "Emissions_LP": "1635296362956192743424",
+    "Emissions_Total": "3904996612441545637888",
+    "Address": "0xE494518E3E687c97F622f547fEe7367adb7370eD",
+    "ClaimedYield": "0",
+    "PendingYield": "196324296602015498240"
+  },
+  "2": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0xEA4192502Ce200676Fc73526aaAe8B0246797c2B",
+    "ClaimedYield": "3484102229147491762176",
+    "PendingYield": "2579311766622491377664"
+  },
+  "10": {
+    "Weight_Core": "50958849999999998544052224",
+    "Weight_LP": "407670799999999993184256",
+    "Emissions_Core": "1905072821486635974656",
+    "Emissions_LP": "4337469633883489173504",
+    "Emissions_Total": "6242542455370125672448",
+    "Address": "0xFDFA447576E6B25c3F8aCb4ae799C459E157563B",
+    "ClaimedYield": "0",
+    "PendingYield": "395185132451069624320"
+  },
+  "5": {
+    "Weight_Core": "79987279999999995314962432",
+    "Weight_LP": "0",
+    "Emissions_Core": "2990287127606717317120",
+    "Emissions_LP": "0",
+    "Emissions_Total": "2990287127606717317120",
+    "Address": "0xa18bCf84A4b7d6D117d2484A412FD94c0AcD25d9",
+    "ClaimedYield": "0",
+    "PendingYield": "106242544749039992832"
+  },
+  "1": {
+    "Weight_Core": "1614786294745418010514685952",
+    "Weight_LP": "119248394562393222414336",
+    "Emissions_Core": "60368031904734981914624",
+    "Emissions_LP": "1268759720597446721536",
+    "Emissions_Total": "61636791625332425752576",
+    "Address": "0xa982BbDaf783Eb7C3914D988b7e2a0bE865ccB53",
+    "ClaimedYield": "806832600022709043200",
+    "PendingYield": "0"
+  },
+  "38": {
+    "Weight_Core": "499999999999999991611392",
+    "Weight_LP": "169999999999999995805696",
+    "Emissions_Core": "18692266617934233600",
+    "Emissions_LP": "1808738417763041148928",
+    "Emissions_Total": "1827430684380975333376",
+    "Address": "0xb0F44B0a51FD310990fE1D343AfEAED770ea5DB5",
+    "ClaimedYield": "0",
+    "PendingYield": "27343894350000001024"
+  },
+  "48": {
+    "Weight_Core": "0",
+    "Weight_LP": "407670799999999993184256",
+    "Emissions_Core": "0",
+    "Emissions_LP": "4337469633883489173504",
+    "Emissions_Total": "4337469633883489173504",
+    "Address": "0xb6CCed9C8262642ee00b37a3c8Ae491c6159EFD9",
+    "ClaimedYield": "0",
+    "PendingYield": "409293178130462408704"
+  },
+  "9": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0xb703D63f87062eF5e1DF206Af2fAd1005c38f762",
+    "ClaimedYield": "170120061910772514816",
+    "PendingYield": "232458568852556939264"
+  },
+  "49": {
+    "Weight_Core": "0",
+    "Weight_LP": "1198903200000000040894464",
+    "Emissions_Core": "0",
+    "Emissions_LP": "12755895747170864726016",
+    "Emissions_Total": "12755895747170864726016",
+    "Address": "0xc7a070a66c7f2C61D65A3E17F5995650F4475D13",
+    "ClaimedYield": "0",
+    "PendingYield": "1145301996718994358272"
+  },
+  "57": {
+    "Weight_Core": "0",
+    "Weight_LP": "234410709999999984336896",
+    "Emissions_Core": "0",
+    "Emissions_LP": "2494045039483005960192",
+    "Emissions_Total": "2494045039483005960192",
+    "Address": "0xca4173f5f808047807B14Dff03CB4Ba11D2CE1B8",
+    "ClaimedYield": "0",
+    "PendingYield": "48708702835408691200"
+  },
+  "59": {
+    "Weight_Core": "0",
+    "Weight_LP": "399936400000000014155776",
+    "Emissions_Core": "0",
+    "Emissions_LP": "4255178419657922052096",
+    "Emissions_Total": "4255178419657922052096",
+    "Address": "0xe17DD95691F49F1A8f9f6895d0BF4751E869f8CA",
+    "ClaimedYield": "0",
+    "PendingYield": "82834616801453604864"
+  },
+  "12": {
+    "Weight_Core": "79987279999999995314962432",
+    "Weight_LP": "399936400000000014155776",
+    "Emissions_Core": "2990287127606717317120",
+    "Emissions_LP": "4255178419657922052096",
+    "Emissions_Total": "7245465547264639369216",
+    "Address": "0xe39c201F5f16E46B91c8Ed4018a233b437612078",
+    "ClaimedYield": "0",
+    "PendingYield": "403927532509015179264"
+  },
+  "55": {
+    "Weight_Core": "0",
+    "Weight_LP": "300000000000000008388608",
+    "Emissions_Core": "0",
+    "Emissions_LP": "3191891325464190386176",
+    "Emissions_Total": "3191891325464190386176",
+    "Address": "0xeE7d405278fE880F5d4b52096f076a520D509628",
+    "ClaimedYield": "0",
+    "PendingYield": "64626545699999997952"
+  },
+  "26": {
+    "Weight_Core": "25174593608274061329170432",
+    "Weight_LP": "5160214499999999827378176",
+    "Emissions_Core": "941140431448003706880",
+    "Emissions_LP": "54902813000281773572096",
+    "Emissions_Total": "55843953431729775050752",
+    "Address": "0xeeACe61fD1EAb9090EF451B2b52b076dc046Fd62",
+    "ClaimedYield": "4787296804137031680",
+    "PendingYield": "1427540654571555127296"
+  },
+  "3": {
+    "Weight_Core": "40767080000000002271215616",
+    "Weight_LP": "0",
+    "Emissions_Core": "1524058257189308989440",
+    "Emissions_LP": "0",
+    "Emissions_Total": "1524058257189308989440",
+    "Address": "0xefBAb868E9C7429D8C39531BaC62609A957AeFe7",
+    "ClaimedYield": "0",
+    "PendingYield": "55019618071720001536"
+  },
+  "27": {
+    "Weight_Core": "12465768013623773288726528",
+    "Weight_LP": "3599999999999999832227840",
+    "Emissions_Core": "466026918615944069120",
+    "Emissions_LP": "38302695905570280439808",
+    "Emissions_Total": "38768722824186220773376",
+    "Address": "0xf1c1f3D490409c1133F220A4392DB46d2264f398",
+    "ClaimedYield": "2659784356811886592",
+    "PendingYield": "969093314997432090624"
+  },
+  "6": {
+    "Weight_Core": "247421319895106939925823488",
+    "Weight_LP": "0",
+    "Emissions_Core": "9249730556881070456832",
+    "Emissions_LP": "0",
+    "Emissions_Total": "9249730556881070456832",
+    "Address": "0xf87e330B77C6154b84320c18184ca63bF501eb26",
+    "ClaimedYield": "0",
+    "PendingYield": "324661307539961413632"
+  },
+  "52": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0xfd4bd07eF95a8C53eb7192fA055909c716f01409",
+    "ClaimedYield": "453445110943420841984",
+    "PendingYield": "5846603648204232720384"
+  },
+  "61": {
+    "Weight_Core": "0",
+    "Weight_LP": "0",
+    "Emissions_Core": "0",
+    "Emissions_LP": "0",
+    "Emissions_Total": "0",
+    "Address": "0xfdeb3959995e796d2eF57277cA3DEf7312704982",
+    "ClaimedYield": "13631922000000000000",
+    "PendingYield": "15429645345671999488"
+  }
+}
