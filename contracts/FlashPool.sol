@@ -177,6 +177,7 @@ contract FlashPool is
         fnSelector.verifyNonZeroInput(uint160(_poolToken), 2);
         fnSelector.verifyNonZeroInput(_initTime, 4);
         fnSelector.verifyNonZeroInput(_weight, 6);
+        fnSelector.verifyInput(_endTime > _now256(), 5);
 
         __FactoryControlled_init(factory_);
         __ReentrancyGuard_init();
