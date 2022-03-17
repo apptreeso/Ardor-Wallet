@@ -15,7 +15,7 @@ import { toWei } from "../test/utils";
 
 import { config } from "./config/index";
 
-import rinkebyData from "./data/yield_data_rinkeby.json";
+import rinkebyData from "./data/weight_data_rinkeby_v1.json";
 
 const parseEther = ethers.utils.parseEther;
 
@@ -29,11 +29,12 @@ async function main(): Promise<void> {
   const parsedData = JSON.parse(JSON.stringify(rinkebyData));
   let treeData = [];
 
+
   for (let i = 0; i < 63; i++) {
     treeData[i] = {
       account: parsedData[i].Address as string,
       pendingV1Rewards: ethers.BigNumber.from(parsedData[i].PendingYield).add(ethers.BigNumber.from(parsedData[i].Emissions_Total)),
-      weight: ethers.BigNumber.from(parsedData[i].ClaimedYield),
+      weight: Number(parsedData[i].ClaimedYield) != 0 ? ethers.BigNumber.from(parsedData[i].ClaimedYield).mul(2e6) : ethers.BigNumber.from(1),
     };
   }
 
@@ -44,6 +45,8 @@ async function main(): Promise<void> {
       weight: parseEther(String(Math.floor(Math.random() * 10))),
     };
   }
+
+  // const treeDataJSON = JSON.stringify(treeData.map(e => ({ ...e, pendingV1Rewards: e.pendingV1Rewards.toString(), weight: e.weight.toString() })))
 
   fs.writeFileSync("./scripts/data/treeA.json", JSON.stringify(treeData));
 
@@ -59,10 +62,10 @@ async function main(): Promise<void> {
       config.SECONDS_PER_UPDATE,
       // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
       // (new Date().getTime() / 1000).toFixed(0),
-      1647413377,
+      1647604109,
       // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 192).toFixed(0),
       // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
-      (1647413377 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+      (1647604109 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
     ],
     { kind: "uups" },
   )) as PoolFactory;
@@ -79,12 +82,12 @@ async function main(): Promise<void> {
       config.silv,
       config.ilv,
       factory.address,
-      1647413377,
+      1647604109,
       // (new Date().getTime() / 1000).toFixed(0),
       // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
       config.ILV_POOL_WEIGHT,
       config.ilvPoolV1,
-      1647413377,
+      1647604109,
       // (new Date().getTime() / 1000).toFixed(0),
       // ethers.constants.MaxUint256,
     ],
@@ -102,12 +105,12 @@ async function main(): Promise<void> {
       config.silv,
       config.lp,
       factory.address,
-      1647413377,
+      1647604109,
       // (new Date().getTime() / 1000).toFixed(0),
       // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
       config.LP_POOL_WEIGHT,
       config.lpPoolV1,
-      1647413377,
+      1647604109,
       // (new Date().getTime() / 1000).toFixed(0),
       // ethers.constants.MaxUint256,
     ],
@@ -130,7 +133,7 @@ async function main(): Promise<void> {
   console.log(lpPool.address);
   console.log(factory.address);
 
-  // const ilvPool = await ethers.getContractAt("ILVPool", "0x0550148036093C3f75410D12d82909941B9aE7d7");
+  // const ilvPool = await ethers.getContractAt("ILVPool", "0xc13114989C1cA615531fa29596b1E6Ec8E3Cba4F");
   // // const usersData = [
   // //   {
   // //     account: "0x0d5880bA57De46d6e00CA5d7A5d25A7eb9b573e7",
