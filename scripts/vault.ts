@@ -19,6 +19,9 @@ async function main(): Promise<void> {
   const vault = await deployVaultTx.deployed();
   console.log(`Vault contract deployed at ${vault.address}`);
 
+  const ilvPoolAddress = '0xF13d7BE83957C5ba20fa056e6dc08bA45e24c511';
+  const lpPoolAddress = '0xD52cf708252d27409b1cF8F6d27908DA620ea8e7';
+
   const ilvPool = <ILVPool>await ethers.getContractAt("ILVPool", "0xF13d7BE83957C5ba20fa056e6dc08bA45e24c511")
   const lpPool = <SushiLPPool>await ethers.getContractAt("SushiLPPool", "0xD52cf708252d27409b1cF8F6d27908DA620ea8e7")
 
@@ -27,6 +30,10 @@ async function main(): Promise<void> {
   console.log("Success!");
   console.log("Setting vault in the LP pool..");
   await lpPool.setVault(vault.address);
+  console.log("Success!");
+
+  console.log("Setting core pools in the vault..");
+  await  vault.setCorePools(ilvPoolAddress, lpPoolAddress, ilvPoolAddress, lpPoolAddress);
   console.log("Success!");
 }
 
