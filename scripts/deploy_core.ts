@@ -20,9 +20,9 @@ import rinkebyData from "./data/weight_data_rinkeby_v1.json";
 const parseEther = ethers.utils.parseEther;
 
 async function main(): Promise<void> {
-  const ILVPool = <ILVPool__factory>await ethers.getContractFactory("ILVPool");
-  const SushiLPPool = <SushiLPPool__factory>await ethers.getContractFactory("SushiLPPool");
-  const PoolFactory = <PoolFactory__factory>await ethers.getContractFactory("PoolFactory");
+  const ILVPool = <ILVPool__factory>await ethers.getContractFactory("ILVPoolMock");
+  const SushiLPPool = <SushiLPPool__factory>await ethers.getContractFactory("SushiLPPoolMock");
+  const PoolFactory = <PoolFactory__factory>await ethers.getContractFactory("PoolFactoryMock");
 
   console.log("generating merkle tree...");
 
@@ -52,7 +52,7 @@ async function main(): Promise<void> {
 
   // const treeDataJSON = JSON.stringify(treeData.map(e => ({ ...e, pendingV1Rewards: e.pendingV1Rewards.toString(), weight: e.weight.toString() })))
 
-  fs.writeFileSync("./scripts/data/treeA.json", JSON.stringify(treeData));
+  fs.writeFileSync("./scripts/data/treeC.json", JSON.stringify(treeData));
 
   console.log("merkle tree generated!");
   console.log("deploying pool factory...");
@@ -65,11 +65,11 @@ async function main(): Promise<void> {
       config.ILV_PER_SECOND.div(20),
       config.SECONDS_PER_UPDATE,
       // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
-      // (new Date().getTime() / 1000).toFixed(0),
-      1647604109,
+      (new Date().getTime() / 1000).toFixed(0),
+      // 1647820824,
       // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 192).toFixed(0),
-      // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
-      (1647604109 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+      (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
+      // (1647820824 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
     ],
     { kind: "uups" },
   )) as PoolFactory;
@@ -86,13 +86,13 @@ async function main(): Promise<void> {
       config.silv,
       config.ilv,
       factory.address,
-      1647604109,
-      // (new Date().getTime() / 1000).toFixed(0),
+      // 1647820824,
+      (new Date().getTime() / 1000).toFixed(0),
       // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
       config.ILV_POOL_WEIGHT,
       config.ilvPoolV1,
-      1647604109,
-      // (new Date().getTime() / 1000).toFixed(0),
+      // 1647820824,
+      (new Date().getTime() / 1000).toFixed(0),
       // ethers.constants.MaxUint256,
     ],
     { kind: "uups" },
@@ -109,13 +109,13 @@ async function main(): Promise<void> {
       config.silv,
       config.lp,
       factory.address,
-      1647604109,
-      // (new Date().getTime() / 1000).toFixed(0),
+      // 1647820824,
+      (new Date().getTime() / 1000).toFixed(0),
       // (new Date().getTime() / 1000 + config.SECONDS_PER_UPDATE * 96).toFixed(0),
       config.LP_POOL_WEIGHT,
       config.lpPoolV1,
-      1647604109,
-      // (new Date().getTime() / 1000).toFixed(0),
+      // 1647820824,
+      (new Date().getTime() / 1000).toFixed(0),
       // ethers.constants.MaxUint256,
     ],
     { kind: "uups" },
