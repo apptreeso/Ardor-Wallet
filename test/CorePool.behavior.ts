@@ -742,6 +742,34 @@ export function migrationTests(usingPool: string): () => void {
       expect(aliceSILVBalance1.sub(aliceSILVBalance0)).to.be.equal(alicePendingYield1);
       expect(bobSILVBalance1.sub(bobSILVBalance0)).to.be.equal(bobPendingYield1);
     });
+    it("should accumulate and claim rewards with migrated locked stakes only - sILV", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+
+      await pool.connect(this.signers.alice).migrateLockedStakes([0, 2]);
+
+      await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
+
+      const totalV1UsersWeight = await v1Pool.usersLockingWeight();
+      await pool.connect(this.signers.deployer).setV1GlobalWeight(totalV1UsersWeight);
+
+      await pool.connect(this.signers.alice).claimYieldRewards(true);
+    });
+    it("should accumulate and claim rewards with migrated locked stakes only - ILV", async function () {
+      const pool = getPool(this.ilvPool, this.lpPool, usingPool);
+      const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
+
+      await pool.connect(this.signers.alice).migrateLockedStakes([0, 2]);
+
+      await pool.setNow256(INIT_TIME + 100);
+      await this.factory.setNow256(INIT_TIME + 100);
+
+      const totalV1UsersWeight = await v1Pool.usersLockingWeight();
+      await pool.connect(this.signers.deployer).setV1GlobalWeight(totalV1UsersWeight);
+
+      await pool.connect(this.signers.alice).claimYieldRewards(false);
+    });
     it("should accumulate ILV correctly - with v1 stake ids and increasing v1 weight", async function () {
       const token = getToken(this.ilv, this.lp, usingPool);
       const pool = getPool(this.ilvPool, this.lpPool, usingPool);

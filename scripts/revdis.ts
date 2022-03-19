@@ -14,7 +14,6 @@ const { parseEther, formatEther } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 
 async function main(): Promise<void> {
-
   const vault = <Vault>await ethers.getContractAt("Vault", "0x26d00ea377f27059d62D760DC850803880e9c567");
   const sushiRouter = await ethers.getContractAt(routerAbi, config.router);
   const ethIn = ethers.utils.parseEther("0.1");
@@ -25,7 +24,7 @@ async function main(): Promise<void> {
   await tx.wait();
   console.log("Ether received by the vault!");
 
-  const [, ilvOut] = await sushiRouter.getAmountsOut(ethIn, [config.weth ,config.ilv]);
+  const [, ilvOut] = await sushiRouter.getAmountsOut(ethIn, [config.weth, config.ilv]);
   console.log("Swapping vault ETH balance for ILV..");
   const tx0 = await vault.swapETHForILV(ethIn, ilvOut, MaxUint256);
   await tx0.wait();

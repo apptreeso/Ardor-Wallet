@@ -29,12 +29,16 @@ async function main(): Promise<void> {
   const parsedData = JSON.parse(JSON.stringify(rinkebyData));
   let treeData = [];
 
-
   for (let i = 0; i < 63; i++) {
     treeData[i] = {
       account: parsedData[i].Address as string,
-      pendingV1Rewards: ethers.BigNumber.from(parsedData[i].PendingYield).add(ethers.BigNumber.from(parsedData[i].Emissions_Total)),
-      weight: Number(parsedData[i].ClaimedYield) != 0 ? ethers.BigNumber.from(parsedData[i].ClaimedYield).mul(2e6) : ethers.BigNumber.from(1),
+      pendingV1Rewards: ethers.BigNumber.from(parsedData[i].PendingYield).add(
+        ethers.BigNumber.from(parsedData[i].Emissions_Total),
+      ),
+      weight:
+        Number(parsedData[i].ClaimedYield) != 0
+          ? ethers.BigNumber.from(parsedData[i].ClaimedYield).mul(2e6)
+          : ethers.BigNumber.from(1),
     };
   }
 

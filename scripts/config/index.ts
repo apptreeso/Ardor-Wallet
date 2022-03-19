@@ -6,7 +6,7 @@ export const toWei = (value: number): BigNumber => ethers.utils.parseEther(value
 export const config = {
   ilv: "0xb671194b2e9fb884f65b92a1dbab875e5f76ec5c",
   silv: "0x634E7Ce4e81f1F4D033399C0672d3df94e38698E",
-  weth: '0xc778417E063141139Fce010982780140Aa0cD5Ab',
+  weth: "0xc778417E063141139Fce010982780140Aa0cD5Ab",
   lp: "0x65544e52fc7ab9281b6d543012825e810cd86f4f",
   ilvPoolV1: "0x5E309204D729aC804e6D381ce68aD1Ad613c84B4",
   lpPoolV1: "0x4c9F1bDB5D145fa9cCc5d8721781194F01041411",

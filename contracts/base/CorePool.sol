@@ -185,10 +185,9 @@ abstract contract CorePool is
      *            in case of a multiple claim call)
      * @param from an address which received the yield
      * @param sILV flag indicating if reward was paid (minted) in sILV
-     * @param stakeId id of the new stake created (0 if sILV = true)
      * @param value value of yield paid
      */
-    event LogClaimYieldRewards(address indexed by, address indexed from, bool sILV, uint256 stakeId, uint256 value);
+    event LogClaimYieldRewards(address indexed by, address indexed from, bool sILV, uint256 value);
 
     /**
      * @dev Fired in `_claimVaultRewards()`.
@@ -970,7 +969,7 @@ abstract contract CorePool is
         }
 
         // emits an event
-        emit LogClaimYieldRewards(msg.sender, _staker, _useSILV, (user.stakes.length - 1), pendingYieldToClaim);
+        emit LogClaimYieldRewards(msg.sender, _staker, _useSILV, pendingYieldToClaim);
     }
 
     /**
