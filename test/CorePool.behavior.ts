@@ -725,20 +725,20 @@ export function migrationTests(usingPool: string): () => void {
       const aliceSILVBalance1 = await this.silv.balanceOf(this.signers.alice.address);
       const bobSILVBalance1 = await this.silv.balanceOf(this.signers.bob.address);
 
-      // expect(
-      //   Number(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards0.toString())).slice(0, 5)),
-      // ).to.be.closeTo(Number(ethers.utils.formatEther(alicePendingYield0).slice(0, 5)), 0.01);
-      // expect(
-      //   Number(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards0.toString())).slice(0, 5)),
-      // ).to.be.closeTo(Number(ethers.utils.formatEther(bobPendingYield0).slice(0, 5)), 0.01);
-      // expect(Number(ethers.utils.formatEther(alicePendingYield1.add(bobPendingYield1)).slice(0, 5))).to.be.closeTo(
-      //   Number(ethers.utils.formatEther(ethers.BigNumber.from(totalExpectedRewards1.toString())).slice(0, 5)),
-      //   0.001,
-      // );
-      // expect(Number(ethers.utils.formatEther(bobPendingYield1).slice(0, 5))).to.be.closeTo(
-      //   Number(ethers.utils.formatEther(alicePendingYield1.mul(2)).slice(0, 5)),
-      //   0.001,
-      // );
+      expect(
+        Number(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards0.toString())).slice(0, 5)),
+      ).to.be.closeTo(Number(ethers.utils.formatEther(alicePendingYield0).slice(0, 5)), 0.01);
+      expect(
+        Number(ethers.utils.formatEther(ethers.BigNumber.from(expectedRewards0.toString())).slice(0, 5)),
+      ).to.be.closeTo(Number(ethers.utils.formatEther(bobPendingYield0).slice(0, 5)), 0.01);
+      expect(Number(ethers.utils.formatEther(alicePendingYield1.add(bobPendingYield1)).slice(0, 5))).to.be.closeTo(
+        Number(ethers.utils.formatEther(ethers.BigNumber.from(totalExpectedRewards1.toString())).slice(0, 5)),
+        0.001,
+      );
+      expect(Number(ethers.utils.formatEther(bobPendingYield1).slice(0, 5))).to.be.closeTo(
+        Number(ethers.utils.formatEther(alicePendingYield1.mul(2)).slice(0, 5)),
+        0.001,
+      );
       expect(aliceSILVBalance1.sub(aliceSILVBalance0)).to.be.equal(alicePendingYield1);
       expect(bobSILVBalance1.sub(bobSILVBalance0)).to.be.equal(bobPendingYield1);
     });
