@@ -74,6 +74,11 @@ const config: HardhatUserConfig = {
       accounts: [`0x${process.env.PRIVATE_KEY}`],
       gasPrice: 10000000000,
     },
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts: [`0x${process.env.PRIVATE_KEY}`],
+      gasPrice: 55000000000,
+    },
   },
   paths: {
     artifacts: "./artifacts",
