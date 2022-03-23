@@ -80,6 +80,7 @@
     "typechain": "hardhat typechain"
   },
   "dependencies": {
+    "@nomiclabs/hardhat-etherscan": "^3.0.3",
     "@openzeppelin/contracts": "^4.3.3",
     "@openzeppelin/contracts-upgradeable": "^4.3.3",
     "@openzeppelin/hardhat-upgrades": "^1.10.0",

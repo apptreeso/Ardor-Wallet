@@ -4,6 +4,7 @@ import "hardhat-gas-reporter";
 import "@openzeppelin/hardhat-upgrades";
 import "solidity-coverage";
 import "hardhat-contract-sizer";
+import "@nomiclabs/hardhat-etherscan";
 
 import "./tasks/accounts";
 import "./tasks/clean";
@@ -77,7 +78,7 @@ const config: HardhatUserConfig = {
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts: [`0x${process.env.PRIVATE_KEY}`],
-      gasPrice: 55000000000,
+      gasPrice: 60000000000,
     },
   },
   paths: {
@@ -110,6 +111,9 @@ const config: HardhatUserConfig = {
     alphaSort: true,
     runOnCompile: true,
     disambiguatePaths: false,
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_KEY,
   },
 };
 
