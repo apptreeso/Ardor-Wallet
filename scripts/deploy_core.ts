@@ -81,8 +81,8 @@ async function main(): Promise<void> {
 
   const ilvPool = await ilvPoolPending.deployed();
   console.log(`ILV Pool deployed at ${ilvPool.address}`);
-  console.log(`setting v1 global weight: ${config.V1_GLOBAL_WEIGHT}`);
-  const weightTx = await ilvPool.setV1GlobalWeight(ethers.BigNumber.from(config.V1_GLOBAL_WEIGHT));
+  console.log(`setting v1 global weight: ${config.V1_DEPOSITS_GLOBAL_WEIGHT}`);
+  const weightTx = await ilvPool.setV1GlobalWeight(ethers.BigNumber.from(config.V1_DEPOSITS_GLOBAL_WEIGHT));
   await weightTx.wait();
   console.log("done!");
   console.log(`setting v1 pool token reserve: ${config.V1_POOL_TOKEN_RESERVE}`);
