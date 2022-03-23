@@ -3,6 +3,7 @@ import { ethers } from "hardhat";
 
 export const toWei = (value: number): BigNumber => ethers.utils.parseEther(value.toString());
 
+// rinkeby config
 // export const config = {
 //   ilv: "0xb671194b2e9fb884f65b92a1dbab875e5f76ec5c",
 //   silv: "0x634E7Ce4e81f1F4D033399C0672d3df94e38698E",
@@ -20,6 +21,7 @@ export const toWei = (value: number): BigNumber => ethers.utils.parseEther(value
 //   SECONDS_PER_UPDATE: 1209600,
 // };
 
+// mainnet config
 export const config = {
   ilv: "0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E",
   silv: "0x7E77dCb127F99ECe88230a64Db8d595F31F1b068",
