@@ -39,7 +39,7 @@ async function main(): Promise<void> {
     };
   }
 
-  console.log(`Tree length is ${treeData.length}`)
+  console.log(`tree length is ${treeData.length}`)
 
   fs.writeFileSync("./scripts/data/mainnet_tree.json", JSON.stringify(treeData));
 
@@ -61,7 +61,7 @@ async function main(): Promise<void> {
 
   const factory = await factoryPending.deployed();
 
-  console.log(`Pool factory deployed at ${factory.address}`);
+  console.log(`Pool Factory deployed at ${factory.address}`);
   console.log("deploying ILV pool...");
 
   const ilvPoolPending = (await upgrades.deployProxy(
@@ -81,21 +81,21 @@ async function main(): Promise<void> {
 
   const ilvPool = await ilvPoolPending.deployed();
   console.log(`ILV Pool deployed at ${ilvPool.address}`);
-  console.log(`Setting v1 global weight: ${config.V1_GLOBAL_WEIGHT}`);
+  console.log(`setting v1 global weight: ${config.V1_GLOBAL_WEIGHT}`);
   const weightTx = await ilvPool.setV1GlobalWeight(ethers.BigNumber.from(config.V1_GLOBAL_WEIGHT));
   await weightTx.wait();
-  console.log("Done!");
-  console.log(`Setting v1 pool token reserve: ${config.V1_POOL_TOKEN_RESERVE}`);
+  console.log("done!");
+  console.log(`setting v1 pool token reserve: ${config.V1_POOL_TOKEN_RESERVE}`);
   const tokenReserveTX = await ilvPool.setV1PoolTokenReserve(ethers.BigNumber.from(config.V1_POOL_TOKEN_RESERVE));
   await tokenReserveTX.wait()
-  console.log("Done!");
+  console.log("done!");
 
   const merkleTree = new YieldTree(treeData);
-  console.log(`Setting merkle root: ${merkleTree.getHexRoot()}`);
+  console.log(`setting merkle root: ${merkleTree.getHexRoot()}`);
   const tx = await ilvPool.setMerkleRoot(merkleTree.getHexRoot());
   await tx.wait();
   console.log("mined!");
-  console.log(`Merkle root set: ${await ilvPool.merkleRoot()}`);
+  console.log(`merkle root set: ${await ilvPool.merkleRoot()}`);
 
   console.log("deploying Sushi LP pool...");
   const lpPoolPending = (await upgrades.deployProxy(
@@ -114,7 +114,7 @@ async function main(): Promise<void> {
   )) as SushiLPPool;
 
   const lpPool = await lpPoolPending.deployed();
-  console.log(`LP Pool deployed at ${lpPool.address}`);
+  console.log(`Sushi LP Pool deployed at ${lpPool.address}`);
   console.log("registering deployed core pools in the factory..");
 
   const tx0 = await factory.registerPool(ilvPool.address);
