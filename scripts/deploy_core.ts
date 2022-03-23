@@ -85,8 +85,8 @@ async function main(): Promise<void> {
   const weightTx = await ilvPool.setV1GlobalWeight(ethers.BigNumber.from(config.V1_DEPOSITS_GLOBAL_WEIGHT));
   await weightTx.wait();
   console.log("done!");
-  console.log(`setting v1 pool token reserve: ${config.V1_POOL_TOKEN_RESERVE}`);
-  const tokenReserveTX = await ilvPool.setV1PoolTokenReserve(ethers.BigNumber.from(config.V1_POOL_TOKEN_RESERVE));
+  console.log(`setting v1 pool token reserve: ${config.V1_DEPOSITS_POOL_TOKEN_RESERVE}`);
+  const tokenReserveTX = await ilvPool.setV1PoolTokenReserve(ethers.BigNumber.from(config.V1_DEPOSITS_POOL_TOKEN_RESERVE));
   await tokenReserveTX.wait()
   console.log("done!");
 
