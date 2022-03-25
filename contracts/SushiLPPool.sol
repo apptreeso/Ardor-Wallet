@@ -34,7 +34,7 @@ contract SushiLPPool is Initializable, V2Migrator {
 
     /// @inheritdoc CorePool
     function getTotalReserves() external view virtual override returns (uint256 totalReserves) {
-        totalReserves = poolTokenReserve + ICorePoolV1(corePoolV1).usersLockingWeight();
+        totalReserves = poolTokenReserve + ICorePoolV1(corePoolV1).poolTokenReserve();
     }
 
     /**
