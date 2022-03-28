@@ -25,8 +25,11 @@ abstract contract V2Migrator is Initializable, CorePool {
     /// @dev Maps v1 addresses that are black listed for v2 migration.
     mapping(address => bool) public isBlacklisted;
 
-    /// @dev Stores maximum timestamp of a v1 stake (yield or deposit) accepted in v2.
+    /// @dev Stores maximum timestamp of a v1 stake (yield) accepted in v2.
     uint256 internal _v1StakeMaxPeriod;
+
+    /// @dev Stores maximum timestamp of a v1 stake (deposit) accepted in v2.
+    uint256 internal constant _v1DepositMaxPeriod = 1648150500;
 
     /**
      * @dev logs `_migrateLockedStakes()`
@@ -142,7 +145,7 @@ abstract contract V2Migrator is Initializable, CorePool {
                 _stakeIds[i]
             );
             // checks if the v1 stake is in the valid period for migration
-            fnSelector.verifyState(lockedFrom <= _v1StakeMaxPeriod, i * 3);
+            fnSelector.verifyState(lockedFrom <= _v1DepositMaxPeriod, i * 3);
             // checks if the v1 stake has been locked originally and isn't a yield
             // stake, which are the requirements for moving to v2 through this function
             fnSelector.verifyState(lockedFrom > 0 && !isYield, i * 3 + 1);
