@@ -16,6 +16,7 @@ import {
   getV1Pool,
   getUsers0,
   getUsers1,
+  getUsers4,
 } from "./utils";
 import YieldTree from "./utils/yield-tree";
 import { ILVPoolUpgrade, SushiLPPoolUpgrade, PoolFactoryUpgrade } from "../types";
@@ -553,7 +554,7 @@ export function migrationTests(usingPool: string): () => void {
     beforeEach(async function () {
       const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
 
-      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+      const users = getUsers4([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
       await v1Pool.setUsers(users);
       const initialV1GlobalWeight = await v1Pool.usersLockingWeight();
@@ -620,7 +621,7 @@ export function migrationTests(usingPool: string): () => void {
 
         await expect(pool.connect(this.signers.bob).migrateLockedStakes([0])).reverted;
       });
-      it("should revert if lockedFrom > v1StakeMaxPeriod", async function () {
+      it("should revert if lockedFrom > v1DepositMaxPeriod", async function () {
         const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
         await expect(pool.connect(this.signers.bob).migrateLockedStakes([1])).reverted;
