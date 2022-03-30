@@ -28,6 +28,23 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
+export function getTotalReserves(): () => void {
+  return function () {
+    it("should update the pool token reserves properly", async function () {
+      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+
+      await this.lpPoolV1.setUsers(users);
+
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
+
+      const totalReserves = await this.lpPool.getTotalReserves();
+
+      expect(totalReserves).to.be.equal(toWei(2300));
+    });
+  };
+}
+
 export function pause(usingPool: string): () => void {
   return function () {
     it("should pause the pools", async function () {

@@ -46,6 +46,7 @@ import {
   unstakeLockedMultiple,
   moveFundsFromWallet,
   merkleTree,
+  getTotalReserves,
 } from "./CorePool.behavior";
 
 chai.use(solidity);
@@ -130,59 +131,62 @@ describe("CorePools", function () {
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.bob), toWei(10000));
     await this.lp.connect(this.signers.deployer).transfer(await toAddress(this.signers.carol), toWei(10000));
   });
-  // describe("Upgrades", upgradePools());
-  // describe("#setEndTime", setEndTime());
-  // describe("#getPoolData", function () {
-  //   context("ILV Pool", getPoolData("ILV"));
-  //   context("Sushi LP Pool", getPoolData("LP"));
-  // });
-  // describe("#blacklistUser", function () {
-  //   context("ILV Pool", blacklistUsers("ILV"));
-  //   context("Sushi LP Pool", blacklistUsers("LP"));
-  // });
-  // describe("#stake", function () {
-  //   context("ILV Pool", stake("ILV"));
-  //   context("Sushi LP Pool", stake("LP"));
-  // });
-  // describe("#pendingYield", function () {
-  //   context("ILV Pool", pendingYield("ILV"));
-  //   context("Sushi LP Pool", pendingYield("LP"));
-  // });
-  // describe("#claimYieldRewards", function () {
-  //   context("ILV Pool", claimYieldRewards("ILV"));
-  //   context("Sushi LP Pool", claimYieldRewards("LP"));
-  // });
-  // describe("#claimYieldRewardsMultiple", claimYieldRewardsMultiple());
-  // describe("#unstakeLocked", function () {
-  //   context("ILV Pool", unstakeLocked("ILV"));
-  //   context("Sushi LP Pool", unstakeLocked("LP"));
-  // });
-  // describe("#sync", function () {
-  //   context("ILV Pool", sync("ILV"));
-  //   context("Sushi LP Pool", sync("LP"));
-  // });
-  // describe("#setWeight", function () {
-  //   context("ILV Pool", setWeight("ILV"));
-  //   context("Sushi LP Pool", setWeight("LP"));
-  // });
-  // describe("#moveFundsFromWallet", function () {
-  //   context("ILV Pool", moveFundsFromWallet("ILV"));
-  //   context("Sushi LP Pool", moveFundsFromWallet("LP"));
-  // });
-  // describe("#unstakeLockedMultiple", function () {
-  //   context("ILV Pool", unstakeLockedMultiple("ILV"));
-  //   context("Sushi LP Pool", unstakeLockedMultiple("LP"));
-  // });
-  // describe("#pause", function () {
-  //   context("ILV Pool", pause("ILV"));
-  //   context("Sushi LP Pool", pause("LP"));
-  // });
+  describe("Upgrades", upgradePools());
+  describe("#setEndTime", setEndTime());
+  describe("#getPoolData", function () {
+    context("ILV Pool", getPoolData("ILV"));
+    context("Sushi LP Pool", getPoolData("LP"));
+  });
+  describe("#blacklistUser", function () {
+    context("ILV Pool", blacklistUsers("ILV"));
+    context("Sushi LP Pool", blacklistUsers("LP"));
+  });
+  describe("#stake", function () {
+    context("ILV Pool", stake("ILV"));
+    context("Sushi LP Pool", stake("LP"));
+  });
+  describe("#pendingYield", function () {
+    context("ILV Pool", pendingYield("ILV"));
+    context("Sushi LP Pool", pendingYield("LP"));
+  });
+  describe("#claimYieldRewards", function () {
+    context("ILV Pool", claimYieldRewards("ILV"));
+    context("Sushi LP Pool", claimYieldRewards("LP"));
+  });
+  describe("#claimYieldRewardsMultiple", claimYieldRewardsMultiple());
+  describe("#unstakeLocked", function () {
+    context("ILV Pool", unstakeLocked("ILV"));
+    context("Sushi LP Pool", unstakeLocked("LP"));
+  });
+  describe("#sync", function () {
+    context("ILV Pool", sync("ILV"));
+    context("Sushi LP Pool", sync("LP"));
+  });
+  describe("#setWeight", function () {
+    context("ILV Pool", setWeight("ILV"));
+    context("Sushi LP Pool", setWeight("LP"));
+  });
+  describe("#moveFundsFromWallet", function () {
+    context("ILV Pool", moveFundsFromWallet("ILV"));
+    context("Sushi LP Pool", moveFundsFromWallet("LP"));
+  });
+  describe("#unstakeLockedMultiple", function () {
+    context("ILV Pool", unstakeLockedMultiple("ILV"));
+    context("Sushi LP Pool", unstakeLockedMultiple("LP"));
+  });
+  describe("#pause", function () {
+    context("ILV Pool", pause("ILV"));
+    context("Sushi LP Pool", pause("LP"));
+  });
   describe("Migration tests", function () {
     context("ILV Pool", migrationTests("ILV"));
     context("Sushi LP Pool", migrationTests("LP"));
-    // context("Mint yield", mintV1Yield());
+    context("Mint yield", mintV1Yield());
   });
-  // describe("Merkle tree tests", function () {
-  //   context("ILV Pool", merkleTree());
-  // });
+  describe("Merkle tree tests", function () {
+    context("ILV Pool", merkleTree());
+  });
+  describe("#getTotalReserves", function () {
+    context("Sushi LP Pool", getTotalReserves());
+  });
 });
