@@ -14,7 +14,7 @@ import YieldTree from "../test/utils/yield-tree";
 
 import { config } from "./config/index";
 
-import mainnetData from './data/mainnet_raw.json';
+import mainnetData from "./data/mainnet_raw.json";
 
 async function main(): Promise<void> {
   const ILVPool = <ILVPool__factory>await ethers.getContractFactory("ILVPool");
@@ -39,7 +39,7 @@ async function main(): Promise<void> {
     };
   }
 
-  console.log(`tree length is ${treeData.length}`)
+  console.log(`tree length is ${treeData.length}`);
 
   fs.writeFileSync("./scripts/data/mainnet_tree.json", JSON.stringify(treeData));
 
@@ -74,7 +74,7 @@ async function main(): Promise<void> {
       config.INIT_TIMESTAMP,
       config.ILV_POOL_WEIGHT,
       config.ilvPoolV1,
-      config.STAKING_V1_END_TIMESTAMP
+      config.STAKING_V1_END_TIMESTAMP,
     ],
     { kind: "uups" },
   )) as ILVPool;
@@ -86,8 +86,10 @@ async function main(): Promise<void> {
   await weightTx.wait();
   console.log("done!");
   console.log(`setting v1 pool token reserve: ${config.V1_DEPOSITS_POOL_TOKEN_RESERVE}`);
-  const tokenReserveTX = await ilvPool.setV1PoolTokenReserve(ethers.BigNumber.from(config.V1_DEPOSITS_POOL_TOKEN_RESERVE));
-  await tokenReserveTX.wait()
+  const tokenReserveTX = await ilvPool.setV1PoolTokenReserve(
+    ethers.BigNumber.from(config.V1_DEPOSITS_POOL_TOKEN_RESERVE),
+  );
+  await tokenReserveTX.wait();
   console.log("done!");
 
   const merkleTree = new YieldTree(treeData);
@@ -108,7 +110,7 @@ async function main(): Promise<void> {
       config.INIT_TIMESTAMP,
       config.LP_POOL_WEIGHT,
       config.lpPoolV1,
-      config.STAKING_V1_END_TIMESTAMP
+      config.STAKING_V1_END_TIMESTAMP,
     ],
     { kind: "uups" },
   )) as SushiLPPool;

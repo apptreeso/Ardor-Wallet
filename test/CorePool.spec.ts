@@ -46,6 +46,7 @@ import {
   unstakeLockedMultiple,
   moveFundsFromWallet,
   merkleTree,
+  getTotalReserves,
 } from "./CorePool.behavior";
 
 chai.use(solidity);
@@ -184,5 +185,8 @@ describe("CorePools", function () {
   });
   describe("Merkle tree tests", function () {
     context("ILV Pool", merkleTree());
+  });
+  describe("#getTotalReserves", function () {
+    context("Sushi LP Pool", getTotalReserves());
   });
 });

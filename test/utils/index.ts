@@ -21,6 +21,8 @@ export const LP_POOL_WEIGHT = 800;
 
 export const V1_STAKE_MAX_PERIOD = 20;
 
+export const V2_STAKING_LAUNCH = 1648150500;
+
 export const toWei = (value: number): BigNumber => ethers.utils.parseEther(value.toString());
 
 export const toAddress = (signer: Signer): Promise<string> => signer.getAddress();
@@ -318,6 +320,80 @@ export const getUsers3 = (addresses: string[]) => [
       {
         tokenAmount: toWei(100),
         weight: toWei(0).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+];
+
+export const getUsers4 = (addresses: string[]) => [
+  {
+    userAddress: addresses[0],
+    deposits: [
+      {
+        tokenAmount: toWei(200),
+        weight: toWei(200).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(500),
+        weight: toWei(500).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: true,
+      },
+      {
+        tokenAmount: toWei(300),
+        weight: toWei(300).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: false,
+      },
+    ],
+  },
+  {
+    userAddress: addresses[1],
+    deposits: [
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100).mul(1e6),
+        lockedFrom: 0,
+        lockedUntil: 0,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100).mul(2e6),
+        lockedFrom: V2_STAKING_LAUNCH + 2,
+        lockedUntil: V2_STAKING_LAUNCH + ONE_YEAR + 2,
+        isYield: false,
+      },
+    ],
+  },
+  {
+    userAddress: addresses[2],
+    deposits: [
+      {
+        tokenAmount: toWei(500),
+        weight: toWei(500).mul(1.5e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR / 2,
+        isYield: false,
+      },
+      {
+        tokenAmount: toWei(400),
+        weight: toWei(400).mul(2e6),
+        lockedFrom: INIT_TIME,
+        lockedUntil: INIT_TIME + ONE_YEAR,
+        isYield: true,
+      },
+      {
+        tokenAmount: toWei(100),
+        weight: toWei(100).mul(2e6),
         lockedFrom: INIT_TIME,
         lockedUntil: INIT_TIME + ONE_YEAR,
         isYield: false,

@@ -16,6 +16,7 @@ import {
   getV1Pool,
   getUsers0,
   getUsers1,
+  getUsers4,
 } from "./utils";
 import YieldTree from "./utils/yield-tree";
 import { ILVPoolUpgrade, SushiLPPoolUpgrade, PoolFactoryUpgrade } from "../types";
@@ -26,6 +27,23 @@ chai.use(solidity);
 chai.use(chaiSubset);
 
 const { expect } = chai;
+
+export function getTotalReserves(): () => void {
+  return function () {
+    it("should update the pool token reserves properly", async function () {
+      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+
+      await this.lpPoolV1.setUsers(users);
+
+      await this.lp.connect(this.signers.alice).approve(this.lpPool.address, MaxUint256);
+      await this.lpPool.connect(this.signers.alice).stake(toWei(100), ONE_YEAR);
+
+      const totalReserves = await this.lpPool.getTotalReserves();
+
+      expect(totalReserves).to.be.equal(toWei(2300));
+    });
+  };
+}
 
 export function pause(usingPool: string): () => void {
   return function () {
@@ -553,7 +571,7 @@ export function migrationTests(usingPool: string): () => void {
     beforeEach(async function () {
       const v1Pool = getV1Pool(this.ilvPoolV1, this.lpPoolV1, usingPool);
 
-      const users = getUsers0([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
+      const users = getUsers4([this.signers.alice.address, this.signers.bob.address, this.signers.carol.address]);
 
       await v1Pool.setUsers(users);
       const initialV1GlobalWeight = await v1Pool.usersLockingWeight();
@@ -620,7 +638,7 @@ export function migrationTests(usingPool: string): () => void {
 
         await expect(pool.connect(this.signers.bob).migrateLockedStakes([0])).reverted;
       });
-      it("should revert if lockedFrom > v1StakeMaxPeriod", async function () {
+      it("should revert if lockedFrom > v1DepositMaxPeriod", async function () {
         const pool = getPool(this.ilvPool, this.lpPool, usingPool);
 
         await expect(pool.connect(this.signers.bob).migrateLockedStakes([1])).reverted;
